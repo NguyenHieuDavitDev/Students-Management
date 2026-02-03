@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="header(pageTitle, pageSubtitle)">
+    <header class="topbar px-3 px-md-4 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+            <button id="sidebarToggle" type="button"
+                    class="btn btn-sm btn-outline-secondary border-0 sidebar-toggle-btn me-2">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <div>
+                <span class="badge rounded-pill badge-soft-primary me-2">
+                    <i class="fa-solid fa-circle text-primary small me-1"></i>
+                    Admin
+                </span>
+                <span class="text-muted small d-none d-sm-inline">Students Management System</span>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-3 text-muted">
+            <a href="/" class="text-decoration-none text-muted small">
+                <i class="fa-solid fa-arrow-left-long me-1"></i>
+                Về trang user
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-primary-subtle d-flex align-items-center justify-content-center"
+                     style="width: 32px; height: 32px;">
+                    <i class="fa-solid fa-user text-primary"></i>
+                </div>
+                <span class="small d-none d-sm-inline">Admin</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="px-3 px-md-4 pt-3 pb-0">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+                <div class="h4 mb-0" th:text="${pageTitle} ?: 'Dashboard'">Dashboard</div>
+                <div class="text-muted small" th:text="${pageSubtitle} ?: ''"></div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+

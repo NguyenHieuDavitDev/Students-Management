@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<aside class="sidebar p-3 d-flex flex-column" th:fragment="sidebar(activeMenu)">
+    <div class="mb-3 d-flex align-items-center gap-2">
+        <div class="brand-icon-wrapper rounded-circle bg-primary d-flex align-items-center justify-content-center"
+             style="width: 32px; height: 32px;">
+            <i class="fa-solid fa-graduation-cap text-white"></i>
+        </div>
+        <div class="brand-text-wrapper">
+            <div class="brand fs-6 mb-0">Students Management</div>
+            <div class="text-white-50 small">Admin dashboard</div>
+        </div>
+    </div>
+
+    <nav class="nav nav-pills flex-column gap-1">
+        <a class="nav-link px-2 py-2"
+           th:href="@{/admin}"
+           th:classappend="${activeMenu}=='overview' ? ' active' : ''">
+            <i class="fa-solid fa-gauge-high"></i>
+            <span>Overview</span>
+        </a>
+        <a class="nav-link px-2 py-2"
+           th:classappend="${activeMenu}=='roles' ? ' active' : ''"
+           th:href="@{/admin/roles}">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>Roles</span>
+        </a>
+    </nav>
+
+
+
+</aside>
+</body>
+</html>
+
