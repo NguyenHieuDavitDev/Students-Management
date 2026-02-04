@@ -26,6 +26,13 @@
             <i class="fa-solid fa-shield-halved"></i>
             <span>Roles</span>
         </a>
+               <!-- Users -->
+        <a class="nav-link px-2 py-2"
+           th:href="@{/admin/users}"
+           th:classappend="${activeMenu}=='users' ? ' active' : ''">
+            <i class="fa-solid fa-users"></i>
+            <span>Users</span>
+        </a>
     </nav>
 
 
