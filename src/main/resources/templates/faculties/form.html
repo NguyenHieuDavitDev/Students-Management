@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit' ? 'Edit faculty' : 'New faculty'),
+        (${mode}=='edit' ? 'Edit faculty' : 'New faculty'),
+        'Faculty details',
+        'faculties',
+        ~{::content}
+      )}">
+<head>
+    <meta charset="utf-8"/>
+    <title>Faculty</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="card">
+        <div class="card-body">
+
+            <div class="alert alert-danger"
+                 th:if="${globalError}"
+                 th:text="${globalError}"></div>
+
+            <form method="post"
+                  th:action="${mode}=='edit'
+                    ? @{/admin/faculties/{id}(id=${facultyId})}
+                    : @{/admin/faculties}"
+                  th:object="${facultyRequest}">
+
+                <div class="mb-3">
+                    <label class="form-label">
+                        Faculty code <span class="text-danger">*</span>
+                    </label>
+                    <input class="form-control"
+                           th:field="*{facultyCode}"
+                           placeholder="e.g. CNTT">
+                    <div class="text-danger small"
+                         th:if="${#fields.hasErrors('facultyCode')}"
+                         th:errors="*{facultyCode}"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">
+                        Faculty name <span class="text-danger">*</span>
+                    </label>
+                    <input class="form-control"
+                           th:field="*{facultyName}"
+                           placeholder="e.g. Công nghệ thông tin">
+                    <div class="text-danger small"
+                         th:if="${#fields.hasErrors('facultyName')}"
+                         th:errors="*{facultyName}"></div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" type="submit"
+                            th:text="${mode}=='edit'
+                              ? 'Save changes'
+                              : 'Create faculty'">
+                        Save
+                    </button>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/faculties}">
+                        <i class="fa-solid fa-arrow-left-long me-1"></i>
+                        Cancel
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

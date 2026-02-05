@@ -33,6 +33,14 @@
             <i class="fa-solid fa-users"></i>
             <span>Users</span>
         </a>
+
+        <a class="nav-link px-2 py-2"
+           th:href="@{/admin/faculties}"
+           th:classappend="${activeMenu}=='faculties' ? ' active' : ''">
+            <i class="fa-solid fa-building-columns"></i>
+            <span>Faculties</span>
+        </a>
+
     </nav>
 
 

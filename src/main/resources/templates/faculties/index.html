@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Faculties',
+        'Faculties',
+        'Manage faculties (create, update, delete)',
+        'faculties',
+        ~{::content}
+      )}">
+<head>
+    <meta charset="utf-8"/>
+    <title>Faculties</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="card">
+        <div class="card-body">
+
+            <!-- search + add -->
+            <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
+                <form class="d-flex gap-2" method="get"
+                      th:action="@{/admin/faculties}">
+                    <input class="form-control" style="min-width: 280px"
+                           type="text" name="keyword"
+                           placeholder="Search by code or name"
+                           th:value="${keyword}">
+                    <button class="btn btn-outline-primary" type="submit">
+                        <i class="fa-solid fa-magnifying-glass me-1"></i>
+                        Search
+                    </button>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/faculties}">
+                        <i class="fa-solid fa-rotate-right me-1"></i>
+                        Reset
+                    </a>
+                </form>
+
+                <a class="btn btn-primary"
+                   th:href="@{/admin/faculties/new}">
+                    <i class="fa-solid fa-plus me-1"></i>
+                    New faculty
+                </a>
+            </div>
+
+            <!-- table -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th style="width: 200px;">Faculty code</th>
+                        <th>Faculty name</th>
+                        <th style="width: 180px;" class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${faculties == null or faculties.content.isEmpty()}">
+                        <td colspan="3" class="text-muted">No faculties found.</td>
+                    </tr>
+                    <tr th:each="f : ${faculties.content}">
+                        <td class="fw-semibold" th:text="${f.facultyCode}">CNTT</td>
+                        <td th:text="${f.facultyName}">Công nghệ thông tin</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary"
+                               th:href="@{/admin/faculties/{id}/edit(id=${f.facultyId})}">
+                                <i class="fa-solid fa-pen-to-square me-1"></i>
+                                Edit
+                            </a>
+                            <form class="d-inline"
+                                  th:action="@{/admin/faculties/{id}/delete(id=${f.facultyId})}"
+                                  method="post"
+                                  onsubmit="return confirm('Delete this faculty?');">
+                                <button class="btn btn-sm btn-outline-danger" type="submit">
+                                    <i class="fa-solid fa-trash-can me-1"></i>
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- pagination -->
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted small"
+                     th:text="'Page ' + (${faculties.number}+1) + ' / ' +
+                              ${faculties.totalPages} + ' — ' +
+                              ${faculties.totalElements} + ' items'">
+                </div>
+
+                <nav th:if="${faculties.totalPages > 1}">
+                    <ul class="pagination mb-0">
+                        <li class="page-item"
+                            th:classappend="${faculties.first} ? 'disabled' : ''">
+                            <a class="page-link"
+                               th:href="@{/admin/faculties(page=${faculties.number-1},keyword=${keyword})}">
+                                Prev
+                            </a>
+                        </li>
+
+                        <li class="page-item"
+                            th:each="i : ${#numbers.sequence(0, faculties.totalPages-1)}"
+                            th:classappend="${i==faculties.number} ? 'active' : ''">
+                            <a class="page-link"
+                               th:href="@{/admin/faculties(page=${i},keyword=${keyword})}"
+                               th:text="${i+1}">1</a>
+                        </li>
+
+                        <li class="page-item"
+                            th:classappend="${faculties.last} ? 'disabled' : ''">
+                            <a class="page-link"
+                               th:href="@{/admin/faculties(page=${faculties.number+1},keyword=${keyword})}">
+                                Next
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>

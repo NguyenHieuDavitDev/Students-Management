@@ -191,7 +191,90 @@ Class `UserService` cung cấp các phương thức:
 - **UserDashboardController**: Quản lý views HTML cho giao diện web
 - **Kết Nối Role**: Tích hợp với hệ thống role để phân quyền
 
-## 🛠️ Công Nghệ
+### 3. Quản Lý Khoa (Faculty Management)
+
+Chức năng quản lý khoa cho phép quản trị viên tạo, sửa, xoá và quản lý các khoa trong hệ thống.
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Khoa**: Xem toàn bộ danh sách khoa trong hệ thống
+- **Tìm kiếm**: Tìm kiếm khoa theo mã khoa hoặc tên khoa (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo khoa mới với mã khoa và tên khoa
+- **Sửa**: Chỉnh sửa thông tin khoa đã tồn tại
+- **Xoá**: Xoá khoa khỏi hệ thống
+- **Sắp xếp**: Danh sách được sắp xếp theo tên khoa
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/faculties` | Lấy danh sách tất cả khoa |
+| GET | `/api/faculties/search` | Tìm kiếm khoa với phân trang |
+| GET | `/api/faculties/{id}` | Lấy chi tiết khoa theo ID |
+| POST | `/api/faculties` | Tạo khoa mới |
+| PUT | `/api/faculties/{id}` | Cập nhật khoa |
+| DELETE | `/api/faculties/{id}` | Xoá khoa |
+
+#### Cấu trúc Entity Faculty:
+
+```java
+@Entity
+@Table(name = "faculties")
+public class Faculty {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID facultyId;              // ID duy nhất
+    
+    @Column(nullable = false, unique = true)
+    private String facultyCode;          // Mã khoa (duy nhất)
+    
+    @Column(nullable = false)
+    private String facultyName;          // Tên khoa
+}
+```
+
+#### Request/Response Model:
+
+**FacultyRequest** (Tạo/Cập nhật khoa):
+```json
+{
+  "facultyCode": "CS",
+  "facultyName": "Khoa Công Nghệ Thông Tin"
+}
+```
+
+**FacultyResponse** (Phản hồi từ server):
+```json
+{
+  "facultyId": "uuid",
+  "facultyCode": "CS",
+  "facultyName": "Khoa Công Nghệ Thông Tin"
+}
+```
+
+#### Service Layer:
+
+Class `FacultyService` cung cấp các phương thức:
+- `getAll()`: Lấy toàn bộ khoa được sắp xếp theo tên
+- `search(keyword, page, size)`: Tìm kiếm khoa với phân trang
+- `getById(id)`: Lấy khoa theo ID
+- `create(request)`: Tạo khoa mới
+- `update(id, request)`: Cập nhật khoa
+- `delete(id)`: Xoá khoa
+
+#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra Tính Duy Nhất**: Mã khoa phải duy nhất trong hệ thống
+- **Validate Dữ Liệu**: Tên khoa và mã khoa không được để trống
+- **Sắp Xếp Tự Động**: Danh sách khoa được sắp xếp theo tên khoa
+
+#### Controller:
+
+- **FacultyController**: Quản lý API endpoints
+- **FacultyDashboardController**: Quản lý views HTML cho giao diện web
+
+##  Công Nghệ
 
 - **Java 17**: Ngôn ngữ lập trình
 - **Spring Boot 3.5.9**: Framework chính
@@ -233,6 +316,19 @@ src/
 │   │       │   │   └── UserRepository.java
 │   │       │   └── service/
 │   │       │       └── UserService.java
+│   │       ├── faculty/
+│   │       │   ├── controller/
+│   │       │   │   ├── FacultyController.java
+│   │       │   │   └── FacultyDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── FacultyRequest.java
+│   │       │   │   └── FacultyResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── Faculty.java
+│   │       │   ├── repository/
+│   │       │   │   └── FacultyRepository.java
+│   │       │   └── service/
+│   │       │       └── FacultyService.java
 │   │       └── web/
 │   │           ├── AdminController.java
 │   │           └── HomeController.java
@@ -242,6 +338,9 @@ src/
 │       │   │   ├── index.html
 │       │   │   └── form.html
 │       │   ├── user/
+│       │   │   ├── index.html
+│       │   │   └── form.html
+│       │   ├── faculties/
 │       │   │   ├── index.html
 │       │   │   └── form.html
 │       │   ├── layout/
@@ -348,6 +447,35 @@ mvn spring-boot:run
    - Chọn một hoặc nhiều role từ danh sách
    - Người dùng sẽ có tất cả các quyền của role được chọn
 
+### Quản Lý Khoa:
+
+1. **Xem danh sách Khoa**:
+   - Truy cập `/faculties` trên giao diện web
+   - Hoặc gọi API `GET /api/faculties`
+
+2. **Tìm kiếm Khoa**:
+   - Sử dụng thanh tìm kiếm trên giao diện
+   - Hỗ trợ tìm kiếm theo mã khoa hoặc tên khoa
+
+3. **Tạo Khoa mới**:
+   - Click nút "Thêm mới" trên giao diện
+   - Điền thông tin:
+     - Mã khoa (phải duy nhất, ví dụ: CS, ENG, MATH)
+     - Tên khoa (ví dụ: Khoa Công Nghệ Thông Tin)
+   - Click "Lưu"
+
+4. **Sửa Khoa**:
+   - Click nút "Sửa" trên dòng khoa cần chỉnh sửa
+   - Cập nhật thông tin
+   - Click "Lưu"
+
+5. **Xoá Khoa**:
+   - Click nút "Xoá" trên dòng khoa cần xoá
+   - Xác nhận xoá
+
+6. **Sắp xếp Danh sách**:
+   - Danh sách khoa được sắp xếp theo tên khoa tự động
+
 
 ## Tác Giả
 
@@ -358,6 +486,7 @@ mvn spring-boot:run
 
 - [x] Quản lý vai trò (Role Management)
 - [x] Quản lý người dùng (User Management)
+- [x] Quản lý khoa (Faculty Management)
 - [ ] Quản lý sinh viên (Student Management)  
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
@@ -370,5 +499,5 @@ mvn spring-boot:run
 ---
 
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 04/02/2026
+**Cập nhật lần cuối**: 05/02/2026
 
