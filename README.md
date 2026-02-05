@@ -6,7 +6,43 @@ Hệ thống quản lý sinh viên xây dựng bằng **Spring Boot 3** với c�
 
 ### 1. Quản Lý Role (Role Management)
 
-Chức năng quản lý role cho phép quản trị viên tạo, sửa, xoá và quản lý các vai trò trong hệ thống.
+Chức năng quản lý role cho phép quản trị viên tạo, sửa, xoá và quản#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra T## 🛠️ Công Nghệ
+
+- **Java 17**: Ngôn ngữ lập trình
+- **Spring Boot 3.5.9**: Framework chính
+- **Spring Data JPA**: ORM để tương tác với cơ sở dữ liệu
+- **Lombok**: Giảm boilerplate code
+- **Maven**: Build tool
+- **Thymeleaf**: Template engine cho views
+- **Apache POI**: Xử lý file Excel (import/export)Nhất**: Mã khoa phải duy nhất trong hệ thống
+- **Validate Dữ Liệu**: Tên khoa và mã khoa không được để trống
+- **Sắp Xếp Tự Động**: Danh sách khoa được sắp xếp theo tên khoa
+
+#### Tính Năng Import/Export/Print:
+
+**Export (Xuất dữ liệu):**
+- Xuất danh sách khoa ra file Excel (.xlsx)
+- Tự động định dạng với header rõ ràng
+- Có thể xuất từ API hoặc giao diện web
+
+**Import (Nhập dữ liệu):**
+- Nhập danh sách khoa từ file Excel
+- Tự động bỏ qua các khoa đã tồn tại (theo mã khoa)
+- Trả về số lượng khoa được import thành công
+- Hỗ trợ nhập hàng loạt
+
+**Print (In ấn):**
+- In danh sách khoa từ giao diện web
+- Định dạng in đẹp và dễ đọc
+- Hỗ trợ in từ trình duyệt
+
+#### Controller:
+
+- **FacultyController**: Quản lý API endpoints (CRUD, Import/Export)
+- **FacultyDashboardController**: Quản lý views HTML cho giao diện web (bao gồm Print)
+
 
 #### Các tính năng chi tiết:
 
@@ -215,6 +251,8 @@ Chức năng quản lý khoa cho phép quản trị viên tạo, sửa, xoá và
 | POST | `/api/faculties` | Tạo khoa mới |
 | PUT | `/api/faculties/{id}` | Cập nhật khoa |
 | DELETE | `/api/faculties/{id}` | Xoá khoa |
+| GET | `/api/faculties/export` | Xuất danh sách khoa ra file Excel |
+| POST | `/api/faculties/import` | Nhập danh sách khoa từ file Excel |
 
 #### Cấu trúc Entity Faculty:
 
@@ -476,6 +514,23 @@ mvn spring-boot:run
 6. **Sắp xếp Danh sách**:
    - Danh sách khoa được sắp xếp theo tên khoa tự động
 
+7. **Xuất (Export) Khoa ra Excel**:
+   - Click nút "Xuất Excel" trên giao diện
+   - Hoặc gọi API `GET /api/faculties/export`
+   - File Excel sẽ được tải xuống tự động
+
+8. **Nhập (Import) Khoa từ Excel**:
+   - Chuẩn bị file Excel với 2 cột: Mã Khoa, Tên Khoa
+   - Click nút "Nhập Excel" trên giao diện
+   - Chọn file Excel từ máy tính
+   - Hệ thống sẽ import và hiển thị số lượng khoa được thêm
+   - Hoặc gọi API `POST /api/faculties/import` với file Excel
+
+9. **In (Print) Danh sách Khoa**:
+   - Click nút "In" hoặc "Print" trên giao diện
+   - Một trang in đẹp sẽ hiển thị
+   - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
+
 
 ## Tác Giả
 
@@ -499,5 +554,5 @@ mvn spring-boot:run
 ---
 
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 05/02/2026
+**Cập nhật lần cuối**: 05/02/2026 (Import/Export/Print features added)
 

@@ -3,75 +3,97 @@
       th:replace="~{layout/dashboard :: layout(
         'Faculties',
         'Faculties',
-        'Manage faculties (create, update, delete)',
+        'Manage faculties',
         'faculties',
         ~{::content}
       )}">
-<head>
-    <meta charset="utf-8"/>
-    <title>Faculties</title>
-</head>
 <body>
 <div th:fragment="content">
+
+    <!-- FLASH MESSAGE -->
+    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
     <div class="card">
         <div class="card-body">
 
-            <!-- search + add -->
+            <!-- TOP BAR -->
             <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
-                <form class="d-flex gap-2" method="get"
-                      th:action="@{/admin/faculties}">
-                    <input class="form-control" style="min-width: 280px"
-                           type="text" name="keyword"
+
+                <!-- SEARCH -->
+                <form class="d-flex gap-2" method="get" th:action="@{/admin/faculties}">
+                    <input class="form-control"
+                           style="min-width:260px"
+                           type="text"
+                           name="keyword"
                            placeholder="Search by code or name"
                            th:value="${keyword}">
-                    <button class="btn btn-outline-primary" type="submit">
-                        <i class="fa-solid fa-magnifying-glass me-1"></i>
-                        Search
+                    <button class="btn btn-outline-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
                     </button>
-                    <a class="btn btn-outline-secondary"
-                       th:href="@{/admin/faculties}">
-                        <i class="fa-solid fa-rotate-right me-1"></i>
-                        Reset
-                    </a>
                 </form>
 
-                <a class="btn btn-primary"
-                   th:href="@{/admin/faculties/new}">
-                    <i class="fa-solid fa-plus me-1"></i>
-                    New faculty
-                </a>
+                <!-- ACTIONS -->
+                <div class="d-flex gap-2">
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/faculties/print}"
+                       target="_blank">
+                        <i class="fa-solid fa-print me-1"></i> Print
+                    </a>
+
+                    <a class="btn btn-outline-success"
+                       th:href="@{/admin/faculties/export}">
+                        <i class="fa-solid fa-file-excel me-1"></i> Export
+                    </a>
+
+                    <form method="post"
+                          th:action="@{/admin/faculties/import}"
+                          enctype="multipart/form-data">
+                        <label class="btn btn-outline-warning mb-0">
+                            <i class="fa-solid fa-file-import me-1"></i> Import
+                            <input type="file"
+                                   name="file"
+                                   hidden
+                                   accept=".xlsx"
+                                   onchange="this.form.submit()">
+                        </label>
+                    </form>
+
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/faculties/new}">
+                        <i class="fa-solid fa-plus me-1"></i> New
+                    </a>
+                </div>
             </div>
 
-            <!-- table -->
+            <!-- TABLE -->
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover align-middle">
                     <thead>
                     <tr>
-                        <th style="width: 200px;">Faculty code</th>
-                        <th>Faculty name</th>
-                        <th style="width: 180px;" class="text-end">Actions</th>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:if="${faculties == null or faculties.content.isEmpty()}">
-                        <td colspan="3" class="text-muted">No faculties found.</td>
+                    <tr th:if="${faculties.content.isEmpty()}">
+                        <td colspan="3" class="text-muted">No data</td>
                     </tr>
                     <tr th:each="f : ${faculties.content}">
-                        <td class="fw-semibold" th:text="${f.facultyCode}">CNTT</td>
-                        <td th:text="${f.facultyName}">Công nghệ thông tin</td>
+                        <td class="fw-semibold" th:text="${f.facultyCode}"></td>
+                        <td th:text="${f.facultyName}"></td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-outline-primary"
                                th:href="@{/admin/faculties/{id}/edit(id=${f.facultyId})}">
-                                <i class="fa-solid fa-pen-to-square me-1"></i>
-                                Edit
+                                <i class="fa-solid fa-pen"></i>
                             </a>
                             <form class="d-inline"
                                   th:action="@{/admin/faculties/{id}/delete(id=${f.facultyId})}"
                                   method="post"
-                                  onsubmit="return confirm('Delete this faculty?');">
-                                <button class="btn btn-sm btn-outline-danger" type="submit">
-                                    <i class="fa-solid fa-trash-can me-1"></i>
-                                    Delete
+                                  onsubmit="return confirm('Delete this faculty?')">
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fa-solid fa-trash"></i>
                                 </button>
                             </form>
                         </td>
@@ -80,42 +102,35 @@
                 </table>
             </div>
 
-            <!-- pagination -->
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="text-muted small"
-                     th:text="'Page ' + (${faculties.number}+1) + ' / ' +
-                              ${faculties.totalPages} + ' — ' +
-                              ${faculties.totalElements} + ' items'">
-                </div>
+            <!-- PAGINATION -->
+            <nav th:if="${faculties.totalPages > 1}">
+                <ul class="pagination mb-0">
+                    <li class="page-item"
+                        th:classappend="${faculties.first} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/faculties(page=${faculties.number-1},keyword=${keyword})}">
+                            Prev
+                        </a>
+                    </li>
 
-                <nav th:if="${faculties.totalPages > 1}">
-                    <ul class="pagination mb-0">
-                        <li class="page-item"
-                            th:classappend="${faculties.first} ? 'disabled' : ''">
-                            <a class="page-link"
-                               th:href="@{/admin/faculties(page=${faculties.number-1},keyword=${keyword})}">
-                                Prev
-                            </a>
-                        </li>
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, faculties.totalPages-1)}"
+                        th:classappend="${i == faculties.number} ? 'active'">
+                        <a class="page-link"
+                           th:text="${i+1}"
+                           th:href="@{/admin/faculties(page=${i},keyword=${keyword})}">
+                        </a>
+                    </li>
 
-                        <li class="page-item"
-                            th:each="i : ${#numbers.sequence(0, faculties.totalPages-1)}"
-                            th:classappend="${i==faculties.number} ? 'active' : ''">
-                            <a class="page-link"
-                               th:href="@{/admin/faculties(page=${i},keyword=${keyword})}"
-                               th:text="${i+1}">1</a>
-                        </li>
-
-                        <li class="page-item"
-                            th:classappend="${faculties.last} ? 'disabled' : ''">
-                            <a class="page-link"
-                               th:href="@{/admin/faculties(page=${faculties.number+1},keyword=${keyword})}">
-                                Next
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
+                    <li class="page-item"
+                        th:classappend="${faculties.last} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/faculties(page=${faculties.number+1},keyword=${keyword})}">
+                            Next
+                        </a>
+                    </li>
+                </ul>
+            </nav>
 
         </div>
     </div>
