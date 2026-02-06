@@ -2,7 +2,7 @@
 
 Hệ thống quản lý sinh viên xây dựng bằng **Spring Boot 3** với các tính năng quản lý role, người dùng và sinh viên.
 
-**Last updated**: February 6, 2026 - Updated by MinhHieu
+**Last updated**: February 6, 2026 - Updated by MinhHieu via Pull Request
 
 ## Tính Năng
 
@@ -10,7 +10,7 @@ Hệ thống quản lý sinh viên xây dựng bằng **Spring Boot 3** với c�
 
 Chức năng quản lý role cho phép quản trị viên tạo, sửa, xoá và quản#### Xác Thực & Bảo Mật:
 
-- **Kiểm tra T## 🛠️ Công Nghệ
+- **Kiểm tra T## Công Nghệ
 
 - **Java 17**: Ngôn ngữ lập trình
 - **Spring Boot 3.5.9**: Framework chính
