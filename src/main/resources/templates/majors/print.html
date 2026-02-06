@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In danh sách ngành</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width:100%; border-collapse: collapse; }
+        th, td { border:1px solid #000; padding:6px; }
+        th { background:#f0f0f0; }
+    </style>
+</head>
+<body onload="window.print()">
+
+<h3 style="text-align:center">DANH SÁCH NGÀNH HỌC</h3>
+
+<table>
+    <thead>
+    <tr>
+        <th>STT</th>
+        <th>Tên ngành</th>
+        <th>Khoa</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="m, i : ${majors}">
+        <td th:text="${i.index + 1}"></td>
+        <td th:text="${m.majorName}"></td>
+        <td th:text="${m.facultyName}"></td>
+    </tr>
+    </tbody>
+</table>
+
+</body>
+</html>

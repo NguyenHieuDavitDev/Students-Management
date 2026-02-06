@@ -314,6 +314,115 @@ Class `FacultyService` cung cấp các phương thức:
 - **FacultyController**: Quản lý API endpoints
 - **FacultyDashboardController**: Quản lý views HTML cho giao diện web
 
+### 4. Quản Lý Ngành Học (Major Management)
+
+Chức năng quản lý ngành học cho phép quản trị viên tạo, sửa, xoá các ngành học thuộc các khoa trong hệ thống.
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Ngành Học**: Xem toàn bộ danh sách các ngành học trong hệ thống
+- **Tìm kiếm**: Tìm kiếm ngành học theo tên ngành (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo ngành học mới và liên kết với khoa
+- **Sửa**: Chỉnh sửa thông tin ngành học đã tồn tại
+- **Xoá**: Xoá ngành học khỏi hệ thống
+- **Liên kết Khoa**: Mỗi ngành học được liên kết với một khoa cụ thể
+- **Duy nhất theo Khoa**: Tên ngành phải duy nhất trong mỗi khoa
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/majors` | Lấy danh sách tất cả ngành học (có phân trang) |
+| GET | `/api/majors/{id}` | Lấy chi tiết ngành học theo ID |
+| GET | `/api/majors/all` | Lấy tất cả ngành học (không phân trang - dành cho dropdown) |
+| POST | `/api/majors` | Tạo ngành học mới |
+| PUT | `/api/majors/{id}` | Cập nhật ngành học |
+| DELETE | `/api/majors/{id}` | Xoá ngành học |
+
+#### Cấu trúc Entity Major:
+
+```java
+@Entity
+@Table(
+        name = "majors",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"major_name", "faculty_id"})
+        }
+)
+public class Major {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID majorId;              // ID duy nhất
+    
+    @Column(nullable = false)
+    private String majorName;          // Tên ngành (duy nhất trong khoa)
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false)
+    private Faculty faculty;           // Khoa mà ngành này thuộc về
+}
+```
+
+#### Request/Response Model:
+
+**MajorRequest** (Tạo/Cập nhật ngành học):
+```json
+{
+  "majorName": "Công Nghệ Thông Tin",
+  "facultyId": "uuid-faculty-1"
+}
+```
+
+**MajorResponse** (Phản hồi từ server):
+```json
+{
+  "majorId": "uuid",
+  "majorName": "Công Nghệ Thông Tin",
+  "facultyId": "uuid-faculty-1",
+  "facultyName": "Khoa Công Nghệ Thông Tin"
+}
+```
+
+#### Service Layer:
+
+Class `MajorService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm ngành học với phân trang
+- `getById(id)`: Lấy ngành học theo ID
+- `create(request)`: Tạo ngành học mới
+- `update(id, request)`: Cập nhật ngành học
+- `delete(id)`: Xoá ngành học
+- `getForPrint()`: Lấy tất cả ngành học (dành cho dropdown/print)
+- `exportExcel(response)`: Xuất danh sách ngành học ra file Excel
+- `importExcel(file)`: Nhập danh sách ngành học từ file Excel
+
+#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra Tính Duy Nhất**: Tên ngành phải duy nhất trong mỗi khoa
+- **Validate Dữ Liệu**: Tên ngành và khoa không được để trống
+- **Kiểm tra Khoa**: Khoa phải tồn tại trước khi tạo ngành học
+- **Sắp Xếp Tự Động**: Danh sách ngành học được sắp xếp theo tên ngành
+
+#### Tính Năng Import/Export:
+
+**Export (Xuất dữ liệu):**
+- Xuất danh sách ngành học ra file Excel (.xlsx)
+- File chứa 2 cột: Tên ngành, Khoa
+- Tự động định dạng với header rõ ràng
+- Có thể xuất từ API hoặc giao diện web
+
+**Import (Nhập dữ liệu):**
+- Nhập danh sách ngành học từ file Excel
+- Tự động bỏ qua các ngành đã tồn tại (theo tên ngành và khoa)
+- Tự động liên kết với khoa dựa trên tên khoa trong file
+- Trả về số lượng ngành học được import thành công
+- Hỗ trợ nhập hàng loạt
+
+#### Controller:
+
+- **MajorController**: Quản lý API endpoints (CRUD, Import/Export)
+- **MajorDashboardController**: Quản lý views HTML cho giao diện web
+
 ##  Công Nghệ
 
 - **Java 17**: Ngôn ngữ lập trình
@@ -322,6 +431,7 @@ Class `FacultyService` cung cấp các phương thức:
 - **Lombok**: Giảm boilerplate code
 - **Maven**: Build tool
 - **Thymeleaf**: Template engine cho views
+- **Apache POI**: Xử lý file Excel (import/export)
 
 ## Cấu Trúc Dự Án
 
@@ -369,6 +479,19 @@ src/
 │   │       │   │   └── FacultyRepository.java
 │   │       │   └── service/
 │   │       │       └── FacultyService.java
+│   │       ├── major/
+│   │       │   ├── controller/
+│   │       │   │   ├── MajorController.java
+│   │       │   │   └── MajorDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── MajorRequest.java
+│   │       │   │   └── MajorResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── Major.java
+│   │       │   ├── repository/
+│   │       │   │   └── MajorRepository.java
+│   │       │   └── service/
+│   │       │       └── MajorService.java
 │   │       └── web/
 │   │           ├── AdminController.java
 │   │           └── HomeController.java
@@ -382,7 +505,12 @@ src/
 │       │   │   └── form.html
 │       │   ├── faculties/
 │       │   │   ├── index.html
-│       │   │   └── form.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── majors/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
 │       │   ├── layout/
 │       │   │   ├── dashboard.html
 │       │   │   ├── header.html
@@ -533,6 +661,53 @@ mvn spring-boot:run
    - Một trang in đẹp sẽ hiển thị
    - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
 
+### Quản Lý Ngành Học:
+
+1. **Xem danh sách Ngành Học**:
+   - Truy cập `/majors` trên giao diện web
+   - Hoặc gọi API `GET /api/majors`
+
+2. **Tìm kiếm Ngành Học**:
+   - Sử dụng thanh tìm kiếm trên giao diện
+   - Hỗ trợ tìm kiếm theo tên ngành
+
+3. **Tạo Ngành Học mới**:
+   - Click nút "Thêm mới" trên giao diện
+   - Điền thông tin:
+     - Tên ngành (ví dụ: Công Nghệ Thông Tin)
+     - Chọn khoa từ dropdown
+   - Tên ngành phải duy nhất trong khoa được chọn
+   - Click "Lưu"
+
+4. **Sửa Ngành Học**:
+   - Click nút "Sửa" trên dòng ngành học cần chỉnh sửa
+   - Cập nhật thông tin tên ngành hoặc khoa
+   - Click "Lưu"
+
+5. **Xoá Ngành Học**:
+   - Click nút "Xoá" trên dòng ngành học cần xoá
+   - Xác nhận xoá
+
+6. **Sắp xếp Danh sách**:
+   - Danh sách ngành học được sắp xếp theo tên ngành tự động
+
+7. **Xuất (Export) Ngành Học ra Excel**:
+   - Click nút "Xuất Excel" trên giao diện
+   - Hoặc gọi API `GET /api/majors/export`
+   - File Excel sẽ được tải xuống tự động với 2 cột: Tên ngành, Khoa
+
+8. **Nhập (Import) Ngành Học từ Excel**:
+   - Chuẩn bị file Excel với 2 cột: Tên Ngành, Khoa
+   - Click nút "Nhập Excel" trên giao diện
+   - Chọn file Excel từ máy tính
+   - Hệ thống sẽ tự động liên kết ngành với khoa dựa trên tên khoa trong file
+   - Hiển thị số lượng ngành được import thành công
+   - Hoặc gọi API `POST /api/majors/import` với file Excel
+
+9. **In (Print) Danh sách Ngành Học**:
+   - Click nút "In" hoặc "Print" trên giao diện
+   - Một trang in đẹp sẽ hiển thị
+   - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
 
 ## Tác Giả
 
@@ -544,6 +719,7 @@ mvn spring-boot:run
 - [x] Quản lý vai trò (Role Management)
 - [x] Quản lý người dùng (User Management)
 - [x] Quản lý khoa (Faculty Management)
+- [x] Quản lý ngành học (Major Management)
 - [ ] Quản lý sinh viên (Student Management)  
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
@@ -556,5 +732,5 @@ mvn spring-boot:run
 ---
 
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 05/02/2026 (Import/Export/Print features added)
+**Cập nhật lần cuối**: 06/02/2026 (Major Management features added with Import/Export/Print)
 

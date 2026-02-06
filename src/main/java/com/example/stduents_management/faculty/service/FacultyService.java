@@ -28,7 +28,6 @@ public class FacultyService {
         return s == null ? null : s.trim();
     }
 
-    /* ================= CRUD ================= */
 
     public Page<FacultyResponse> search(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("facultyName"));
@@ -119,7 +118,6 @@ public class FacultyService {
         facultyRepository.deleteById(id);
     }
 
-    /* ================= EXPORT ================= */
 
     public void exportExcel(HttpServletResponse response) {
         try (Workbook workbook = new XSSFWorkbook()) {
@@ -160,7 +158,6 @@ public class FacultyService {
         }
     }
 
-    /* ================= IMPORT ================= */
 
     @Transactional
     public int importExcel(MultipartFile file) {
@@ -206,7 +203,6 @@ public class FacultyService {
         return row.getCell(index).getStringCellValue().trim();
     }
 
-    /* ================= PRINT ================= */
 
     public List<FacultyResponse> getForPrint() {
         return facultyRepository.findAll(Sort.by("facultyName"))

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa ngành':'Thêm ngành mới'),
+        (${mode}=='edit'?'Chỉnh sửa ngành':'Thêm ngành mới'),
+        'Form ngành học',
+        'majors',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="card">
+        <div class="card-body">
+
+            <!-- GLOBAL ERROR -->
+            <div class="alert alert-danger"
+                 th:if="${globalError}"
+                 th:text="${globalError}">
+            </div>
+
+            <form method="post"
+                  th:action="${mode}=='edit'
+                    ? @{/admin/majors/{id}(id=${majorId})}
+                    : @{/admin/majors}"
+                  th:object="${majorRequest}">
+
+                <!-- MAJOR NAME -->
+                <div class="mb-3">
+                    <label class="form-label">Tên ngành</label>
+                    <input class="form-control"
+                           th:field="*{majorName}"
+                           placeholder="Nhập tên ngành">
+                    <div class="text-danger small"
+                         th:errors="*{majorName}"></div>
+                </div>
+
+                <!-- FACULTY -->
+                <div class="mb-3">
+                    <label class="form-label">Khoa</label>
+                    <select class="form-select" th:field="*{facultyId}">
+                        <option value="">-- Chọn khoa --</option>
+                        <option th:each="f : ${faculties}"
+                                th:value="${f.facultyId}"
+                                th:text="${f.facultyName}">
+                        </option>
+                    </select>
+                    <div class="text-danger small"
+                         th:errors="*{facultyId}"></div>
+                </div>
+
+                <!-- ACTIONS -->
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary">
+                        <i class="fa-solid fa-save me-1"></i>
+                        Lưu
+                    </button>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/majors}">
+                        Hủy
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

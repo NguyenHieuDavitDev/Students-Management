@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Ngành học',
+        'Danh sách ngành',
+        'Quản lý ngành học',
+        'majors',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <!-- FLASH MESSAGE -->
+    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <!-- TOP BAR -->
+            <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
+
+                <!-- SEARCH -->
+                <form class="d-flex gap-2" method="get" th:action="@{/admin/majors}">
+                    <input class="form-control"
+                           style="min-width:260px"
+                           type="text"
+                           name="keyword"
+                           placeholder="Tìm theo tên ngành"
+                           th:value="${keyword}">
+                    <button class="btn btn-outline-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </form>
+
+                <!-- ACTIONS -->
+                <div class="d-flex gap-2">
+
+                    <!-- PRINT -->
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/majors/print}"
+                       target="_blank">
+                        <i class="fa-solid fa-print me-1"></i> In
+                    </a>
+
+                    <!-- EXPORT -->
+                    <a class="btn btn-outline-success"
+                       th:href="@{/admin/majors/export}">
+                        <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
+                    </a>
+
+                    <!-- IMPORT -->
+                    <form method="post"
+                          th:action="@{/admin/majors/import}"
+                          enctype="multipart/form-data">
+                        <label class="btn btn-outline-warning mb-0">
+                            <i class="fa-solid fa-file-import me-1"></i> Nhập Excel
+                            <input type="file"
+                                   name="file"
+                                   hidden
+                                   accept=".xlsx"
+                                   onchange="this.form.submit()">
+                        </label>
+                    </form>
+
+                    <!-- NEW -->
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/majors/new}">
+                        <i class="fa-solid fa-plus me-1"></i> Thêm mới
+                    </a>
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <th>Tên ngành</th>
+                        <th>Khoa</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${majors.content.isEmpty()}">
+                        <td colspan="3" class="text-muted">Không có dữ liệu</td>
+                    </tr>
+                    <tr th:each="m : ${majors.content}">
+                        <td class="fw-semibold" th:text="${m.majorName}"></td>
+                        <td th:text="${m.facultyName}"></td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary"
+                               th:href="@{/admin/majors/{id}/edit(id=${m.majorId})}">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <form class="d-inline"
+                                  th:action="@{/admin/majors/{id}/delete(id=${m.majorId})}"
+                                  method="post"
+                                  onsubmit="return confirm('Bạn có chắc chắn muốn xoá ngành này?')">
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINATION -->
+            <nav th:if="${majors.totalPages > 1}">
+                <ul class="pagination mb-0">
+                    <li class="page-item"
+                        th:classappend="${majors.first} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/majors(page=${majors.number-1},keyword=${keyword})}">
+                            Trước
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, majors.totalPages-1)}"
+                        th:classappend="${i == majors.number} ? 'active'">
+                        <a class="page-link"
+                           th:text="${i+1}"
+                           th:href="@{/admin/majors(page=${i},keyword=${keyword})}">
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:classappend="${majors.last} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/majors(page=${majors.number+1},keyword=${keyword})}">
+                            Sau
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

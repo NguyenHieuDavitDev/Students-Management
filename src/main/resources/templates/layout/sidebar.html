@@ -41,6 +41,13 @@
             <span>Faculties</span>
         </a>
 
+        <a class="nav-link px-2 py-2"
+           th:href="@{/admin/majors}"
+           th:classappend="${activeMenu}=='majors' ? ' active' : ''">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Majors</span>
+        </a>
+
     </nav>
 
 
