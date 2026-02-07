@@ -423,6 +423,161 @@ Class `MajorService` cung cấp các phương thức:
 - **MajorController**: Quản lý API endpoints (CRUD, Import/Export)
 - **MajorDashboardController**: Quản lý views HTML cho giao diện web
 
+### 5. Quản Lý Lớp Học (Classroom Management)
+
+Chức năng quản lý lớp học cho phép quản trị viên tạo, sửa, xoá các lớp học thuộc các ngành trong hệ thống.
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Lớp Học**: Xem toàn bộ danh sách các lớp học trong hệ thống
+- **Tìm kiếm**: Tìm kiếm lớp học theo mã lớp, tên lớp hoặc năm học (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo lớp học mới và liên kết với ngành học
+- **Sửa**: Chỉnh sửa thông tin lớp học đã tồn tại
+- **Xoá**: Xoá lớp học khỏi hệ thống
+- **Liên kết Ngành**: Mỗi lớp học được liên kết với một ngành học cụ thể
+- **Duy nhất theo Năm Học**: Mã lớp phải duy nhất trong mỗi năm học
+- **Quản lý Trạng thái**: Kích hoạt/vô hiệu hóa lớp học
+- **Thông tin Chi Tiết**: Hỗ trợ lưu thông tin loại đào tạo, bậc đào tạo, số lượng sinh viên tối đa, tình trạng lớp
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/classes` | Lấy danh sách tất cả lớp học (có phân trang) |
+| GET | `/api/classes/{id}` | Lấy chi tiết lớp học theo ID |
+| GET | `/api/classes/print` | Lấy tất cả lớp học (dành cho print) |
+| GET | `/api/classes/export` | Xuất danh sách lớp học ra Excel |
+| POST | `/api/classes` | Tạo lớp học mới |
+| POST | `/api/classes/import` | Nhập danh sách lớp học từ Excel |
+| PUT | `/api/classes/{id}` | Cập nhật lớp học |
+| DELETE | `/api/classes/{id}` | Xoá lớp học |
+
+#### Cấu trúc Entity ClassEntity:
+
+```java
+@Entity
+@Table(
+        name = "classes",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"class_code", "academic_year"})
+        }
+)
+public class ClassEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID classId;                  // ID duy nhất
+    
+    @Column(nullable = false)
+    private String classCode;              // Mã lớp (duy nhất trong năm học)
+    
+    @Column(nullable = false)
+    private String className;              // Tên lớp
+    
+    @Column(nullable = false)
+    private String academicYear;           // Năm học (ví dụ: 2024-2025)
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false)
+    private Major major;                   // Ngành học
+    
+    private String educationType;          // Loại đào tạo (ví dụ: Chính quy)
+    
+    private String trainingLevel;          // Bậc đào tạo (ví dụ: Đại học)
+    
+    private Integer maxStudent;            // Số lượng sinh viên tối đa
+    
+    private String classStatus;            // Tình trạng lớp (Đang học, Kết thúc)
+    
+    private Boolean isActive = true;       // Trạng thái kích hoạt
+    
+    private LocalDateTime createdAt;       // Thời gian tạo
+    
+    private LocalDateTime updatedAt;       // Thời gian cập nhật
+}
+```
+
+#### Request/Response Model:
+
+**ClassRequest** (Tạo/Cập nhật lớp học):
+```json
+{
+  "classCode": "IT201",
+  "className": "Công Nghệ Thông Tin K20",
+  "academicYear": "2024-2025",
+  "majorId": "uuid-major-1",
+  "educationType": "Chính quy",
+  "trainingLevel": "Đại học",
+  "maxStudent": 50,
+  "classStatus": "Đang học",
+  "isActive": true
+}
+```
+
+**ClassResponse** (Phản hồi từ server):
+```json
+{
+  "classId": "uuid",
+  "classCode": "IT201",
+  "className": "Công Nghệ Thông Tin K20",
+  "academicYear": "2024-2025",
+  "majorId": "uuid-major-1",
+  "majorName": "Công Nghệ Thông Tin",
+  "educationType": "Chính quy",
+  "trainingLevel": "Đại học",
+  "maxStudent": 50,
+  "classStatus": "Đang học",
+  "isActive": true,
+  "createdAt": "2026-02-07T10:30:00",
+  "updatedAt": "2026-02-07T10:30:00"
+}
+```
+
+#### Service Layer:
+
+Class `ClassService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm lớp học với phân trang
+- `getById(id)`: Lấy lớp học theo ID
+- `create(request)`: Tạo lớp học mới
+- `update(id, request)`: Cập nhật lớp học
+- `delete(id)`: Xoá lớp học
+- `getForPrint()`: Lấy tất cả lớp học (dành cho print)
+- `exportExcel(response)`: Xuất danh sách lớp học ra file Excel
+- `importExcel(file)`: Nhập danh sách lớp học từ file Excel
+
+#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra Tính Duy Nhất**: Mã lớp phải duy nhất trong mỗi năm học
+- **Validate Dữ Liệu**: Các trường bắt buộc không được để trống
+- **Kiểm tra Ngành**: Ngành học phải tồn tại trước khi tạo lớp học
+- **Sắp Xếp Tự Động**: Danh sách lớp học được sắp xếp theo mã lớp và năm học
+- **Theo Dõi Thời Gian**: Tự động ghi nhận thời gian tạo và cập nhật
+
+#### Tính Năng Import/Export/Print:
+
+**Export (Xuất dữ liệu):**
+- Xuất danh sách lớp học ra file Excel (.xlsx)
+- File chứa các cột: Mã lớp, Tên lớp, Năm học, Ngành học, Loại đào tạo, Bậc đào tạo, Tối đa sinh viên, Trạng thái
+- Tự động định dạng với header rõ ràng
+- Có thể xuất từ API hoặc giao diện web
+
+**Import (Nhập dữ liệu):**
+- Nhập danh sách lớp học từ file Excel
+- Tự động bỏ qua các lớp đã tồn tại (theo mã lớp và năm học)
+- Tự động liên kết với ngành dựa trên tên ngành trong file
+- Trả về số lượng lớp học được import thành công
+- Hỗ trợ nhập hàng loạt
+
+**Print (In ấn):**
+- In danh sách lớp học từ giao diện web
+- Định dạng in đẹp và dễ đọc
+- Hỗ trợ in từ trình duyệt
+
+#### Controller:
+
+- **ClassController**: Quản lý API endpoints (CRUD, Import/Export/Print)
+- **ClassDashboardController**: Quản lý views HTML cho giao diện web
+
 ##  Công Nghệ
 
 - **Java 17**: Ngôn ngữ lập trình
@@ -492,6 +647,19 @@ src/
 │   │       │   │   └── MajorRepository.java
 │   │       │   └── service/
 │   │       │       └── MajorService.java
+│   │       ├── classroom/
+│   │       │   ├── controller/
+│   │       │   │   ├── ClassController.java
+│   │       │   │   └── ClassDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── ClassRequest.java
+│   │       │   │   └── ClassResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── ClassEntity.java
+│   │       │   ├── repository/
+│   │       │   │   └── ClassRepository.java
+│   │       │   └── service/
+│   │       │       └── ClassService.java
 │   │       └── web/
 │   │           ├── AdminController.java
 │   │           └── HomeController.java
@@ -508,6 +676,10 @@ src/
 │       │   │   ├── form.html
 │       │   │   └── print.html
 │       │   ├── majors/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── classes/
 │       │   │   ├── index.html
 │       │   │   ├── form.html
 │       │   │   └── print.html
@@ -709,6 +881,61 @@ mvn spring-boot:run
    - Một trang in đẹp sẽ hiển thị
    - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
 
+### Quản Lý Lớp Học:
+
+1. **Xem danh sách Lớp Học**:
+   - Truy cập `/classes` trên giao diện web
+   - Hoặc gọi API `GET /api/classes`
+
+2. **Tìm kiếm Lớp Học**:
+   - Sử dụng thanh tìm kiếm trên giao diện
+   - Hỗ trợ tìm kiếm theo mã lớp, tên lớp hoặc năm học
+
+3. **Tạo Lớp Học mới**:
+   - Click nút "Thêm mới" trên giao diện
+   - Điền thông tin:
+     - Mã lớp (ví dụ: IT201, EN101)
+     - Tên lớp (ví dụ: Công Nghệ Thông Tin K20)
+     - Năm học (ví dụ: 2024-2025)
+     - Chọn ngành học từ dropdown
+     - Loại đào tạo (ví dụ: Chính quy, Không chính quy)
+     - Bậc đào tạo (ví dụ: Đại học, Cao đẳng)
+     - Số lượng sinh viên tối đa
+     - Tình trạng lớp
+   - Mã lớp phải duy nhất trong năm học được chọn
+   - Click "Lưu"
+
+4. **Sửa Lớp Học**:
+   - Click nút "Sửa" trên dòng lớp học cần chỉnh sửa
+   - Cập nhật thông tin
+   - Click "Lưu"
+
+5. **Xoá Lớp Học**:
+   - Click nút "Xoá" trên dòng lớp học cần xoá
+   - Xác nhận xoá
+
+6. **Kích hoạt/Vô hiệu hóa Lớp Học**:
+   - Click biểu tượng trạng thái bên cạnh lớp học
+   - Chọn "Kích hoạt" hoặc "Vô hiệu hóa"
+
+7. **Xuất (Export) Lớp Học ra Excel**:
+   - Click nút "Xuất Excel" trên giao diện
+   - Hoặc gọi API `GET /api/classes/export`
+   - File Excel sẽ được tải xuống tự động
+
+8. **Nhập (Import) Lớp Học từ Excel**:
+   - Chuẩn bị file Excel với các cột: Mã lớp, Tên lớp, Năm học, Ngành học, Loại đào tạo, Bậc đào tạo, Tối đa sinh viên, Trạng thái
+   - Click nút "Nhập Excel" trên giao diện
+   - Chọn file Excel từ máy tính
+   - Hệ thống sẽ tự động liên kết lớp với ngành dựa trên tên ngành trong file
+   - Hiển thị số lượng lớp được import thành công
+   - Hoặc gọi API `POST /api/classes/import` với file Excel
+
+9. **In (Print) Danh sách Lớp Học**:
+   - Click nút "In" hoặc "Print" trên giao diện
+   - Một trang in đẹp sẽ hiển thị
+   - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -720,6 +947,7 @@ mvn spring-boot:run
 - [x] Quản lý người dùng (User Management)
 - [x] Quản lý khoa (Faculty Management)
 - [x] Quản lý ngành học (Major Management)
+- [x] Quản lý lớp học (Classroom Management)
 - [ ] Quản lý sinh viên (Student Management)  
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
@@ -732,5 +960,5 @@ mvn spring-boot:run
 ---
 
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 06/02/2026 (Major Management features added with Import/Export/Print)
+**Cập nhật lần cuối**: 07/02/2026 (Classroom Management features added with Import/Export/Print)
 

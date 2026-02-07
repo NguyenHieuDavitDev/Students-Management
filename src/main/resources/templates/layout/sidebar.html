@@ -47,6 +47,13 @@
             <i class="fa-solid fa-layer-group"></i>
             <span>Majors</span>
         </a>
+        <a class="nav-link px-2 py-2"
+           th:href="@{/admin/classes}"
+           th:classappend="${activeMenu}=='classes' ? ' active' : ''">
+            <i class="fa-solid fa-chalkboard-user"></i>
+            <span>Classes</span>
+        </a>
+
 
     </nav>
 
