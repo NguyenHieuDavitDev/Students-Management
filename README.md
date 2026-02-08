@@ -578,6 +578,178 @@ Class `ClassService` cung cấp các phương thức:
 - **ClassController**: Quản lý API endpoints (CRUD, Import/Export/Print)
 - **ClassDashboardController**: Quản lý views HTML cho giao diện web
 
+### 6. Quản Lý Loại Đào Tạo (Education Type Management)
+
+Chức năng quản lý loại đào tạo cho phép quản trị viên tạo, sửa, xoá các loại đào tạo trong hệ thống (ví dụ: Chính quy, Không chính quy, Vừa học vừa làm).
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Loại Đào Tạo**: Xem toàn bộ danh sách các loại đào tạo trong hệ thống
+- **Tìm kiếm**: Tìm kiếm loại đào tạo theo tên (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo loại đào tạo mới
+- **Sửa**: Chỉnh sửa thông tin loại đào tạo đã tồn tại
+- **Xoá**: Xoá loại đào tạo khỏi hệ thống
+- **Quản lý Trạng thái**: Kích hoạt/vô hiệu hóa loại đào tạo
+- **Duy nhất**: Tên loại đào tạo phải duy nhất trong hệ thống
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/education-types` | Lấy danh sách tất cả loại đào tạo (có phân trang) |
+| GET | `/api/education-types/{id}` | Lấy chi tiết loại đào tạo theo ID |
+| GET | `/api/education-types/all` | Lấy tất cả loại đào tạo (dành cho dropdown) |
+| POST | `/api/education-types` | Tạo loại đào tạo mới |
+| PUT | `/api/education-types/{id}` | Cập nhật loại đào tạo |
+| DELETE | `/api/education-types/{id}` | Xoá loại đào tạo |
+
+#### Cấu trúc Entity EducationType:
+
+```java
+@Entity
+@Table(
+        name = "education_types",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"education_type_name"})
+        }
+)
+public class EducationType {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID educationTypeId;          // ID duy nhất
+    
+    @Column(nullable = false, unique = true)
+    private String educationTypeName;      // Tên loại đào tạo (duy nhất)
+    
+    @Column(nullable = false)
+    private Boolean isActive = true;       // Trạng thái kích hoạt
+    
+    private LocalDateTime createdAt;       // Thời gian tạo
+    
+    private LocalDateTime updatedAt;       // Thời gian cập nhật
+}
+```
+
+#### Request/Response Model:
+
+**EducationTypeRequest** (Tạo/Cập nhật loại đào tạo):
+```json
+{
+  "educationTypeName": "Chính quy",
+  "isActive": true
+}
+```
+
+**EducationTypeResponse** (Phản hồi từ server):
+```json
+{
+  "educationTypeId": "uuid",
+  "educationTypeName": "Chính quy",
+  "isActive": true,
+  "createdAt": "2026-02-08T10:30:00",
+  "updatedAt": "2026-02-08T10:30:00"
+}
+```
+
+#### Service Layer:
+
+Class `EducationTypeService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm loại đào tạo với phân trang
+- `getById(id)`: Lấy loại đào tạo theo ID
+- `create(request)`: Tạo loại đào tạo mới
+- `update(id, request)`: Cập nhật loại đào tạo
+- `delete(id)`: Xoá loại đào tạo
+- `getAll()`: Lấy tất cả loại đào tạo (dành cho dropdown)
+
+#### Controller:
+
+- **EducationTypeController**: Quản lý API endpoints (CRUD)
+- **EducationTypeDashboardController**: Quản lý views HTML cho giao diện web
+
+### 7. Quản Lý Bậc Đào Tạo (Training Level Management)
+
+Chức năng quản lý bậc đào tạo cho phép quản trị viên tạo, sửa, xoá các bậc đào tạo trong hệ thống (ví dụ: Đại học, Cao đẳng, Trung cấp).
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Bậc Đào Tạo**: Xem toàn bộ danh sách các bậc đào tạo trong hệ thống
+- **Tìm kiếm**: Tìm kiếm bậc đào tạo theo tên (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo bậc đào tạo mới
+- **Sửa**: Chỉnh sửa thông tin bậc đào tạo đã tồn tại
+- **Xoá**: Xoá bậc đào tạo khỏi hệ thống
+- **Mô tả**: Hỗ trợ thêm mô tả chi tiết cho bậc đào tạo
+- **Duy nhất**: Tên bậc đào tạo phải duy nhất trong hệ thống
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/training-levels` | Lấy danh sách tất cả bậc đào tạo (có phân trang) |
+| GET | `/api/training-levels/{id}` | Lấy chi tiết bậc đào tạo theo ID |
+| GET | `/api/training-levels/all` | Lấy tất cả bậc đào tạo (dành cho dropdown) |
+| POST | `/api/training-levels` | Tạo bậc đào tạo mới |
+| PUT | `/api/training-levels/{id}` | Cập nhật bậc đào tạo |
+| DELETE | `/api/training-levels/{id}` | Xoá bậc đào tạo |
+
+#### Cấu trúc Entity TrainingLevel:
+
+```java
+@Entity
+@Table(
+        name = "training_levels",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "training_level_name")
+        }
+)
+public class TrainingLevel {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID trainingLevelId;          // ID duy nhất
+    
+    @Column(nullable = false, unique = true)
+    private String trainingLevelName;      // Tên bậc đào tạo (duy nhất)
+    
+    @Column
+    private String description;            // Mô tả bậc đào tạo
+}
+```
+
+#### Request/Response Model:
+
+**TrainingLevelRequest** (Tạo/Cập nhật bậc đào tạo):
+```json
+{
+  "trainingLevelName": "Đại học",
+  "description": "Chương trình đào tạo bậc đại học"
+}
+```
+
+**TrainingLevelResponse** (Phản hồi từ server):
+```json
+{
+  "trainingLevelId": "uuid",
+  "trainingLevelName": "Đại học",
+  "description": "Chương trình đào tạo bậc đại học"
+}
+```
+
+#### Service Layer:
+
+Class `TrainingLevelService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm bậc đào tạo với phân trang
+- `getById(id)`: Lấy bậc đào tạo theo ID
+- `create(request)`: Tạo bậc đào tạo mới
+- `update(id, request)`: Cập nhật bậc đào tạo
+- `delete(id)`: Xoá bậc đào tạo
+- `getAll()`: Lấy tất cả bậc đào tạo (dành cho dropdown)
+
+#### Controller:
+
+- **TrainingLevelController**: Quản lý API endpoints (CRUD)
+- **TrainingLevelDashboardController**: Quản lý views HTML cho giao diện web
+
 ##  Công Nghệ
 
 - **Java 17**: Ngôn ngữ lập trình
@@ -660,6 +832,32 @@ src/
 │   │       │   │   └── ClassRepository.java
 │   │       │   └── service/
 │   │       │       └── ClassService.java
+│   │       ├── educationtype/
+│   │       │   ├── controller/
+│   │       │   │   ├── EducationTypeController.java
+│   │       │   │   └── EducationTypeDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── EducationTypeRequest.java
+│   │       │   │   └── EducationTypeResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── EducationType.java
+│   │       │   ├── repository/
+│   │       │   │   └── EducationTypeRepository.java
+│   │       │   └── service/
+│   │       │       └── EducationTypeService.java
+│   │       ├── traininglevel/
+│   │       │   ├── controller/
+│   │       │   │   ├── TrainingLevelController.java
+│   │       │   │   └── TrainingLevelDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── TrainingLevelRequest.java
+│   │       │   │   └── TrainingLevelResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── TrainingLevel.java
+│   │       │   ├── repository/
+│   │       │   │   └── TrainingLevelRepository.java
+│   │       │   └── service/
+│   │       │       └── TrainingLevelService.java
 │   │       └── web/
 │   │           ├── AdminController.java
 │   │           └── HomeController.java
@@ -683,6 +881,12 @@ src/
 │       │   │   ├── index.html
 │       │   │   ├── form.html
 │       │   │   └── print.html
+│       │   ├── educationtypes/
+│       │   │   ├── index.html
+│       │   │   └── form.html
+│       │   ├── traininglevels/
+│       │   │   ├── index.html
+│       │   │   └── form.html
 │       │   ├── layout/
 │       │   │   ├── dashboard.html
 │       │   │   ├── header.html
@@ -936,6 +1140,60 @@ mvn spring-boot:run
    - Một trang in đẹp sẽ hiển thị
    - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
 
+### Quản Lý Loại Đào Tạo:
+
+1. **Xem danh sách Loại Đào Tạo**:
+   - Truy cập `/education-types` trên giao diện web
+   - Hoặc gọi API `GET /api/education-types`
+
+2. **Tìm kiếm Loại Đào Tạo**:
+   - Sử dụng thanh tìm kiếm trên giao diện
+   - Hỗ trợ tìm kiếm theo tên loại đào tạo
+
+3. **Tạo Loại Đào Tạo mới**:
+   - Click nút "Thêm mới" trên giao diện
+   - Điền tên loại đào tạo (ví dụ: Chính quy, Không chính quy)
+   - Click "Lưu"
+
+4. **Sửa Loại Đào Tạo**:
+   - Click nút "Sửa" trên dòng loại đào tạo cần chỉnh sửa
+   - Cập nhật thông tin
+   - Click "Lưu"
+
+5. **Xoá Loại Đào Tạo**:
+   - Click nút "Xoá" trên dòng loại đào tạo cần xoá
+   - Xác nhận xoá
+
+6. **Kích hoạt/Vô hiệu hóa Loại Đào Tạo**:
+   - Click biểu tượng trạng thái bên cạnh loại đào tạo
+   - Chọn "Kích hoạt" hoặc "Vô hiệu hóa"
+
+### Quản Lý Bậc Đào Tạo:
+
+1. **Xem danh sách Bậc Đào Tạo**:
+   - Truy cập `/training-levels` trên giao diện web
+   - Hoặc gọi API `GET /api/training-levels`
+
+2. **Tìm kiếm Bậc Đào Tạo**:
+   - Sử dụng thanh tìm kiếm trên giao diện
+   - Hỗ trợ tìm kiếm theo tên bậc đào tạo
+
+3. **Tạo Bậc Đào Tạo mới**:
+   - Click nút "Thêm mới" trên giao diện
+   - Điền thông tin:
+     - Tên bậc đào tạo (ví dụ: Đại học, Cao đẳng)
+     - Mô tả bậc đào tạo (tùy chọn)
+   - Click "Lưu"
+
+4. **Sửa Bậc Đào Tạo**:
+   - Click nút "Sửa" trên dòng bậc đào tạo cần chỉnh sửa
+   - Cập nhật thông tin
+   - Click "Lưu"
+
+5. **Xoá Bậc Đào Tạo**:
+   - Click nút "Xoá" trên dòng bậc đào tạo cần xoá
+   - Xác nhận xoá
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -948,6 +1206,8 @@ mvn spring-boot:run
 - [x] Quản lý khoa (Faculty Management)
 - [x] Quản lý ngành học (Major Management)
 - [x] Quản lý lớp học (Classroom Management)
+- [x] Quản lý loại đào tạo (Education Type Management)
+- [x] Quản lý bậc đào tạo (Training Level Management)
 - [ ] Quản lý sinh viên (Student Management)  
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
@@ -960,5 +1220,5 @@ mvn spring-boot:run
 ---
 
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 07/02/2026 (Classroom Management features added with Import/Export/Print)
+**Cập nhật lần cuối**: 08/02/2026 (Education Type & Training Level Management added)
 

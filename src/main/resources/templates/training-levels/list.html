@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Bậc đào tạo',
+        'Danh sách bậc đào tạo',
+        'Quản lý bậc đào tạo',
+        'trainingLevels',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <!-- FLASH MESSAGE -->
+    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <!-- TOP BAR -->
+            <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
+
+                <!-- SEARCH -->
+                <form class="d-flex gap-2" method="get"
+                      th:action="@{/admin/training-levels}">
+                    <input class="form-control"
+                           style="min-width:260px"
+                           name="keyword"
+                           placeholder="Tìm theo tên bậc đào tạo"
+                           th:value="${keyword}">
+                    <button class="btn btn-outline-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </form>
+
+                <!-- ACTIONS -->
+                <div class="d-flex gap-2">
+
+                    <!-- PRINT -->
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/training-levels/print}"
+                       target="_blank">
+                        <i class="fa-solid fa-print me-1"></i> In
+                    </a>
+
+                    <!-- EXPORT -->
+                    <a class="btn btn-outline-success"
+                       th:href="@{/admin/training-levels/export}">
+                        <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
+                    </a>
+
+                    <!-- IMPORT -->
+                    <form method="post"
+                          th:action="@{/admin/training-levels/import}"
+                          enctype="multipart/form-data">
+                        <label class="btn btn-outline-warning mb-0">
+                            <i class="fa-solid fa-file-import me-1"></i> Nhập Excel
+                            <input type="file"
+                                   name="file"
+                                   hidden
+                                   accept=".xlsx"
+                                   onchange="this.form.submit()">
+                        </label>
+                    </form>
+
+                    <!-- NEW -->
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/training-levels/new}">
+                        <i class="fa-solid fa-plus me-1"></i> Thêm mới
+                    </a>
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <th>Tên bậc đào tạo</th>
+                        <th>Mô tả</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${levels.content.isEmpty()}">
+                        <td colspan="3" class="text-muted">Không có dữ liệu</td>
+                    </tr>
+                    <tr th:each="l : ${levels.content}">
+                        <td class="fw-semibold" th:text="${l.trainingLevelName}"></td>
+                        <td th:text="${l.description}"></td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary"
+                               th:href="@{/admin/training-levels/{id}/edit(id=${l.trainingLevelId})}">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <form class="d-inline"
+                                  th:action="@{/admin/training-levels/{id}/delete(id=${l.trainingLevelId})}"
+                                  method="post"
+                                  onsubmit="return confirm('Xoá bậc đào tạo này?')">
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINATION -->
+            <nav th:if="${levels.totalPages > 1}">
+                <ul class="pagination mb-0">
+                    <li class="page-item"
+                        th:classappend="${levels.first} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/training-levels(page=${levels.number-1},keyword=${keyword})}">
+                            Trước
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, levels.totalPages-1)}"
+                        th:classappend="${i==levels.number}?'active'">
+                        <a class="page-link"
+                           th:text="${i+1}"
+                           th:href="@{/admin/training-levels(page=${i},keyword=${keyword})}">
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:classappend="${levels.last} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/training-levels(page=${levels.number+1},keyword=${keyword})}">
+                            Sau
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
