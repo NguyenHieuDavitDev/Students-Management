@@ -1437,3 +1437,18 @@ mvn spring-boot:run
 **Phiên bản**: 0.0.1-SNAPSHOT  
 **Cập nhật lần cuối**: 09/02/2026 (Student Management features added)
 
+## Lưu Ý Quan Trọng
+
+Hệ thống này được phát triển để quản lý sinh viên với các tính năng đầy đủ:
+- Quản lý vai trò (Role Management)
+- Quản lý người dùng (User Management)
+- Quản lý khoa (Faculty Management)
+- Quản lý ngành học (Major Management)
+- Quản lý lớp học (Classroom Management)
+- Quản lý loại đào tạo (Education Type Management)
+- Quản lý bậc đào tạo (Training Level Management)
+- Quản lý sinh viên (Student Management)
+
+Mỗi module đều hỗ trợ các tính năng CRUD cơ bản cùng các tính năng nâng cao như Import/Export Excel, Print, tìm kiếm và phân trang.
+
+---
