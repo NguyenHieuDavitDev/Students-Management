@@ -1059,6 +1059,7 @@ src/
 ### Yêu Cầu:
 - Java 17 trở lên
 - Maven 3.8+
+- SQL Server hoặc cơ sở dữ liệu tương thích
 
 ### Các Bước:
 
@@ -1068,18 +1069,34 @@ git clone https://github.com/NguyenHieuDavitDev/Students-Management.git
 cd Students-Management
 ```
 
-2. **Build project**:
+2. **Cấu hình Database**:
+   - Tạo cơ sở dữ liệu mới
+   - Cập nhật thông tin kết nối trong file `application.yml` hoặc `application.properties`
+   - Ví dụ trong `application.yml`:
+   ```yaml
+   spring:
+     datasource:
+       url: jdbc:sqlserver://localhost:1433;databaseName=students_db
+       username: sa
+       password: your_password
+     jpa:
+       hibernate:
+         ddl-auto: create-drop
+   ```
+
+3. **Build project**:
 ```bash
 mvn clean install
 ```
 
-3. **Chạy ứng dụng**:
+4. **Chạy ứng dụng**:
 ```bash
 mvn spring-boot:run
 ```
 
-4. **Truy cập ứng dụng**:
-- Mở trình duyệt và truy cập `http://localhost:8080`
+5. **Truy cập ứng dụng**:
+   - Mở trình duyệt và truy cập `http://localhost:8080`
+   - Ứng dụng sẽ tự động tạo các bảng dữ liệu khi khởi động lần đầu
 
 ## Hướng Dẫn Sử Dụng
 
