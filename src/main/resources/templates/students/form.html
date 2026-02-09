@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa sinh viên':'Thêm sinh viên'),
+        (${mode}=='edit'?'Chỉnh sửa sinh viên':'Thêm sinh viên'),
+        'Form sinh viên',
+        'admin/students',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-danger"
+         th:if="${globalError}"
+         th:text="${globalError}"></div>
+
+    <form method="post"
+          th:action="${mode}=='edit'
+        ? @{/admin/students/{id}(id=${studentId})}
+        : @{/admin/students}"
+          th:object="${studentRequest}">
+
+        <div class="mb-3">
+            <label>Mã sinh viên</label>
+            <input class="form-control" th:field="*{studentCode}">
+            <small class="text-danger" th:errors="*{studentCode}"></small>
+        </div>
+
+        <div class="mb-3">
+            <label>Họ tên</label>
+            <input class="form-control" th:field="*{fullName}">
+        </div>
+
+        <div class="mb-3">
+            <label>Ngày sinh</label>
+            <input type="date" class="form-control" th:field="*{dateOfBirth}">
+        </div>
+
+        <div class="mb-3">
+            <label>Giới tính</label>
+            <select class="form-select" th:field="*{gender}">
+                <option value="">-- Chọn --</option>
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+                <option value="Khác">Khác</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>CCCD</label>
+            <input class="form-control" th:field="*{citizenId}">
+        </div>
+
+        <div class="mb-3">
+            <label>Email</label>
+            <input class="form-control" th:field="*{email}">
+        </div>
+
+        <div class="mb-3">
+            <label>SĐT</label>
+            <input class="form-control" th:field="*{phoneNumber}">
+        </div>
+
+        <div class="mb-3">
+            <label>Địa chỉ</label>
+            <input class="form-control" th:field="*{address}">
+        </div>
+
+        <div class="mb-3">
+            <label>Lớp</label>
+            <select class="form-select" th:field="*{classId}">
+                <option value="">-- Chọn lớp --</option>
+                <option th:each="c : ${classes}"
+                        th:value="${c.classId}"
+                        th:text="${c.className}">
+                </option>
+            </select>
+        </div>
+
+        <button class="btn btn-primary">Lưu</button>
+        <a class="btn btn-secondary" th:href="@{/admin/students}">Huỷ</a>
+    </form>
+
+
+</div>
+</body>
+</html>

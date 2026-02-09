@@ -74,22 +74,58 @@
                         <th>Mã lớp</th>
                         <th>Tên lớp</th>
                         <th>Ngành</th>
+                        <th>Hệ đào tạo</th>
+                        <th>Trình độ</th>
                         <th>Năm học</th>
                         <th>Sĩ số</th>
+                        <th>Trạng thái</th>
+                        <th>Kích hoạt</th>
                         <th class="text-end">Thao tác</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr th:if="${classes.content.isEmpty()}">
-                        <td colspan="6" class="text-muted">Không có dữ liệu</td>
+                        <td colspan="10" class="text-muted">Không có dữ liệu</td>
                     </tr>
 
                     <tr th:each="c : ${classes.content}">
                         <td th:text="${c.classCode}"></td>
                         <td class="fw-semibold" th:text="${c.className}"></td>
-                        <td th:text="${c.majorName}"></td>
+                        <td th:text="${c.majorName ?: 'N/A'}"></td>
+                        <td>
+                            <span class="badge bg-info-subtle text-info" 
+                                  th:text="${c.educationTypeName ?: 'N/A'}">
+                                N/A
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary"
+                                  th:text="${c.trainingLevelName ?: 'N/A'}">
+                                N/A
+                            </span>
+                        </td>
                         <td th:text="${c.academicYear}"></td>
-                        <td th:text="${c.maxStudent}"></td>
+                        <td th:text="${c.maxStudent ?: '-'}"></td>
+                        <td>
+                            <span class="badge" 
+                                  th:if="${c.classStatus != null and !c.classStatus.isEmpty()}"
+                                  th:classappend="${c.classStatus == 'Đang học'} ? 'bg-success' : 
+                                                  (${c.classStatus == 'Đã tốt nghiệp'} ? 'bg-primary' : 'bg-warning')"
+                                  th:text="${c.classStatus}">
+                                Đang học
+                            </span>
+                            <span class="text-muted small" 
+                                  th:if="${c.classStatus == null or c.classStatus.isEmpty()}">
+                                -
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge" 
+                                  th:classappend="${c.isActive} ? 'bg-success' : 'bg-secondary'"
+                                  th:text="${c.isActive} ? 'Hoạt động' : 'Tạm dừng'">
+                                Hoạt động
+                            </span>
+                        </td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-outline-primary"
                                th:href="@{/admin/classes/{id}/edit(id=${c.classId})}">

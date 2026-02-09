@@ -20,8 +20,11 @@ public class ClassRequest {
     @NotNull
     private UUID majorId;
 
-    private String educationType;
-    private String trainingLevel;
+    @NotNull
+    private UUID educationTypeId;
+
+    @NotNull
+    private UUID trainingLevelId;
 
     @Min(1)
     private Integer maxStudent;

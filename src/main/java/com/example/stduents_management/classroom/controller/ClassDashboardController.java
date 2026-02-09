@@ -3,7 +3,9 @@ package com.example.stduents_management.classroom.controller;
 import com.example.stduents_management.classroom.dto.ClassRequest;
 import com.example.stduents_management.classroom.dto.ClassResponse;
 import com.example.stduents_management.classroom.service.ClassService;
+import com.example.stduents_management.educationtype.repository.EducationTypeRepository;
 import com.example.stduents_management.major.repository.MajorRepository;
+import com.example.stduents_management.traininglevel.repository.TrainingLevelRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,8 @@ public class ClassDashboardController {
 
     private final ClassService classService;
     private final MajorRepository majorRepository;
+    private final EducationTypeRepository educationTypeRepository;
+    private final TrainingLevelRepository trainingLevelRepository;
 
     /* ================== LIST + SEARCH ================== */
     @GetMapping
@@ -47,19 +51,22 @@ public class ClassDashboardController {
     public String createForm(Model model) {
         model.addAttribute("mode", "create");
         model.addAttribute("classRequest", new ClassRequest());
-        model.addAttribute("majors", majorRepository.findAll());
+        loadSelectData(model);
         return "classes/form";
     }
 
     /* ================== CREATE ================== */
     @PostMapping
     public String create(
-            @Valid @ModelAttribute ClassRequest classRequest,
-            BindingResult result,
+            @Valid @ModelAttribute("classRequest") ClassRequest classRequest,
+            BindingResult bindingResult,
             Model model
     ) {
-        if (result.hasErrors()) {
-            model.addAttribute("majors", majorRepository.findAll());
+        model.addAttribute("mode", "create");
+        model.addAttribute("classId", null);
+
+        if (bindingResult.hasErrors()) {
+            loadSelectData(model);
             return "classes/form";
         }
 
@@ -68,7 +75,7 @@ public class ClassDashboardController {
             return "redirect:/admin/classes";
         } catch (ResponseStatusException e) {
             model.addAttribute("globalError", e.getReason());
-            model.addAttribute("majors", majorRepository.findAll());
+            loadSelectData(model);
             return "classes/form";
         }
     }
@@ -86,8 +93,8 @@ public class ClassDashboardController {
         req.setClassName(c.getClassName());
         req.setAcademicYear(c.getAcademicYear());
         req.setMajorId(c.getMajorId());
-        req.setEducationType(c.getEducationType());
-        req.setTrainingLevel(c.getTrainingLevel());
+        req.setEducationTypeId(c.getEducationTypeId());
+        req.setTrainingLevelId(c.getTrainingLevelId());
         req.setMaxStudent(c.getMaxStudent());
         req.setClassStatus(c.getClassStatus());
         req.setIsActive(c.getIsActive());
@@ -95,7 +102,7 @@ public class ClassDashboardController {
         model.addAttribute("mode", "edit");
         model.addAttribute("classId", id);
         model.addAttribute("classRequest", req);
-        model.addAttribute("majors", majorRepository.findAll());
+        loadSelectData(model);
         return "classes/form";
     }
 
@@ -103,12 +110,15 @@ public class ClassDashboardController {
     @PostMapping("/{id}")
     public String update(
             @PathVariable UUID id,
-            @Valid @ModelAttribute ClassRequest classRequest,
-            BindingResult result,
+            @Valid @ModelAttribute("classRequest") ClassRequest classRequest,
+            BindingResult bindingResult,
             Model model
     ) {
-        if (result.hasErrors()) {
-            model.addAttribute("majors", majorRepository.findAll());
+        model.addAttribute("mode", "edit");
+        model.addAttribute("classId", id);
+
+        if (bindingResult.hasErrors()) {
+            loadSelectData(model);
             return "classes/form";
         }
 
@@ -117,7 +127,7 @@ public class ClassDashboardController {
             return "redirect:/admin/classes";
         } catch (ResponseStatusException e) {
             model.addAttribute("globalError", e.getReason());
-            model.addAttribute("majors", majorRepository.findAll());
+            loadSelectData(model);
             return "classes/form";
         }
     }
@@ -147,9 +157,7 @@ public class ClassDashboardController {
                     "success", "Đã import " + count + " lớp học"
             );
         } catch (ResponseStatusException e) {
-            redirect.addFlashAttribute(
-                    "error", e.getReason()
-            );
+            redirect.addFlashAttribute("error", e.getReason());
         }
         return "redirect:/admin/classes";
     }
@@ -162,5 +170,12 @@ public class ClassDashboardController {
                 classService.getForPrint()
         );
         return "classes/print";
+    }
+
+    /* ================== UTIL ================== */
+    private void loadSelectData(Model model) {
+        model.addAttribute("majors", majorRepository.findAll());
+        model.addAttribute("educationTypes", educationTypeRepository.findAll());
+        model.addAttribute("trainingLevels", trainingLevelRepository.findAll());
     }
 }

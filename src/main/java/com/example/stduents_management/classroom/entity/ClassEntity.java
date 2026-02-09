@@ -1,6 +1,8 @@
 package com.example.stduents_management.classroom.entity;
 
+import com.example.stduents_management.educationtype.entity.EducationType;
 import com.example.stduents_management.major.entity.Major;
+import com.example.stduents_management.traininglevel.entity.TrainingLevel;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -35,14 +37,16 @@ public class ClassEntity {
     private String academicYear;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "major_id", nullable = false, columnDefinition = "uniqueidentifier")
+    @JoinColumn(name = "major_id", nullable = false)
     private Major major;
 
-    @Column(name = "education_type", columnDefinition = "NVARCHAR(50)")
-    private String educationType;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "education_type_id", nullable = true)
+    private EducationType educationType;
 
-    @Column(name = "training_level", columnDefinition = "NVARCHAR(50)")
-    private String trainingLevel;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "training_level_id", nullable = true)
+    private TrainingLevel trainingLevel;
 
     @Column(name = "max_student")
     private Integer maxStudent;

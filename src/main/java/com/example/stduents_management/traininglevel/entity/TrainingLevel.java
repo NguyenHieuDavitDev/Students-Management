@@ -29,4 +29,10 @@ public class TrainingLevel {
             columnDefinition = "NVARCHAR(100)"
     )
     private String trainingLevelName;
+
+    @Column(
+            name = "description",
+            columnDefinition = "NVARCHAR(255)"
+    )
+    private String description;
 }

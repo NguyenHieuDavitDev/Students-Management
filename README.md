@@ -750,6 +750,143 @@ Class `TrainingLevelService` cung cấp các phương thức:
 - **TrainingLevelController**: Quản lý API endpoints (CRUD)
 - **TrainingLevelDashboardController**: Quản lý views HTML cho giao diện web
 
+### 8. Quản Lý Sinh Viên (Student Management)
+
+Chức năng quản lý sinh viên cho phép quản trị viên tạo, sửa, xoá thông tin sinh viên trong hệ thống. Mỗi sinh viên được liên kết với một lớp học cụ thể.
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Sinh Viên**: Xem toàn bộ danh sách sinh viên trong hệ thống
+- **Tìm kiếm**: Tìm kiếm sinh viên theo mã sinh viên hoặc tên sinh viên (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo sinh viên mới và liên kết với lớp học
+- **Sửa**: Chỉnh sửa thông tin sinh viên đã tồn tại
+- **Xoá**: Xoá sinh viên khỏi hệ thống
+- **Liên kết Lớp Học**: Mỗi sinh viên được liên kết với một lớp học cụ thể
+- **Duy nhất**: Mã sinh viên phải duy nhất trong hệ thống
+- **Thông tin Chi Tiết**: Hỗ trợ lưu thông tin cá nhân đầy đủ (ngày sinh, giới tính, CMND, email, điện thoại, địa chỉ, avatar)
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/students` | Lấy danh sách tất cả sinh viên (có phân trang) |
+| GET | `/api/students/{id}` | Lấy chi tiết sinh viên theo ID |
+| GET | `/api/students/print` | Lấy tất cả sinh viên (dành cho print) |
+| POST | `/api/students` | Tạo sinh viên mới |
+| PUT | `/api/students/{id}` | Cập nhật sinh viên |
+| DELETE | `/api/students/{id}` | Xoá sinh viên |
+
+#### Cấu trúc Entity Student:
+
+```java
+@Entity
+@Table(
+        name = "students",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "student_code")
+        }
+)
+public class Student {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID studentId;                 // ID duy nhất
+    
+    @Column(nullable = false, unique = true)
+    private String studentCode;             // Mã sinh viên (duy nhất)
+    
+    @Column(nullable = false)
+    private String fullName;                // Họ và tên đầy đủ
+    
+    private LocalDate dateOfBirth;          // Ngày sinh
+    
+    private String gender;                  // Giới tính
+    
+    private String citizenId;               // Số CMND/CCCD
+    
+    private String email;                   // Email
+    
+    private String phoneNumber;             // Số điện thoại
+    
+    private String address;                 // Địa chỉ
+    
+    private String avatar;                  // Ảnh đại diện
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false)
+    private ClassEntity clazz;              // Lớp học
+}
+```
+
+#### Request/Response Model:
+
+**StudentRequest** (Tạo/Cập nhật sinh viên):
+```json
+{
+  "studentCode": "K20-001",
+  "fullName": "Nguyễn Văn A",
+  "dateOfBirth": "2002-05-15",
+  "gender": "Nam",
+  "citizenId": "123456789012",
+  "email": "studentA@email.com",
+  "phoneNumber": "0901234567",
+  "address": "123 Đường ABC, Thành phố XYZ",
+  "avatar": "avatar_url",
+  "classId": "uuid-class-1"
+}
+```
+
+**StudentResponse** (Phản hồi từ server):
+```json
+{
+  "studentId": "uuid",
+  "studentCode": "K20-001",
+  "fullName": "Nguyễn Văn A",
+  "dateOfBirth": "2002-05-15",
+  "gender": "Nam",
+  "citizenId": "123456789012",
+  "email": "studentA@email.com",
+  "phoneNumber": "0901234567",
+  "address": "123 Đường ABC, Thành phố XYZ",
+  "avatar": "avatar_url",
+  "classId": "uuid-class-1",
+  "className": "Công Nghệ Thông Tin K20",
+  "majorId": "uuid-major-1",
+  "majorName": "Công Nghệ Thông Tin"
+}
+```
+
+#### Service Layer:
+
+Class `StudentService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm sinh viên với phân trang
+- `getById(id)`: Lấy sinh viên theo ID
+- `create(request)`: Tạo sinh viên mới
+- `update(id, request)`: Cập nhật sinh viên
+- `delete(id)`: Xoá sinh viên
+- `getForPrint()`: Lấy tất cả sinh viên (dành cho print)
+
+#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra Tính Duy Nhất**: Mã sinh viên phải duy nhất trong hệ thống
+- **Validate Dữ Liệu**: Các trường bắt buộc không được để trống
+- **Kiểm tra Lớp Học**: Lớp học phải tồn tại trước khi tạo sinh viên
+- **Sắp Xếp Tự Động**: Danh sách sinh viên được sắp xếp theo mã sinh viên
+- **Liên Kết Dữ Liệu**: Thông tin lớp và ngành được tự động lấy từ lớp học đã liên kết
+
+#### Tính Năng Print:
+
+**Print (In ấn):**
+- In danh sách sinh viên từ giao diện web
+- Định dạng in đẹp và dễ đọc
+- Hỗ trợ in từ trình duyệt
+- Hiển thị thông tin đầy đủ của sinh viên
+
+#### Controller:
+
+- **StudentController**: Quản lý API endpoints (CRUD, Print)
+- **StudentDashboardController**: Quản lý views HTML cho giao diện web
+
 ##  Công Nghệ
 
 - **Java 17**: Ngôn ngữ lập trình
@@ -858,6 +995,19 @@ src/
 │   │       │   │   └── TrainingLevelRepository.java
 │   │       │   └── service/
 │   │       │       └── TrainingLevelService.java
+│   │       ├── student/
+│   │       │   ├── controller/
+│   │       │   │   ├── StudentController.java
+│   │       │   │   └── StudentDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── StudentRequest.java
+│   │       │   │   └── StudentResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── Student.java
+│   │       │   ├── repository/
+│   │       │   │   └── StudentRepository.java
+│   │       │   └── service/
+│   │       │       └── StudentService.java
 │   │       └── web/
 │   │           ├── AdminController.java
 │   │           └── HomeController.java
@@ -887,6 +1037,10 @@ src/
 │       │   ├── traininglevels/
 │       │   │   ├── index.html
 │       │   │   └── form.html
+│       │   ├── students/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
 │       │   ├── layout/
 │       │   │   ├── dashboard.html
 │       │   │   ├── header.html
@@ -1194,6 +1348,50 @@ mvn spring-boot:run
    - Click nút "Xoá" trên dòng bậc đào tạo cần xoá
    - Xác nhận xoá
 
+### Quản Lý Sinh Viên:
+
+1. **Xem danh sách Sinh Viên**:
+   - Truy cập `/students` trên giao diện web
+   - Hoặc gọi API `GET /api/students`
+
+2. **Tìm kiếm Sinh Viên**:
+   - Sử dụng thanh tìm kiếm trên giao diện
+   - Hỗ trợ tìm kiếm theo mã sinh viên hoặc tên sinh viên
+
+3. **Tạo Sinh Viên mới**:
+   - Click nút "Thêm mới" trên giao diện
+   - Điền thông tin:
+     - Mã sinh viên (ví dụ: K20-001) - phải duy nhất
+     - Họ và tên đầy đủ
+     - Ngày sinh
+     - Giới tính
+     - Số CMND/CCCD
+     - Email
+     - Số điện thoại
+     - Địa chỉ
+     - Ảnh đại diện (tùy chọn)
+     - Chọn lớp học từ dropdown
+   - Click "Lưu"
+
+4. **Sửa Sinh Viên**:
+   - Click nút "Sửa" trên dòng sinh viên cần chỉnh sửa
+   - Cập nhật thông tin
+   - Click "Lưu"
+
+5. **Xoá Sinh Viên**:
+   - Click nút "Xoá" trên dòng sinh viên cần xoá
+   - Xác nhận xoá
+
+6. **Xem Chi Tiết Sinh Viên**:
+   - Click vào tên sinh viên hoặc biểu tượng xem chi tiết
+   - Hiển thị toàn bộ thông tin sinh viên
+   - Bao gồm thông tin lớp học và ngành học
+
+7. **In (Print) Danh sách Sinh Viên**:
+   - Click nút "In" hoặc "Print" trên giao diện
+   - Một trang in đẹp sẽ hiển thị
+   - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -1208,7 +1406,7 @@ mvn spring-boot:run
 - [x] Quản lý lớp học (Classroom Management)
 - [x] Quản lý loại đào tạo (Education Type Management)
 - [x] Quản lý bậc đào tạo (Training Level Management)
-- [ ] Quản lý sinh viên (Student Management)  
+- [x] Quản lý sinh viên (Student Management)
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
@@ -1220,5 +1418,5 @@ mvn spring-boot:run
 ---
 
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 08/02/2026 (Education Type & Training Level Management added)
+**Cập nhật lần cuối**: 09/02/2026 (Student Management features added)
 

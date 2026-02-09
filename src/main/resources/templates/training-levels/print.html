@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In trình độ đào tạo</title>
+    <style>
+        body { font-family: Arial }
+        table { width:100%; border-collapse: collapse }
+        th,td { border:1px solid #000; padding:6px }
+        th { background:#f0f0f0 }
+    </style>
+</head>
+<body onload="window.print()">
+
+<h3 style="text-align:center">DANH SÁCH TRÌNH ĐỘ ĐÀO TẠO</h3>
+
+<table>
+    <thead>
+    <tr>
+        <th>STT</th>
+        <th>Tên trình độ</th>
+        <th>Mô tả</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="t,i : ${trainingLevels}">
+        <td th:text="${i.index+1}"></td>
+        <td th:text="${t.trainingLevelName}"></td>
+        <td th:text="${t.description}"></td>
+    </tr>
+    </tbody>
+</table>
+
+</body>
+</html>

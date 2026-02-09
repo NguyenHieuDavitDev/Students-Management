@@ -24,4 +24,6 @@ public interface MajorRepository extends JpaRepository<Major, UUID> {
             String keyword,
             Pageable pageable
     );
+
+    java.util.Optional<Major> findByMajorName(String majorName);
 }

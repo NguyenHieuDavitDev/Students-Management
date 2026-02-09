@@ -17,8 +17,12 @@ public class ClassResponse {
     private UUID majorId;
     private String majorName;
 
-    private String educationType;
-    private String trainingLevel;
+    private UUID educationTypeId;
+    private String educationTypeName;
+
+    private UUID trainingLevelId;
+    private String trainingLevelName;
+
     private Integer maxStudent;
     private String classStatus;
     private Boolean isActive;

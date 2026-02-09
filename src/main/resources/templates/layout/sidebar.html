@@ -53,6 +53,26 @@
             <i class="fa-solid fa-chalkboard-user"></i>
             <span>Classes</span>
         </a>
+        <a class="nav-link px-2 py-2"
+           th:href="@{/admin/education-types}"
+           th:classappend="${activeMenu}=='education-types' ? ' active' : ''">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <span>Education Types</span>
+        </a>
+        <a class="nav-link px-2 py-2"
+           th:href="@{/admin/training-levels}"
+           th:classappend="${activeMenu}=='trainingLevels' ? ' active' : ''">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <span>Training Levels</span>
+        </a>
+
+        <a class="nav-link px-2 py-2"
+           th:href="@{/admin/students}"
+           th:classappend="${activeMenu}=='students' ? ' active' : ''">
+            <i class="fa-solid fa-user-graduate"></i>
+            <span>Students</span>
+        </a>
+
 
 
     </nav>

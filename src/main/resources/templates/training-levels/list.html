@@ -1,16 +1,16 @@
 <!doctype html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/dashboard :: layout(
-        'Bậc đào tạo',
-        'Danh sách bậc đào tạo',
-        'Quản lý bậc đào tạo',
+        'Trình độ đào tạo',
+        'Danh sách trình độ',
+        'Quản lý trình độ đào tạo',
         'trainingLevels',
         ~{::content}
       )}">
 <body>
 <div th:fragment="content">
 
-    <!-- FLASH MESSAGE -->
+    <!-- FLASH -->
     <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
     <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 
@@ -26,14 +26,14 @@
                     <input class="form-control"
                            style="min-width:260px"
                            name="keyword"
-                           placeholder="Tìm theo tên bậc đào tạo"
+                           placeholder="Tìm theo tên trình độ"
                            th:value="${keyword}">
                     <button class="btn btn-outline-primary">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </button>
                 </form>
 
-                <!-- ACTIONS -->
+                <!-- ACTION -->
                 <div class="d-flex gap-2">
 
                     <!-- PRINT -->
@@ -55,9 +55,7 @@
                           enctype="multipart/form-data">
                         <label class="btn btn-outline-warning mb-0">
                             <i class="fa-solid fa-file-import me-1"></i> Nhập Excel
-                            <input type="file"
-                                   name="file"
-                                   hidden
+                            <input type="file" hidden name="file"
                                    accept=".xlsx"
                                    onchange="this.form.submit()">
                         </label>
@@ -76,51 +74,56 @@
                 <table class="table table-hover align-middle">
                     <thead>
                     <tr>
-                        <th>Tên bậc đào tạo</th>
+                        <th>Tên trình độ</th>
                         <th>Mô tả</th>
                         <th class="text-end">Thao tác</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:if="${levels.content.isEmpty()}">
+
+                    <tr th:if="${trainingLevels.content.isEmpty()}">
                         <td colspan="3" class="text-muted">Không có dữ liệu</td>
                     </tr>
-                    <tr th:each="l : ${levels.content}">
-                        <td class="fw-semibold" th:text="${l.trainingLevelName}"></td>
-                        <td th:text="${l.description}"></td>
+
+                    <tr th:each="t : ${trainingLevels.content}">
+                        <td class="fw-semibold" th:text="${t.trainingLevelName}"></td>
+                        <td th:text="${t.description}"></td>
                         <td class="text-end">
+
                             <a class="btn btn-sm btn-outline-primary"
-                               th:href="@{/admin/training-levels/{id}/edit(id=${l.trainingLevelId})}">
+                               th:href="@{/admin/training-levels/{id}/edit(id=${t.trainingLevelId})}">
                                 <i class="fa-solid fa-pen"></i>
                             </a>
+
                             <form class="d-inline"
-                                  th:action="@{/admin/training-levels/{id}/delete(id=${l.trainingLevelId})}"
+                                  th:action="@{/admin/training-levels/{id}/delete(id=${t.trainingLevelId})}"
                                   method="post"
-                                  onsubmit="return confirm('Xoá bậc đào tạo này?')">
+                                  onsubmit="return confirm('Xoá trình độ này?')">
                                 <button class="btn btn-sm btn-outline-danger">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </form>
                         </td>
                     </tr>
+
                     </tbody>
                 </table>
             </div>
 
             <!-- PAGINATION -->
-            <nav th:if="${levels.totalPages > 1}">
+            <nav th:if="${trainingLevels.totalPages > 1}">
                 <ul class="pagination mb-0">
                     <li class="page-item"
-                        th:classappend="${levels.first} ? 'disabled'">
+                        th:classappend="${trainingLevels.first}?'disabled'">
                         <a class="page-link"
-                           th:href="@{/admin/training-levels(page=${levels.number-1},keyword=${keyword})}">
+                           th:href="@{/admin/training-levels(page=${trainingLevels.number-1},keyword=${keyword})}">
                             Trước
                         </a>
                     </li>
 
                     <li class="page-item"
-                        th:each="i : ${#numbers.sequence(0, levels.totalPages-1)}"
-                        th:classappend="${i==levels.number}?'active'">
+                        th:each="i : ${#numbers.sequence(0,trainingLevels.totalPages-1)}"
+                        th:classappend="${i==trainingLevels.number}?'active'">
                         <a class="page-link"
                            th:text="${i+1}"
                            th:href="@{/admin/training-levels(page=${i},keyword=${keyword})}">
@@ -128,9 +131,9 @@
                     </li>
 
                     <li class="page-item"
-                        th:classappend="${levels.last} ? 'disabled'">
+                        th:classappend="${trainingLevels.last}?'disabled'">
                         <a class="page-link"
-                           th:href="@{/admin/training-levels(page=${levels.number+1},keyword=${keyword})}">
+                           th:href="@{/admin/training-levels(page=${trainingLevels.number+1},keyword=${keyword})}">
                             Sau
                         </a>
                     </li>
@@ -139,7 +142,6 @@
 
         </div>
     </div>
-
 </div>
 </body>
 </html>

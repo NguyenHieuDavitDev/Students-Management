@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Hệ đào tạo',
+        'Danh sách hệ đào tạo',
+        'Quản lý hệ đào tạo',
+        'education-types',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <!-- FLASH -->
+    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <!-- TOP BAR -->
+            <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
+
+                <!-- SEARCH -->
+                <form class="d-flex gap-2"
+                      method="get"
+                      th:action="@{/admin/education-types}">
+                    <input class="form-control"
+                           style="min-width:260px"
+                           name="keyword"
+                           placeholder="Tìm theo tên hệ đào tạo"
+                           th:value="${keyword}">
+                    <button class="btn btn-outline-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </form>
+
+                <!-- ACTIONS -->
+                <div class="d-flex gap-2">
+
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/education-types/print}"
+                       target="_blank">
+                        <i class="fa-solid fa-print me-1"></i> In
+                    </a>
+
+                    <a class="btn btn-outline-success"
+                       th:href="@{/admin/education-types/export}">
+                        <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
+                    </a>
+
+                    <form method="post"
+                          th:action="@{/admin/education-types/import}"
+                          enctype="multipart/form-data">
+                        <label class="btn btn-outline-warning mb-0">
+                            <i class="fa-solid fa-file-import me-1"></i> Nhập Excel
+                            <input type="file"
+                                   name="file"
+                                   hidden
+                                   accept=".xlsx"
+                                   onchange="this.form.submit()">
+                        </label>
+                    </form>
+
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/education-types/new}">
+                        <i class="fa-solid fa-plus me-1"></i> Thêm mới
+                    </a>
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <th>Tên hệ đào tạo</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${educationTypes.content.isEmpty()}">
+                        <td colspan="3" class="text-muted">Không có dữ liệu</td>
+                    </tr>
+                    <tr th:each="e : ${educationTypes.content}">
+                        <td class="fw-semibold"
+                            th:text="${e.educationTypeName}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${e.isActive}
+                                  ? ' bg-success'
+                                  : ' bg-secondary'"
+                                  th:text="${e.isActive ? 'Hoạt động' : 'Ngưng'}">
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary"
+                               th:href="@{/admin/education-types/{id}/edit(id=${e.educationTypeId})}">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <form class="d-inline"
+                                  method="post"
+                                  th:action="@{/admin/education-types/{id}/delete(id=${e.educationTypeId})}"
+                                  onsubmit="return confirm('Xoá hệ đào tạo này?')">
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINATION -->
+            <nav th:if="${educationTypes.totalPages > 1}">
+                <ul class="pagination mb-0">
+                    <li class="page-item"
+                        th:classappend="${educationTypes.first}?'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/education-types(page=${educationTypes.number-1},keyword=${keyword})}">
+                            Trước
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, educationTypes.totalPages-1)}"
+                        th:classappend="${i==educationTypes.number}?'active'">
+                        <a class="page-link"
+                           th:text="${i+1}"
+                           th:href="@{/admin/education-types(page=${i},keyword=${keyword})}">
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:classappend="${educationTypes.last}?'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/education-types(page=${educationTypes.number+1},keyword=${keyword})}">
+                            Sau
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

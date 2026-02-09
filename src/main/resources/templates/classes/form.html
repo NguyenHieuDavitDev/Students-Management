@@ -33,8 +33,9 @@
                     <div class="text-danger small" th:errors="*{className}"></div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Ngành</label>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Ngành <span class="text-danger">*</span></label>
                     <select class="form-select" th:field="*{majorId}">
                         <option value="">-- Chọn ngành --</option>
                         <option th:each="m:${majors}"
@@ -42,16 +43,63 @@
                                 th:text="${m.majorName}">
                         </option>
                     </select>
+                        <div class="text-danger small mt-1" th:errors="*{majorId}"></div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Hệ đào tạo <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{educationTypeId}">
+                            <option value="">-- Chọn hệ đào tạo --</option>
+                            <option th:each="et:${educationTypes}"
+                                    th:value="${et.educationTypeId}"
+                                    th:text="${et.educationTypeName}">
+                            </option>
+                        </select>
+                        <div class="text-danger small mt-1" th:errors="*{educationTypeId}"></div>
+                    </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Năm học</label>
-                        <input class="form-control" th:field="*{academicYear}">
+                        <label class="form-label">Trình độ đào tạo <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{trainingLevelId}">
+                            <option value="">-- Chọn trình độ --</option>
+                            <option th:each="tl:${trainingLevels}"
+                                    th:value="${tl.trainingLevelId}"
+                                    th:text="${tl.trainingLevelName}">
+                            </option>
+                        </select>
+                        <div class="text-danger small mt-1" th:errors="*{trainingLevelId}"></div>
                     </div>
                     <div class="col-md-6 mb-3">
+                        <label class="form-label">Năm học <span class="text-danger">*</span></label>
+                        <input class="form-control" th:field="*{academicYear}" placeholder="VD: 2024-2025">
+                        <div class="text-danger small mt-1" th:errors="*{academicYear}"></div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
                         <label class="form-label">Sĩ số tối đa</label>
-                        <input type="number" class="form-control" th:field="*{maxStudent}">
+                        <input type="number" class="form-control" th:field="*{maxStudent}" min="1" placeholder="VD: 50">
+                        <div class="text-danger small mt-1" th:errors="*{maxStudent}"></div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Trạng thái lớp</label>
+                        <select class="form-select" th:field="*{classStatus}">
+                            <option value="">-- Chọn trạng thái --</option>
+                            <option value="Đang học">Đang học</option>
+                            <option value="Đã tốt nghiệp">Đã tốt nghiệp</option>
+                            <option value="Tạm dừng">Tạm dừng</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" th:field="*{isActive}" id="isActive">
+                        <label class="form-check-label" for="isActive">
+                            Kích hoạt
+                        </label>
                     </div>
                 </div>
 

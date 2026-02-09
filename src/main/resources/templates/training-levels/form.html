@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa trình độ':'Thêm trình độ mới'),
+        (${mode}=='edit'?'Chỉnh sửa trình độ':'Thêm trình độ mới'),
+        'Form trình độ đào tạo',
+        'trainingLevels',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="card">
+        <div class="card-body">
+
+            <div th:if="${globalError}"
+                 class="alert alert-danger"
+                 th:text="${globalError}"></div>
+
+            <form method="post"
+                  th:action="${mode}=='edit'
+                    ? @{/admin/training-levels/{id}(id=${trainingLevelId})}
+                    : @{/admin/training-levels}"
+                  th:object="${trainingLevelRequest}">
+
+                <div class="mb-3">
+                    <label class="form-label">Tên trình độ</label>
+                    <input class="form-control"
+                           th:field="*{trainingLevelName}"
+                           placeholder="Ví dụ: Đại học, Cao đẳng">
+                    <div class="text-danger small"
+                         th:errors="*{trainingLevelName}"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Mô tả</label>
+                    <textarea class="form-control"
+                              rows="3"
+                              th:field="*{description}"></textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary">
+                        <i class="fa-solid fa-save me-1"></i> Lưu
+                    </button>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/training-levels}">
+                        Hủy
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
