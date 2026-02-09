@@ -2,6 +2,7 @@ package com.example.stduents_management.student.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -26,6 +27,11 @@ public class StudentRequest {
 
     private String phoneNumber;
     private String address;
+
+    // File upload từ form
+    private MultipartFile avatarFile;
+
+    // Đường dẫn ảnh lưu DB
     private String avatar;
 
     @NotNull(message = "Vui lòng chọn lớp")

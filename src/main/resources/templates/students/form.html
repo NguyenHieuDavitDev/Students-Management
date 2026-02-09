@@ -18,12 +18,28 @@
           th:action="${mode}=='edit'
         ? @{/admin/students/{id}(id=${studentId})}
         : @{/admin/students}"
-          th:object="${studentRequest}">
+          th:object="${studentRequest}"
+          enctype="multipart/form-data">
 
         <div class="mb-3">
             <label>Mã sinh viên</label>
             <input class="form-control" th:field="*{studentCode}">
             <small class="text-danger" th:errors="*{studentCode}"></small>
+        </div>
+
+        <div class="mb-3">
+            <label>Ảnh đại diện</label>
+            <input type="file"
+                   class="form-control"
+                   th:field="*{avatarFile}"
+                   accept="image/*">
+
+            <div class="mt-2" th:if="*{avatar} != null and *{avatar} != ''">
+                <p class="mb-1 text-muted">Ảnh hiện tại:</p>
+                <img th:src="*{avatar}"
+                     alt="Avatar"
+                     style="max-height: 120px; border-radius: 4px;">
+            </div>
         </div>
 
         <div class="mb-3">

@@ -2,11 +2,11 @@ package com.example.stduents_management.student.service;
 
 import com.example.stduents_management.classroom.entity.ClassEntity;
 import com.example.stduents_management.classroom.repository.ClassRepository;
+import com.example.stduents_management.common.service.FileStorageService;
 import com.example.stduents_management.student.dto.StudentRequest;
 import com.example.stduents_management.student.dto.StudentResponse;
 import com.example.stduents_management.student.entity.Student;
 import com.example.stduents_management.student.repository.StudentRepository;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
@@ -23,8 +23,8 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
     private final ClassRepository classRepository;
+    private final FileStorageService fileStorageService;
 
-    /* ===== SEARCH ===== */
     public Page<StudentResponse> search(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("studentCode"));
 
@@ -47,18 +47,14 @@ public class StudentService {
                 );
     }
 
-    /* ===== CREATE ===== */
     @Transactional
     public void create(StudentRequest req) {
         if (studentRepository.existsByStudentCode(req.getStudentCode())) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, "Mã sinh viên đã tồn tại"
-            );
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Mã sinh viên đã tồn tại");
         }
         studentRepository.save(buildStudent(new Student(), req));
     }
 
-    /* ===== UPDATE ===== */
     @Transactional
     public void update(UUID id, StudentRequest req) {
         Student s = studentRepository.findById(id)
@@ -69,26 +65,20 @@ public class StudentService {
         if (studentRepository.existsByStudentCodeAndStudentIdNot(
                 req.getStudentCode(), id
         )) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, "Mã sinh viên đã tồn tại"
-            );
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Mã sinh viên đã tồn tại");
         }
 
         buildStudent(s, req);
     }
 
-    /* ===== DELETE ===== */
     @Transactional
     public void delete(UUID id) {
         if (!studentRepository.existsById(id)) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Không tìm thấy sinh viên"
-            );
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy sinh viên");
         }
         studentRepository.deleteById(id);
     }
 
-    /* ===== PRINT ===== */
     public List<StudentResponse> getForPrint() {
         return studentRepository.findAll(Sort.by("studentCode"))
                 .stream()
@@ -96,8 +86,8 @@ public class StudentService {
                 .toList();
     }
 
-    /* ===== HELPER ===== */
     private Student buildStudent(Student s, StudentRequest req) {
+
         ClassEntity clazz = classRepository.findById(req.getClassId())
                 .orElseThrow(() ->
                         new ResponseStatusException(HttpStatus.NOT_FOUND, "Lớp không tồn tại")
@@ -111,9 +101,12 @@ public class StudentService {
         s.setEmail(req.getEmail());
         s.setPhoneNumber(req.getPhoneNumber());
         s.setAddress(req.getAddress());
-        s.setAvatar(req.getAvatar());
-        s.setClazz(clazz);
 
+        if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
+            s.setAvatar(fileStorageService.store(req.getAvatarFile()));
+        }
+
+        s.setClazz(clazz);
         return s;
     }
 

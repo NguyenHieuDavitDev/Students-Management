@@ -80,6 +80,7 @@
             <table class="table table-hover">
                 <thead>
                 <tr>
+                    <th>Ảnh</th>
                     <th>Mã SV</th>
                     <th>Họ tên</th>
                     <th>Ngày sinh</th>
@@ -92,6 +93,12 @@
                 </thead>
                 <tbody>
                 <tr th:each="s : ${students.content}">
+                    <td>
+                        <img th:if="${s.avatar != null}"
+                             th:src="${s.avatar}"
+                             alt="Avatar"
+                             style="height: 40px; width: 40px; object-fit: cover; border-radius: 50%;">
+                    </td>
                     <td th:text="${s.studentCode}"></td>
                     <td th:text="${s.fullName}"></td>
                     <td th:text="${s.dateOfBirth}"></td>

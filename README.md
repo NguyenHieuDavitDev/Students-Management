@@ -1409,6 +1409,25 @@ mvn spring-boot:run
    - Một trang in đẹp sẽ hiển thị
    - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
 
+### Tính Năng Upload Hình Ảnh:
+
+1. **Upload Ảnh Đại Diện Sinh Viên**:
+   - Khi tạo hoặc sửa thông tin sinh viên
+   - Click nút "Chọn ảnh" hoặc kéo thả ảnh vào vùng upload
+   - Hỗ trợ các định dạng: JPG, PNG, GIF
+   - Kích thước tối đa: 5MB
+   - Ảnh sẽ được lưu và hiển thị trong danh sách sinh viên
+
+2. **Quản Lý Ảnh Đã Upload**:
+   - Xem ảnh đại diện trên danh sách sinh viên
+   - Thay đổi ảnh bằng cách upload ảnh mới
+   - Xóa ảnh bằng cách xoá thông tin sinh viên
+
+3. **Lưu Trữ Ảnh**:
+   - Ảnh được lưu trên server với tên file duy nhất
+   - Đường dẫn ảnh được lưu trong database
+   - Có thể truy cập ảnh thông qua API hoặc giao diện web
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -1424,6 +1443,7 @@ mvn spring-boot:run
 - [x] Quản lý loại đào tạo (Education Type Management)
 - [x] Quản lý bậc đào tạo (Training Level Management)
 - [x] Quản lý sinh viên (Student Management)
+- [x] Upload hình ảnh (Image Upload)
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
@@ -1435,7 +1455,7 @@ mvn spring-boot:run
 ---
 
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 09/02/2026 (Student Management features added)
+**Cập nhật lần cuối**: 09/02/2026 (Image Upload feature added)
 
 ## Lưu Ý Quan Trọng
 

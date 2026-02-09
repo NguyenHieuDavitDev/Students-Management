@@ -75,6 +75,7 @@ public class StudentDashboardController {
         req.setEmail(s.getEmail());
         req.setPhoneNumber(s.getPhoneNumber());
         req.setAddress(s.getAddress());
+        req.setAvatar(s.getAvatar());
         req.setClassId(s.getClassId());
 
         model.addAttribute("mode", "edit");
