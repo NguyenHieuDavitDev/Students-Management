@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa giảng viên':'Thêm giảng viên'),
+        (${mode}=='edit'?'Chỉnh sửa giảng viên':'Thêm giảng viên'),
+        'Form giảng viên',
+        'lecturers',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-danger"
+         th:if="${globalError}"
+         th:text="${globalError}"></div>
+
+    <form method="post"
+          th:action="${mode}=='edit'
+        ? @{/admin/lecturers/{id}(id=${lecturerId})}
+        : @{/admin/lecturers}"
+          th:object="${lecturerRequest}"
+          enctype="multipart/form-data">
+
+        <div class="mb-3">
+            <label>Mã giảng viên <span class="text-danger">*</span></label>
+            <input class="form-control" th:field="*{lecturerCode}">
+            <small class="text-danger" th:errors="*{lecturerCode}"></small>
+        </div>
+
+        <div class="mb-3">
+            <label>Họ tên <span class="text-danger">*</span></label>
+            <input class="form-control" th:field="*{fullName}">
+            <small class="text-danger" th:errors="*{fullName}"></small>
+        </div>
+
+        <div class="mb-3">
+            <label>Ảnh đại diện</label>
+            <input type="file"
+                   class="form-control"
+                   th:field="*{avatarFile}"
+                   accept="image/*">
+
+            <div class="mt-2" th:if="*{avatar} != null and *{avatar} != ''">
+                <p class="mb-1 text-muted">Ảnh hiện tại:</p>
+                <img th:src="*{avatar}"
+                     alt="Avatar"
+                     style="max-height: 120px; border-radius: 4px;">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label>Ngày sinh</label>
+            <input type="date" class="form-control" th:field="*{dateOfBirth}">
+            <small class="text-danger" th:errors="*{dateOfBirth}"></small>
+        </div>
+
+        <div class="mb-3">
+            <label>Giới tính</label>
+            <select class="form-select" th:field="*{gender}">
+                <option value="">-- Chọn --</option>
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+                <option value="Khác">Khác</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>CCCD</label>
+            <input class="form-control" th:field="*{citizenId}">
+        </div>
+
+        <div class="mb-3">
+            <label>Email</label>
+            <input type="email" class="form-control" th:field="*{email}">
+            <small class="text-danger" th:errors="*{email}"></small>
+        </div>
+
+        <div class="mb-3">
+            <label>SĐT</label>
+            <input class="form-control" th:field="*{phoneNumber}">
+        </div>
+
+        <div class="mb-3">
+            <label>Địa chỉ</label>
+            <input class="form-control" th:field="*{address}">
+        </div>
+
+        <div class="mb-3">
+            <label>Học vị</label>
+            <select class="form-select" th:field="*{academicDegree}">
+                <option value="">-- Chọn --</option>
+                <option value="Cử nhân">Cử nhân</option>
+                <option value="Thạc sĩ">Thạc sĩ</option>
+                <option value="Tiến sĩ">Tiến sĩ</option>
+                <option value="Phó Giáo sư">Phó Giáo sư</option>
+                <option value="Giáo sư">Giáo sư</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>Học hàm</label>
+            <select class="form-select" th:field="*{academicTitle}">
+                <option value="">-- Chọn --</option>
+                <option value="Giảng viên">Giảng viên</option>
+                <option value="Giảng viên chính">Giảng viên chính</option>
+                <option value="Phó Giáo sư">Phó Giáo sư</option>
+                <option value="Giáo sư">Giáo sư</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>Khoa <span class="text-danger">*</span></label>
+            <select class="form-select" th:field="*{facultyId}">
+                <option value="">-- Chọn khoa --</option>
+                <option th:each="f : ${faculties}"
+                        th:value="${f.facultyId}"
+                        th:text="${f.facultyName}">
+                </option>
+            </select>
+            <small class="text-danger" th:errors="*{facultyId}"></small>
+        </div>
+
+        <button class="btn btn-primary">Lưu</button>
+        <a class="btn btn-secondary" th:href="@{/admin/lecturers}">Huỷ</a>
+    </form>
+
+
+</div>
+</body>
+</html>

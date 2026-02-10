@@ -887,6 +887,150 @@ Class `StudentService` cung cấp các phương thức:
 - **StudentController**: Quản lý API endpoints (CRUD, Print)
 - **StudentDashboardController**: Quản lý views HTML cho giao diện web
 
+### 9. Quản Lý Giảng Viên (Lecturer Management)
+
+Chức năng quản lý giảng viên cho phép quản trị viên tạo, sửa, xoá thông tin giảng viên trong hệ thống. Mỗi giảng viên được liên kết với một khoa cụ thể.
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Giảng Viên**: Xem toàn bộ danh sách giảng viên trong hệ thống
+- **Tìm kiếm**: Tìm kiếm giảng viên theo mã giảng viên hoặc tên (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo giảng viên mới và liên kết với khoa
+- **Sửa**: Chỉnh sửa thông tin giảng viên đã tồn tại
+- **Xoá**: Xoá giảng viên khỏi hệ thống
+- **Liên kết Khoa**: Mỗi giảng viên được liên kết với một khoa cụ thể
+- **Duy nhất**: Mã giảng viên phải duy nhất trong hệ thống
+- **Thông tin Chi Tiết**: Hỗ trợ lưu thông tin cá nhân đầy đủ (ngày sinh, giới tính, CMND, email, điện thoại, địa chỉ, avatar)
+- **Học Vị và Học Hàm**: Lưu thông tin học vị (Cử nhân, Thạc sĩ, Tiến sĩ) và học hàm (Giảng viên, Phó giáo sư, Giáo sư)
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/lecturers` | Lấy danh sách tất cả giảng viên (có phân trang) |
+| GET | `/api/lecturers/{id}` | Lấy chi tiết giảng viên theo ID |
+| GET | `/api/lecturers/print` | Lấy tất cả giảng viên (dành cho print) |
+| POST | `/api/lecturers` | Tạo giảng viên mới |
+| PUT | `/api/lecturers/{id}` | Cập nhật giảng viên |
+| DELETE | `/api/lecturers/{id}` | Xoá giảng viên |
+
+#### Cấu trúc Entity Lecturer:
+
+```java
+@Entity
+@Table(
+        name = "lecturers",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "lecturer_code")
+        }
+)
+public class Lecturer {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID lecturerId;                // ID duy nhất
+    
+    @Column(nullable = false, unique = true)
+    private String lecturerCode;            // Mã giảng viên (duy nhất)
+    
+    @Column(nullable = false)
+    private String fullName;                // Họ và tên đầy đủ
+    
+    private LocalDate dateOfBirth;          // Ngày sinh
+    
+    private String gender;                  // Giới tính
+    
+    private String citizenId;               // Số CMND/CCCD
+    
+    private String email;                   // Email
+    
+    private String phoneNumber;             // Số điện thoại
+    
+    private String address;                 // Địa chỉ
+    
+    private String avatar;                  // Ảnh đại diện
+    
+    private String academicDegree;          // Học vị (Cử nhân, Thạc sĩ, Tiến sĩ)
+    
+    private String academicTitle;           // Học hàm (Giảng viên, Phó giáo sư, Giáo sư)
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false)
+    private Faculty faculty;                // Khoa
+}
+```
+
+#### Request/Response Model:
+
+**LecturerRequest** (Tạo/Cập nhật giảng viên):
+```json
+{
+  "lecturerCode": "GV001",
+  "fullName": "Nguyễn Văn B",
+  "dateOfBirth": "1990-03-20",
+  "gender": "Nam",
+  "citizenId": "123456789012",
+  "email": "lecturerB@email.com",
+  "phoneNumber": "0912345678",
+  "address": "456 Đường XYZ, Thành phố ABC",
+  "avatar": "avatar_url",
+  "academicDegree": "Tiến sĩ",
+  "academicTitle": "Phó Giáo Sư",
+  "facultyId": "uuid-faculty-1"
+}
+```
+
+**LecturerResponse** (Phản hồi từ server):
+```json
+{
+  "lecturerId": "uuid",
+  "lecturerCode": "GV001",
+  "fullName": "Nguyễn Văn B",
+  "dateOfBirth": "1990-03-20",
+  "gender": "Nam",
+  "citizenId": "123456789012",
+  "email": "lecturerB@email.com",
+  "phoneNumber": "0912345678",
+  "address": "456 Đường XYZ, Thành phố ABC",
+  "avatar": "avatar_url",
+  "academicDegree": "Tiến sĩ",
+  "academicTitle": "Phó Giáo Sư",
+  "facultyId": "uuid-faculty-1",
+  "facultyName": "Khoa Công Nghệ Thông Tin"
+}
+```
+
+#### Service Layer:
+
+Class `LecturerService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm giảng viên với phân trang
+- `getById(id)`: Lấy giảng viên theo ID
+- `create(request)`: Tạo giảng viên mới
+- `update(id, request)`: Cập nhật giảng viên
+- `delete(id)`: Xoá giảng viên
+- `getForPrint()`: Lấy tất cả giảng viên (dành cho print)
+
+#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra Tính Duy Nhất**: Mã giảng viên phải duy nhất trong hệ thống
+- **Validate Dữ Liệu**: Các trường bắt buộc không được để trống
+- **Kiểm tra Khoa**: Khoa phải tồn tại trước khi tạo giảng viên
+- **Sắp Xếp Tự Động**: Danh sách giảng viên được sắp xếp theo mã giảng viên
+- **Liên Kết Dữ Liệu**: Thông tin khoa được tự động lấy từ khoa đã liên kết
+
+#### Tính Năng Print:
+
+**Print (In ấn):**
+- In danh sách giảng viên từ giao diện web
+- Định dạng in đẹp và dễ đọc
+- Hỗ trợ in từ trình duyệt
+- Hiển thị thông tin đầy đủ của giảng viên
+
+#### Controller:
+
+- **LecturerController**: Quản lý API endpoints (CRUD, Print)
+- **LecturerDashboardController**: Quản lý views HTML cho giao diện web
+
 ##  Công Nghệ
 
 - **Java 17**: Ngôn ngữ lập trình
@@ -1008,6 +1152,22 @@ src/
 │   │       │   │   └── StudentRepository.java
 │   │       │   └── service/
 │   │       │       └── StudentService.java
+│   │       ├── lecturer/
+│   │       │   ├── controller/
+│   │       │   │   ├── LecturerController.java
+│   │       │   │   └── LecturerDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── LecturerRequest.java
+│   │       │   │   └── LecturerResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── Lecturer.java
+│   │       │   ├── repository/
+│   │       │   │   └── LecturerRepository.java
+│   │       │   └── service/
+│   │       │       └── LecturerService.java
+│   │       ├── common/
+│   │       │   └── service/
+│   │       │       └── FileStorageService.java
 │   │       └── web/
 │   │           ├── AdminController.java
 │   │           └── HomeController.java
@@ -1038,6 +1198,10 @@ src/
 │       │   │   ├── index.html
 │       │   │   └── form.html
 │       │   ├── students/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── lecturers/
 │       │   │   ├── index.html
 │       │   │   ├── form.html
 │       │   │   └── print.html
@@ -1428,6 +1592,52 @@ mvn spring-boot:run
    - Đường dẫn ảnh được lưu trong database
    - Có thể truy cập ảnh thông qua API hoặc giao diện web
 
+### Quản Lý Giảng Viên:
+
+1. **Xem danh sách Giảng Viên**:
+   - Truy cập `/lecturers` trên giao diện web
+   - Hoặc gọi API `GET /api/lecturers`
+
+2. **Tìm kiếm Giảng Viên**:
+   - Sử dụng thanh tìm kiếm trên giao diện
+   - Hỗ trợ tìm kiếm theo mã giảng viên hoặc tên giảng viên
+
+3. **Tạo Giảng Viên mới**:
+   - Click nút "Thêm mới" trên giao diện
+   - Điền thông tin:
+     - Mã giảng viên (ví dụ: GV001) - phải duy nhất
+     - Họ và tên đầy đủ
+     - Ngày sinh
+     - Giới tính
+     - Số CMND/CCCD
+     - Email
+     - Số điện thoại
+     - Địa chỉ
+     - Ảnh đại diện (tùy chọn)
+     - Học vị (Cử nhân, Thạc sĩ, Tiến sĩ)
+     - Học hàm (Giảng viên, Phó giáo sư, Giáo sư)
+     - Chọn khoa từ dropdown
+   - Click "Lưu"
+
+4. **Sửa Giảng Viên**:
+   - Click nút "Sửa" trên dòng giảng viên cần chỉnh sửa
+   - Cập nhật thông tin
+   - Click "Lưu"
+
+5. **Xoá Giảng Viên**:
+   - Click nút "Xoá" trên dòng giảng viên cần xoá
+   - Xác nhận xoá
+
+6. **Xem Chi Tiết Giảng Viên**:
+   - Click vào tên giảng viên hoặc biểu tượng xem chi tiết
+   - Hiển thị toàn bộ thông tin giảng viên
+   - Bao gồm thông tin khoa
+
+7. **In (Print) Danh sách Giảng Viên**:
+   - Click nút "In" hoặc "Print" trên giao diện
+   - Một trang in đẹp sẽ hiển thị
+   - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -1444,6 +1654,7 @@ mvn spring-boot:run
 - [x] Quản lý bậc đào tạo (Training Level Management)
 - [x] Quản lý sinh viên (Student Management)
 - [x] Upload hình ảnh (Image Upload)
+- [x] Quản lý giảng viên (Lecturer Management)
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
@@ -1455,7 +1666,7 @@ mvn spring-boot:run
 ---
 
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 09/02/2026 (Image Upload feature added)
+**Cập nhật lần cuối**: 10/02/2026 (Lecturer Management features added)
 
 ## Lưu Ý Quan Trọng
 

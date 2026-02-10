@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Giảng viên',
+        'Danh sách giảng viên',
+        'Quản lý giảng viên',
+        'lecturers',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <!-- ALERT -->
+    <div th:if="${success}" class="alert alert-success">
+        <i class="fa-solid fa-circle-check me-1"></i>
+        <span th:text="${success}"></span>
+    </div>
+
+    <div th:if="${error}" class="alert alert-danger">
+        <i class="fa-solid fa-triangle-exclamation me-1"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between mb-3">
+
+                <!-- SEARCH -->
+                <form class="d-flex gap-2" method="get" th:action="@{/admin/lecturers}">
+                    <input class="form-control"
+                           name="keyword"
+                           placeholder="Tìm theo mã hoặc tên giảng viên"
+                           th:value="${keyword}">
+                    <button class="btn btn-outline-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        Tìm
+                    </button>
+                </form>
+
+                <!-- ACTION BUTTONS -->
+                <div class="d-flex gap-2">
+
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/lecturers/print}"
+                       target="_blank">
+                        <i class="fa-solid fa-print"></i>
+                        In
+                    </a>
+
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/lecturers/new}">
+                        <i class="fa-solid fa-plus"></i>
+                        Thêm mới
+                    </a>
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>Ảnh</th>
+                    <th>Mã GV</th>
+                    <th>Họ tên</th>
+                    <th>Ngày sinh</th>
+                    <th>Giới tính</th>
+                    <th>Học vị</th>
+                    <th>Học hàm</th>
+                    <th>Khoa</th>
+                    <th>Email</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="l : ${lecturers.content}">
+                    <td>
+                        <img th:if="${l.avatar != null}"
+                             th:src="${l.avatar}"
+                             alt="Avatar"
+                             style="height: 40px; width: 40px; object-fit: cover; border-radius: 50%;">
+                    </td>
+                    <td th:text="${l.lecturerCode}"></td>
+                    <td th:text="${l.fullName}"></td>
+                    <td th:text="${l.dateOfBirth}"></td>
+                    <td>
+                        <i class="fa-solid fa-mars text-primary"
+                           th:if="${l.gender == 'Nam'}"></i>
+                        <i class="fa-solid fa-venus text-danger"
+                           th:if="${l.gender == 'Nữ'}"></i>
+                        <span th:text="${l.gender}"></span>
+                    </td>
+                    <td th:text="${l.academicDegree}"></td>
+                    <td th:text="${l.academicTitle}"></td>
+                    <td th:text="${l.facultyName}"></td>
+                    <td th:text="${l.email}"></td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/admin/lecturers/{id}/edit(id=${l.lecturerId})}">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            Sửa
+                        </a>
+                        <form method="post"
+                              th:action="@{/admin/lecturers/{id}/delete(id=${l.lecturerId})}"
+                              style="display: inline;"
+                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa giảng viên này?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="fa-solid fa-trash"></i>
+                                Xóa
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+
+                <tr th:if="${lecturers.content.isEmpty()}">
+                    <td colspan="10" class="text-center text-muted">
+                        <i class="fa-solid fa-box-open"></i>
+                        Không có dữ liệu giảng viên
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

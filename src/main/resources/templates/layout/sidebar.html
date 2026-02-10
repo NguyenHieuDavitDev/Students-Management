@@ -73,7 +73,12 @@
             <span>Students</span>
         </a>
 
-
+        <a class="nav-link px-2 py-2"
+           th:href="@{/admin/lecturers}"
+           th:classappend="${activeMenu}=='lecturers' ? ' active' : ''">
+            <i class="fa-solid fa-chalkboard-teacher"></i>
+            <span>Lecturers</span>
+        </a>
 
     </nav>
 
