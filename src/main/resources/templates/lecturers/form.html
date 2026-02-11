@@ -87,13 +87,12 @@
 
         <div class="mb-3">
             <label>Học vị</label>
-            <select class="form-select" th:field="*{academicDegree}">
+            <select class="form-select" th:field="*{positionId}">
                 <option value="">-- Chọn --</option>
-                <option value="Cử nhân">Cử nhân</option>
-                <option value="Thạc sĩ">Thạc sĩ</option>
-                <option value="Tiến sĩ">Tiến sĩ</option>
-                <option value="Phó Giáo sư">Phó Giáo sư</option>
-                <option value="Giáo sư">Giáo sư</option>
+                <option th:each="p : ${positions}"
+                        th:value="${p.positionId}"
+                        th:text="${p.positionName}">
+                </option>
             </select>
         </div>
 

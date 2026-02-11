@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In danh sách chức danh</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width:100%; border-collapse: collapse; margin-top:20px; }
+        th, td { border:1px solid #000; padding:6px; }
+        th { background:#f2f2f2; }
+        h3 { text-align:center; }
+    </style>
+</head>
+<body onload="window.print()">
+
+<h3>DANH SÁCH CHỨC DANH GIẢNG VIÊN</h3>
+
+<table>
+    <thead>
+    <tr>
+        <th>STT</th>
+        <th>Mã chức danh</th>
+        <th>Tên chức danh</th>
+        <th>Mô tả</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="p, i : ${positions}">
+        <td th:text="${i.index + 1}"></td>
+        <td th:text="${p.positionCode}"></td>
+        <td th:text="${p.positionName}"></td>
+        <td th:text="${p.description != null ? p.description : '-'}"></td>
+    </tr>
+    </tbody>
+</table>
+
+</body>
+</html>

@@ -1031,6 +1031,127 @@ Class `LecturerService` cung cấp các phương thức:
 - **LecturerController**: Quản lý API endpoints (CRUD, Print)
 - **LecturerDashboardController**: Quản lý views HTML cho giao diện web
 
+### 10. Quản Lý Chức Danh (Position Management)
+
+Chức năng quản lý chức danh cho phép quản trị viên tạo, sửa, xoá các chức danh trong hệ thống. Các chức danh được sử dụng để phân loại các vị trí công việc trong tổ chức (ví dụ: Trưởng bộ môn, Phó trưởng bộ môn, Giáo viên).
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Chức Danh**: Xem toàn bộ danh sách chức danh trong hệ thống
+- **Tìm kiếm**: Tìm kiếm chức danh theo mã chức danh hoặc tên chức danh (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo chức danh mới với mã chức danh, tên chức danh và mô tả
+- **Sửa**: Chỉnh sửa thông tin chức danh đã tồn tại
+- **Xoá**: Xoá chức danh khỏi hệ thống
+- **Mô tả Chi Tiết**: Hỗ trợ thêm mô tả cho mỗi chức danh
+- **Duy nhất**: Mã chức danh và tên chức danh phải duy nhất trong hệ thống
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/positions` | Lấy danh sách tất cả chức danh (có phân trang) |
+| GET | `/api/positions/search` | Tìm kiếm chức danh với phân trang |
+| GET | `/api/positions/{id}` | Lấy chi tiết chức danh theo ID |
+| GET | `/api/positions/all` | Lấy tất cả chức danh (dành cho dropdown) |
+| GET | `/api/positions/export` | Xuất danh sách chức danh ra Excel |
+| GET | `/api/positions/print` | Lấy tất cả chức danh (dành cho print) |
+| POST | `/api/positions` | Tạo chức danh mới |
+| POST | `/api/positions/import` | Nhập danh sách chức danh từ Excel |
+| PUT | `/api/positions/{id}` | Cập nhật chức danh |
+| DELETE | `/api/positions/{id}` | Xoá chức danh |
+
+#### Cấu trúc Entity Position:
+
+```java
+@Entity
+@Table(
+        name = "positions",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "position_code"),
+                @UniqueConstraint(columnNames = "position_name")
+        }
+)
+public class Position {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID positionId;              // ID duy nhất
+    
+    @Column(nullable = false, unique = true)
+    private String positionCode;          // Mã chức danh (duy nhất)
+    
+    @Column(nullable = false, unique = true)
+    private String positionName;          // Tên chức danh (duy nhất)
+    
+    @Column
+    private String description;           // Mô tả chức danh
+}
+```
+
+#### Request/Response Model:
+
+**PositionRequest** (Tạo/Cập nhật chức danh):
+```json
+{
+  "positionCode": "POS001",
+  "positionName": "Trưởng Bộ Môn",
+  "description": "Quản lý bộ môn và giảng dạy"
+}
+```
+
+**PositionResponse** (Phản hồi từ server):
+```json
+{
+  "positionId": "uuid",
+  "positionCode": "POS001",
+  "positionName": "Trưởng Bộ Môn",
+  "description": "Quản lý bộ môn và giảng dạy"
+}
+```
+
+#### Service Layer:
+
+Class `PositionService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm chức danh với phân trang
+- `getById(id)`: Lấy chức danh theo ID
+- `create(request)`: Tạo chức danh mới
+- `update(id, request)`: Cập nhật chức danh
+- `delete(id)`: Xoá chức danh
+- `getAll()`: Lấy tất cả chức danh (dành cho dropdown)
+- `getForPrint()`: Lấy tất cả chức danh (dành cho print)
+- `exportExcel(response)`: Xuất danh sách chức danh ra file Excel
+- `importExcel(file)`: Nhập danh sách chức danh từ file Excel
+
+#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra Tính Duy Nhất**: Mã chức danh và tên chức danh phải duy nhất trong hệ thống
+- **Validate Dữ Liệu**: Mã chức danh và tên chức danh không được để trống
+- **Sắp Xếp Tự Động**: Danh sách chức danh được sắp xếp theo tên chức danh
+
+#### Tính Năng Import/Export/Print:
+
+**Export (Xuất dữ liệu):**
+- Xuất danh sách chức danh ra file Excel (.xlsx)
+- File chứa 3 cột: Mã chức danh, Tên chức danh, Mô tả
+- Tự động định dạng với header rõ ràng
+- Có thể xuất từ API hoặc giao diện web
+
+**Import (Nhập dữ liệu):**
+- Nhập danh sách chức danh từ file Excel
+- Tự động bỏ qua các chức danh đã tồn tại (theo mã chức danh)
+- Trả về số lượng chức danh được import thành công
+- Hỗ trợ nhập hàng loạt
+
+**Print (In ấn):**
+- In danh sách chức danh từ giao diện web
+- Định dạng in đẹp và dễ đọc
+- Hỗ trợ in từ trình duyệt
+
+#### Controller:
+
+- **PositionController**: Quản lý API endpoints (CRUD, Import/Export)
+- **PositionDashboardController**: Quản lý views HTML cho giao diện web (bao gồm Print)
+
 ##  Công Nghệ
 
 - **Java 17**: Ngôn ngữ lập trình
@@ -1165,6 +1286,19 @@ src/
 │   │       │   │   └── LecturerRepository.java
 │   │       │   └── service/
 │   │       │       └── LecturerService.java
+│   │       ├── position/
+│   │       │   ├── controller/
+│   │       │   │   ├── PositionController.java
+│   │       │   │   └── PositionDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── PositionRequest.java
+│   │       │   │   └── PositionResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── Position.java
+│   │       │   ├── repository/
+│   │       │   │   └── PositionRepository.java
+│   │       │   └── service/
+│   │       │       └── PositionService.java
 │   │       ├── common/
 │   │       │   └── service/
 │   │       │       └── FileStorageService.java
@@ -1196,12 +1330,17 @@ src/
 │       │   │   └── form.html
 │       │   ├── traininglevels/
 │       │   │   ├── index.html
-│       │   │   └── form.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
 │       │   ├── students/
 │       │   │   ├── index.html
 │       │   │   ├── form.html
 │       │   │   └── print.html
 │       │   ├── lecturers/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── positions/
 │       │   │   ├── index.html
 │       │   │   ├── form.html
 │       │   │   └── print.html
@@ -1638,6 +1777,53 @@ mvn spring-boot:run
    - Một trang in đẹp sẽ hiển thị
    - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
 
+### Quản Lý Chức Danh:
+
+1. **Xem danh sách Chức Danh**:
+   - Truy cập `/positions` trên giao diện web
+   - Hoặc gọi API `GET /api/positions`
+
+2. **Tìm kiếm Chức Danh**:
+   - Sử dụng thanh tìm kiếm trên giao diện
+   - Hỗ trợ tìm kiếm theo mã chức danh hoặc tên chức danh
+
+3. **Tạo Chức Danh mới**:
+   - Click nút "Thêm mới" trên giao diện
+   - Điền thông tin:
+     - Mã chức danh (ví dụ: POS001) - phải duy nhất
+     - Tên chức danh (ví dụ: Trưởng Bộ Môn) - phải duy nhất
+     - Mô tả chức danh (tùy chọn)
+   - Click "Lưu"
+
+4. **Sửa Chức Danh**:
+   - Click nút "Sửa" trên dòng chức danh cần chỉnh sửa
+   - Cập nhật thông tin
+   - Click "Lưu"
+
+5. **Xoá Chức Danh**:
+   - Click nút "Xoá" trên dòng chức danh cần xoá
+   - Xác nhận xoá
+
+6. **Sắp xếp Danh sách**:
+   - Danh sách chức danh được sắp xếp theo tên chức danh tự động
+
+7. **Xuất (Export) Chức Danh ra Excel**:
+   - Click nút "Xuất Excel" trên giao diện
+   - Hoặc gọi API `GET /api/positions/export`
+   - File Excel sẽ được tải xuống tự động với 3 cột: Mã chức danh, Tên chức danh, Mô tả
+
+8. **Nhập (Import) Chức Danh từ Excel**:
+   - Chuẩn bị file Excel với 3 cột: Mã chức danh, Tên chức danh, Mô tả
+   - Click nút "Nhập Excel" trên giao diện
+   - Chọn file Excel từ máy tính
+   - Hệ thống sẽ import và hiển thị số lượng chức danh được thêm
+   - Hoặc gọi API `POST /api/positions/import` với file Excel
+
+9. **In (Print) Danh sách Chức Danh**:
+   - Click nút "In" hoặc "Print" trên giao diện
+   - Một trang in đẹp sẽ hiển thị
+   - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -1655,6 +1841,7 @@ mvn spring-boot:run
 - [x] Quản lý sinh viên (Student Management)
 - [x] Upload hình ảnh (Image Upload)
 - [x] Quản lý giảng viên (Lecturer Management)
+- [x] Quản lý chức danh (Position Management)
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
@@ -1666,7 +1853,7 @@ mvn spring-boot:run
 ---
 
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 10/02/2026 (Lecturer Management features added)
+**Cập nhật lần cuối**: 11/02/2026 (Position Management features added)
 
 ## Lưu Ý Quan Trọng
 
@@ -1679,6 +1866,8 @@ Hệ thống này được phát triển để quản lý sinh viên với các 
 - Quản lý loại đào tạo (Education Type Management)
 - Quản lý bậc đào tạo (Training Level Management)
 - Quản lý sinh viên (Student Management)
+- Quản lý giảng viên (Lecturer Management)
+- Quản lý chức danh (Position Management)
 
 Mỗi module đều hỗ trợ các tính năng CRUD cơ bản cùng các tính năng nâng cao như Import/Export Excel, Print, tìm kiếm và phân trang.
 

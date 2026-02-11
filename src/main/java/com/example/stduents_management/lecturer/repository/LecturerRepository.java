@@ -18,4 +18,6 @@ public interface LecturerRepository extends JpaRepository<Lecturer, UUID> {
             String name,
             Pageable pageable
     );
+
+    boolean existsByPosition_PositionId(UUID positionId);
 }

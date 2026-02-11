@@ -7,6 +7,8 @@ import com.example.stduents_management.lecturer.dto.LecturerRequest;
 import com.example.stduents_management.lecturer.dto.LecturerResponse;
 import com.example.stduents_management.lecturer.entity.Lecturer;
 import com.example.stduents_management.lecturer.repository.LecturerRepository;
+import com.example.stduents_management.position.entity.Position;
+import com.example.stduents_management.position.repository.PositionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,7 @@ public class LecturerService {
 
     private final LecturerRepository lecturerRepository;
     private final FacultyRepository facultyRepository;
+    private final PositionRepository positionRepository;
     private final FileStorageService fileStorageService;
 
     public Page<LecturerResponse> search(String keyword, int page, int size) {
@@ -84,6 +87,13 @@ public class LecturerService {
                 .orElseThrow(() ->
                         new ResponseStatusException(HttpStatus.NOT_FOUND, "Khoa không tồn tại"));
 
+        Position position = null;
+        if (req.getPositionId() != null) {
+            position = positionRepository.findById(req.getPositionId())
+                    .orElseThrow(() ->
+                            new ResponseStatusException(HttpStatus.NOT_FOUND, "Chức danh không tồn tại"));
+        }
+
         l.setLecturerCode(req.getLecturerCode());
         l.setFullName(req.getFullName());
         l.setDateOfBirth(req.getDateOfBirth());
@@ -92,7 +102,7 @@ public class LecturerService {
         l.setEmail(req.getEmail());
         l.setPhoneNumber(req.getPhoneNumber());
         l.setAddress(req.getAddress());
-        l.setAcademicDegree(req.getAcademicDegree());
+        l.setPosition(position);
         l.setAcademicTitle(req.getAcademicTitle());
 
         if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
@@ -115,7 +125,8 @@ public class LecturerService {
                 l.getPhoneNumber(),
                 l.getAddress(),
                 l.getAvatar(),
-                l.getAcademicDegree(),
+                l.getPosition() != null ? l.getPosition().getPositionId() : null,
+                l.getPosition() != null ? l.getPosition().getPositionName() : null,
                 l.getAcademicTitle(),
                 l.getFaculty().getFacultyId(),
                 l.getFaculty().getFacultyName()

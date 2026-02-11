@@ -79,7 +79,13 @@
             <i class="fa-solid fa-chalkboard-teacher"></i>
             <span>Lecturers</span>
         </a>
-
+        <!-- Positions -->
+        <a class="nav-link px-2 py-2"
+           th:href="@{/admin/positions}"
+           th:classappend="${activeMenu}=='positions' ? ' active' : ''">
+            <i class="fa-solid fa-briefcase"></i>
+            <span>Positions</span>
+        </a>
     </nav>
 
 

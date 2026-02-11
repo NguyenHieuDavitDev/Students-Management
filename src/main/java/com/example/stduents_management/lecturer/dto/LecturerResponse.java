@@ -14,7 +14,8 @@ public record LecturerResponse(
         String phoneNumber,
         String address,
         String avatar,
-        String academicDegree,
+        UUID positionId,
+        String positionName,
         String academicTitle,
         UUID facultyId,
         String facultyName

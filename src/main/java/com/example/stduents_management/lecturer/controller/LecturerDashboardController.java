@@ -4,6 +4,7 @@ import com.example.stduents_management.faculty.repository.FacultyRepository;
 import com.example.stduents_management.lecturer.dto.LecturerRequest;
 import com.example.stduents_management.lecturer.dto.LecturerResponse;
 import com.example.stduents_management.lecturer.service.LecturerService;
+import com.example.stduents_management.position.repository.PositionRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,6 +23,7 @@ public class LecturerDashboardController {
 
     private final LecturerService lecturerService;
     private final FacultyRepository facultyRepository;
+    private final PositionRepository positionRepository;
 
     /* ===================== LIST + SEARCH + PAGING ===================== */
     @GetMapping
@@ -47,6 +49,7 @@ public class LecturerDashboardController {
         model.addAttribute("mode", "create");
         model.addAttribute("lecturerRequest", new LecturerRequest());
         model.addAttribute("faculties", facultyRepository.findAll());
+        model.addAttribute("positions", positionRepository.findAll());
         return "lecturers/form";
     }
 
@@ -61,6 +64,7 @@ public class LecturerDashboardController {
         if (result.hasErrors()) {
             model.addAttribute("mode", "create");
             model.addAttribute("faculties", facultyRepository.findAll());
+            model.addAttribute("positions", positionRepository.findAll());
             return "lecturers/form";
         }
 
@@ -87,7 +91,7 @@ public class LecturerDashboardController {
         req.setPhoneNumber(l.phoneNumber());
         req.setAddress(l.address());
         req.setAvatar(l.avatar());
-        req.setAcademicDegree(l.academicDegree());
+        req.setPositionId(l.positionId());
         req.setAcademicTitle(l.academicTitle());
         req.setFacultyId(l.facultyId());
 
@@ -95,6 +99,7 @@ public class LecturerDashboardController {
         model.addAttribute("lecturerId", id);
         model.addAttribute("lecturerRequest", req);
         model.addAttribute("faculties", facultyRepository.findAll());
+        model.addAttribute("positions", positionRepository.findAll());
 
         return "lecturers/form";
     }
@@ -112,6 +117,7 @@ public class LecturerDashboardController {
             model.addAttribute("mode", "edit");
             model.addAttribute("lecturerId", id);
             model.addAttribute("faculties", facultyRepository.findAll());
+            model.addAttribute("positions", positionRepository.findAll());
             return "lecturers/form";
         }
 

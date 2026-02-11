@@ -1,6 +1,7 @@
 package com.example.stduents_management.lecturer.entity;
 
 import com.example.stduents_management.faculty.entity.Faculty;
+import com.example.stduents_management.position.entity.Position;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -48,8 +49,9 @@ public class Lecturer {
     @Column(columnDefinition = "VARCHAR(255)")
     private String avatar;
 
-    @Column(columnDefinition = "NVARCHAR(50)")
-    private String academicDegree;   // Học vị
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "position_id")
+    private Position position;   // Học vị
 
     @Column(columnDefinition = "NVARCHAR(50)")
     private String academicTitle;    // Học hàm
