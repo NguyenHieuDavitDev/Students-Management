@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa chương trình đào tạo':'Thêm chương trình đào tạo mới'),
+        (${mode}=='edit'?'Chỉnh sửa chương trình đào tạo':'Thêm chương trình đào tạo mới'),
+        'Form chương trình đào tạo',
+        'training-programs',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="card border-0 shadow-sm hover-card">
+        <div class="card-body">
+
+            <div class="alert alert-danger"
+                 th:if="${globalError}"
+                 th:text="${globalError}">
+            </div>
+
+            <form method="post"
+                  th:action="${mode}=='edit'
+                    ? @{/admin/training-programs/{id}(id=${programId})}
+                    : @{/admin/training-programs}"
+                  th:object="${programRequest}">
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Mã chương trình <span class="text-danger">*</span></label>
+                        <input class="form-control"
+                               th:field="*{programCode}"
+                               placeholder="Ví dụ: CTDT-IT-K20">
+                        <div class="text-danger small"
+                             th:errors="*{programCode}"></div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Tên chương trình <span class="text-danger">*</span></label>
+                        <input class="form-control"
+                               th:field="*{programName}"
+                               placeholder="Ví dụ: Chương trình đào tạo Công nghệ thông tin K20">
+                        <div class="text-danger small"
+                             th:errors="*{programName}"></div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Ngành <span class="text-danger">*</span></label>
+                        <select class="form-select"
+                                th:field="*{majorId}">
+                            <option value="">-- Chọn ngành --</option>
+                            <option th:each="major : ${majors}"
+                                    th:value="${major.majorId}"
+                                    th:text="${major.majorName}">
+                            </option>
+                        </select>
+                        <div class="text-danger small"
+                             th:errors="*{majorId}"></div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Khóa <span class="text-danger">*</span></label>
+                        <input class="form-control"
+                               th:field="*{course}"
+                               placeholder="Ví dụ: K20, K21, K22">
+                        <div class="text-danger small"
+                             th:errors="*{course}"></div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Thời gian đào tạo (năm)</label>
+                        <input type="number"
+                               class="form-control"
+                               th:field="*{durationYears}"
+                               min="1"
+                               max="10"
+                               placeholder="Ví dụ: 4">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Tổng số tín chỉ</label>
+                        <input type="number"
+                               class="form-control"
+                               th:field="*{totalCredits}"
+                               min="1"
+                               placeholder="Ví dụ: 120">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Mô tả</label>
+                    <textarea class="form-control"
+                              th:field="*{description}"
+                              rows="4"
+                              placeholder="Mô tả về chương trình đào tạo"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               th:field="*{isActive}"
+                               id="isActive">
+                        <label class="form-check-label" for="isActive">
+                            Hoạt động
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary">
+                        <i class="fa-solid fa-save me-1"></i> Lưu
+                    </button>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/training-programs}">
+                        Hủy
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .hover-card {
+        transition: all .25s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In danh sách chương trình đào tạo</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width:100%; border-collapse: collapse; margin-top:20px; }
+        th, td { border:1px solid #000; padding:6px; }
+        th { background:#f2f2f2; }
+        h3 { text-align:center; }
+    </style>
+</head>
+<body onload="window.print()">
+
+<h3>DANH SÁCH CHƯƠNG TRÌNH ĐÀO TẠO</h3>
+
+<table>
+    <thead>
+    <tr>
+        <th>STT</th>
+        <th>Mã chương trình</th>
+        <th>Tên chương trình</th>
+        <th>Ngành</th>
+        <th>Khóa</th>
+        <th>Thời gian (năm)</th>
+        <th>Tổng tín chỉ</th>
+        <th>Mô tả</th>
+        <th>Trạng thái</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="p, i : ${programs}">
+        <td th:text="${i.index + 1}"></td>
+        <td th:text="${p.programCode}"></td>
+        <td th:text="${p.programName}"></td>
+        <td th:text="${p.majorName}"></td>
+        <td th:text="${p.course}"></td>
+        <td th:text="${p.durationYears != null ? p.durationYears : '-'}"></td>
+        <td th:text="${p.totalCredits != null ? p.totalCredits : '-'}"></td>
+        <td th:text="${p.description != null ? p.description : '-'}"></td>
+        <td th:text="${p.isActive != null && p.isActive ? 'Hoạt động' : 'Không hoạt động'}"></td>
+    </tr>
+    </tbody>
+</table>
+
+</body>
+</html>

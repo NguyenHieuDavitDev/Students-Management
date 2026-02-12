@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Chương trình đào tạo',
+        'Danh sách chương trình đào tạo',
+        'Quản lý chương trình đào tạo theo ngành và khóa',
+        'training-programs',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <!-- FLASH -->
+    <div th:if="${success}" class="alert alert-success shadow-sm" th:text="${success}"></div>
+    <div th:if="${error}" class="alert alert-danger shadow-sm" th:text="${error}"></div>
+
+    <div class="card border-0 shadow-sm hover-card">
+        <div class="card-body">
+
+            <!-- TOP BAR -->
+            <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
+
+                <!-- SEARCH -->
+                <form class="d-flex gap-2" method="get" th:action="@{/admin/training-programs}">
+                    <input class="form-control"
+                           style="min-width:260px"
+                           type="text"
+                           name="keyword"
+                           placeholder="Tìm theo mã, tên chương trình hoặc khóa..."
+                           th:value="${keyword}">
+                    <button class="btn btn-outline-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </form>
+
+                <!-- ACTIONS -->
+                <div class="d-flex gap-2">
+
+                    <!-- PRINT -->
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/training-programs/print}"
+                       target="_blank">
+                        <i class="fa-solid fa-print me-1"></i> In
+                    </a>
+
+                    <!-- EXPORT -->
+                    <a class="btn btn-outline-success"
+                       th:href="@{/admin/training-programs/export}">
+                        <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
+                    </a>
+
+                    <!-- IMPORT -->
+                    <form method="post"
+                          th:action="@{/admin/training-programs/import}"
+                          enctype="multipart/form-data">
+                        <label class="btn btn-outline-warning mb-0">
+                            <i class="fa-solid fa-file-import me-1"></i> Nhập Excel
+                            <input type="file"
+                                   name="file"
+                                   hidden
+                                   accept=".xlsx"
+                                   onchange="this.form.submit()">
+                        </label>
+                    </form>
+
+                    <!-- NEW -->
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/training-programs/new}">
+                        <i class="fa-solid fa-plus me-1"></i> Thêm mới
+                    </a>
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <th>Mã chương trình</th>
+                        <th>Tên chương trình</th>
+                        <th>Ngành</th>
+                        <th>Khóa</th>
+                        <th>Thời gian (năm)</th>
+                        <th>Tổng tín chỉ</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${programs.content.isEmpty()}">
+                        <td colspan="8" class="text-muted text-center">Không có dữ liệu</td>
+                    </tr>
+                    <tr th:each="p : ${programs.content}">
+                        <td class="fw-semibold" th:text="${p.programCode}"></td>
+                        <td th:text="${p.programName}"></td>
+                        <td th:text="${p.majorName}"></td>
+                        <td th:text="${p.course}"></td>
+                        <td th:text="${p.durationYears != null ? p.durationYears : '-'}"></td>
+                        <td th:text="${p.totalCredits != null ? p.totalCredits : '-'}"></td>
+                        <td>
+                            <span class="badge" 
+                                  th:classappend="${p.isActive} ? 'bg-success' : 'bg-secondary'"
+                                  th:text="${p.isActive} ? 'Hoạt động' : 'Không hoạt động'">
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary"
+                               th:href="@{/admin/training-programs/{id}/edit(id=${p.programId})}">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <form class="d-inline"
+                                  th:action="@{/admin/training-programs/{id}/delete(id=${p.programId})}"
+                                  method="post"
+                                  onsubmit="return confirm('Bạn có chắc chắn muốn xoá chương trình đào tạo này?')">
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINATION -->
+            <nav th:if="${programs.totalPages > 1}">
+                <ul class="pagination mb-0">
+                    <li class="page-item"
+                        th:classappend="${programs.first} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/training-programs(page=${programs.number-1},keyword=${keyword})}">
+                            Trước
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, programs.totalPages-1)}"
+                        th:classappend="${i == programs.number} ? 'active'">
+                        <a class="page-link"
+                           th:text="${i+1}"
+                           th:href="@{/admin/training-programs(page=${i},keyword=${keyword})}">
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:classappend="${programs.last} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/training-programs(page=${programs.number+1},keyword=${keyword})}">
+                            Sau
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .hover-card {
+        transition: all .25s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,.08);
+    }
+</style>
+
+</body>
+</html>

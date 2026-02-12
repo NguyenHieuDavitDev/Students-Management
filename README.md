@@ -1066,43 +1066,93 @@ Chức năng quản lý chức danh cho phép quản trị viên tạo, sửa, x
 ```java
 @Entity
 @Table(
-        name = "positions",
+        name = "training_programs",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = "position_code"),
-                @UniqueConstraint(columnNames = "position_name")
+                @UniqueConstraint(columnNames = {"program_code", "major_id", "course"})
         }
 )
-public class Position {
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class TrainingProgram {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID positionId;              // ID duy nhất
-    
-    @Column(nullable = false, unique = true)
-    private String positionCode;          // Mã chức danh (duy nhất)
-    
-    @Column(nullable = false, unique = true)
-    private String positionName;          // Tên chức danh (duy nhất)
-    
-    @Column
-    private String description;           // Mô tả chức danh
+    @Column(columnDefinition = "uniqueidentifier")
+    private UUID programId;
+
+    @Column(
+            name = "program_code",
+            nullable = false,
+            columnDefinition = "NVARCHAR(50)"
+    )
+    private String programCode;
+
+    @Column(
+            name = "program_name",
+            nullable = false,
+            columnDefinition = "NVARCHAR(200)"
+    )
+    private String programName;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "major_id",
+            nullable = false,
+            columnDefinition = "uniqueidentifier"
+    )
+    private Major major;
+
+    @Column(
+            name = "course",
+            nullable = false,
+            columnDefinition = "NVARCHAR(20)"
+    )
+    private String course; // Khóa học (ví dụ: K20, K21, K22)
+
+    @Column(
+            name = "description",
+            columnDefinition = "NVARCHAR(1000)"
+    )
+    private String description;
+
+    @Column(
+            name = "duration_years",
+            columnDefinition = "INT"
+    )
+    private Integer durationYears; // Thời gian đào tạo (năm)
+
+    @Column(
+            name = "total_credits",
+            columnDefinition = "INT"
+    )
+    private Integer totalCredits; // Tổng số tín chỉ
+
+    @Column(
+            name = "is_active",
+            columnDefinition = "BIT"
+    )
+    private Boolean isActive = true;
 }
+
 ```
 
 #### Request/Response Model:
 
-**PositionRequest** (Tạo/Cập nhật chức danh):
+**TrainingProgramRequest** (Tạo/Cập nhật chức danh):
 ```json
 {
-  "positionCode": "POS001",
-  "positionName": "Trưởng Bộ Môn",
+  "TrainingProgramCode": "POS001",
+  "TrainingProgramName": "Trưởng Bộ Môn",
   "description": "Quản lý bộ môn và giảng dạy"
 }
 ```
 
-**PositionResponse** (Phản hồi từ server):
+**TrainingProgramResponse** (Phản hồi từ server):
 ```json
 {
-  "positionId": "uuid",
+  "TrainingProgramId": "uuid",
   "positionCode": "POS001",
   "positionName": "Trưởng Bộ Môn",
   "description": "Quản lý bộ môn và giảng dạy"
@@ -1112,38 +1162,38 @@ public class Position {
 #### Service Layer:
 
 Class `PositionService` cung cấp các phương thức:
-- `search(keyword, page, size)`: Tìm kiếm chức danh với phân trang
-- `getById(id)`: Lấy chức danh theo ID
-- `create(request)`: Tạo chức danh mới
-- `update(id, request)`: Cập nhật chức danh
-- `delete(id)`: Xoá chức danh
-- `getAll()`: Lấy tất cả chức danh (dành cho dropdown)
-- `getForPrint()`: Lấy tất cả chức danh (dành cho print)
-- `exportExcel(response)`: Xuất danh sách chức danh ra file Excel
-- `importExcel(file)`: Nhập danh sách chức danh từ file Excel
+- `search(keyword, page, size)`: Tìm kiếm chương trình đào tạo với phân trang
+- `getById(id)`: Lấy chương trình đào tạo theo ID
+- `create(request)`: Tạo chương trình đào tạo mới
+- `update(id, request)`: Cập nhật chương trình đào tạo
+- `delete(id)`: Xoá chương trình đào tạo
+- `getAll()`: Lấy tất cả chương trình đào tạo (dành cho dropdown)
+- `getForPrint()`: Lấy tất cả chương trình đào tạo (dành cho print)
+- `exportExcel(response)`: Xuất danh sách chương trình đào tạo ra file Excel
+- `importExcel(file)`: Nhập danh sách chương trình đào tạo từ file Excel
 
 #### Xác Thực & Bảo Mật:
 
-- **Kiểm tra Tính Duy Nhất**: Mã chức danh và tên chức danh phải duy nhất trong hệ thống
-- **Validate Dữ Liệu**: Mã chức danh và tên chức danh không được để trống
-- **Sắp Xếp Tự Động**: Danh sách chức danh được sắp xếp theo tên chức danh
+- **Kiểm tra Tính Duy Nhất**: Mã chương trình đào tạo và tên chương trình đào tạo phải duy nhất trong hệ thống
+- **Validate Dữ Liệu**: Mã chương trình đào tạo và tên chương trình đào tạo không được để trống
+- **Sắp Xếp Tự Động**: Danh sách chương trình đào tạo được sắp xếp theo tên chương trình đào tạo
 
 #### Tính Năng Import/Export/Print:
 
 **Export (Xuất dữ liệu):**
-- Xuất danh sách chức danh ra file Excel (.xlsx)
-- File chứa 3 cột: Mã chức danh, Tên chức danh, Mô tả
+- Xuất danh sách chương trình đào tạo ra file Excel (.xlsx)
+- File chứa 3 cột: Mã chương trình đào tạo, Tên chương trình đào tạo, Mô tả
 - Tự động định dạng với header rõ ràng
 - Có thể xuất từ API hoặc giao diện web
 
 **Import (Nhập dữ liệu):**
-- Nhập danh sách chức danh từ file Excel
-- Tự động bỏ qua các chức danh đã tồn tại (theo mã chức danh)
-- Trả về số lượng chức danh được import thành công
+- Nhập danh sách chương trình đào tạo từ file Excel
+- Tự động bỏ qua các chương trình đào tạo đã tồn tại (theo mã chương trình đào tạo)
+- Trả về số lượng chương trình đào tạo được import thành công
 - Hỗ trợ nhập hàng loạt
 
 **Print (In ấn):**
-- In danh sách chức danh từ giao diện web
+- In danh sách chương trình đào tạo từ giao diện web
 - Định dạng in đẹp và dễ đọc
 - Hỗ trợ in từ trình duyệt
 
@@ -1286,6 +1336,19 @@ src/
 │   │       │   │   └── LecturerRepository.java
 │   │       │   └── service/
 │   │       │       └── LecturerService.java
+│   │       ├── trainingprogram/
+│   │       │   ├── controller/
+│   │       │   │   ├── TrainingprogramController.java
+│   │       │   │   └── TrainingprogramDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── TrainingprogramRequest.java
+│   │       │   │   └── TrainingprogramResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── Trainingprogram.java
+│   │       │   ├── repository/
+│   │       │   │   └── TrainingprogramRepository.java
+│   │       │   └── service/
+│   │       │       └── TrainingprogramrService.java
 │   │       ├── position/
 │   │       │   ├── controller/
 │   │       │   │   ├── PositionController.java
@@ -1842,6 +1905,7 @@ mvn spring-boot:run
 - [x] Upload hình ảnh (Image Upload)
 - [x] Quản lý giảng viên (Lecturer Management)
 - [x] Quản lý chức danh (Position Management)
+- [x] Quản lý chương trình đào tạo (Training programs Management)
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
@@ -1850,25 +1914,6 @@ mvn spring-boot:run
 - [ ] Gửi email thông báo
 - [ ] API Documentation (Swagger)
 
----
 
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 11/02/2026 (Position Management features added)
-
-## Lưu Ý Quan Trọng
-
-Hệ thống này được phát triển để quản lý sinh viên với các tính năng đầy đủ:
-- Quản lý vai trò (Role Management)
-- Quản lý người dùng (User Management)
-- Quản lý khoa (Faculty Management)
-- Quản lý ngành học (Major Management)
-- Quản lý lớp học (Classroom Management)
-- Quản lý loại đào tạo (Education Type Management)
-- Quản lý bậc đào tạo (Training Level Management)
-- Quản lý sinh viên (Student Management)
-- Quản lý giảng viên (Lecturer Management)
-- Quản lý chức danh (Position Management)
-
-Mỗi module đều hỗ trợ các tính năng CRUD cơ bản cùng các tính năng nâng cao như Import/Export Excel, Print, tìm kiếm và phân trang.
-
----
+**Cập nhật lần cuối**: 12/02/2026 (Position Management features added)
