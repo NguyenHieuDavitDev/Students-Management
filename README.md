@@ -1202,6 +1202,175 @@ Class `PositionService` cung cấp các phương thức:
 - **PositionController**: Quản lý API endpoints (CRUD, Import/Export)
 - **PositionDashboardController**: Quản lý views HTML cho giao diện web (bao gồm Print)
 
+### 11. Quản Lý học phần (Coures Management)
+
+Chức năng quản lý học phần cho phép quản trị viên tạo, sửa, xoá các học phần trong hệ thống. Các học phần được sử dụng để phân loại các vị trí công việc trong tổ chức (ví dụ: toán cao cấp, lập trình java,...).
+
+#### Các tính năng chi tiết:
+
+- **Danh sách học phần**: Xem toàn bộ danh sách học phần trong hệ thống
+- **Tìm kiếm**: Tìm kiếm học phần theo mã học phần hoặc tên học phần (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo học phần mới với mã học phần, tên học phần và mô tả
+- **Sửa**: Chỉnh sửa thông tin học phần đã tồn tại
+- **Xoá**: Xoá học phần khỏi hệ thống
+- **Mô tả Chi Tiết**: Hỗ trợ thêm mô tả cho mỗi học phần
+- **Duy nhất**: Mã học phần và tên học phần phải duy nhất trong hệ thống
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/courses` | Lấy danh sách tất cả học phần (có phân trang) |
+| GET | `/api/courses/search` | Tìm kiếm học phần với phân trang |
+| GET | `/api/courses/{id}` | Lấy chi tiết học phần theo ID |
+| GET | `/api/courses/all` | Lấy tất cả học phần (dành cho dropdown) |
+| GET | `/api/courses/export` | Xuất danh sách học phần ra Excel |
+| GET | `/api/courses/print` | Lấy tất cả học phần (dành cho print) |
+| POST | `/api/courses` | Tạo học phần mới |
+| POST | `/api/courses/import` | Nhập danh sách học phần từ Excel |
+| PUT | `/api/courses/{id}` | Cập nhật học phần |
+| DELETE | `/api/courses/{id}` | Xoá học phần |
+
+#### Cấu trúc Entity Position:
+
+```java
+@Entity
+@Table(
+        name = "courses",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"course_code"})
+        }
+)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class Course {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "uniqueidentifier")
+    private UUID id;
+
+    @Column(name = "course_code", nullable = false, columnDefinition = "NVARCHAR(50)")
+    private String courseCode;
+
+    @Column(name = "course_name", nullable = false, columnDefinition = "NVARCHAR(200)")
+    private String courseName;
+
+    @Column(name = "credits", columnDefinition = "INT")
+    private Integer credits;
+
+    @Column(name = "lecture_hours", columnDefinition = "INT")
+    private Integer lectureHours;
+
+    @Column(name = "practice_hours", columnDefinition = "INT")
+    private Integer practiceHours;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "faculty_id", nullable = false, columnDefinition = "uniqueidentifier")
+    private Faculty faculty;
+
+    @Column(name = "description", columnDefinition = "NVARCHAR(1000)")
+    private String description;
+
+    @Column(name = "status", columnDefinition = "BIT")
+    private Boolean status = true;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+}
+
+```
+
+#### Request/Response Model:
+
+**CoursesRequest** (Tạo/Cập nhật học phần):
+```json
+{
+  "courseCode": "IT101",
+  "courseName": "Lập trình Java",
+  "credits": 3,
+  "lectureHours": 30,
+  "practiceHours": 15,
+  "facultyId": "1",
+  "description": "Môn học Java cơ bản",
+  "status": true
+}
+```
+
+**CoursesResponse** (Phản hồi từ server):
+```json
+{
+  "courseCode": "IT101",
+  "courseName": "Lập trình Java",
+  "credits": 3,
+  "lectureHours": 30,
+  "practiceHours": 15,
+  "facultyId": "1",
+  "description": "Môn học Java cơ bản",
+  "status": true
+}
+```
+
+#### Service Layer:
+
+Class `CoursesService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm chương trình đào tạo với phân trang
+- `getById(id)`: Lấy chương trình đào tạo theo ID
+- `create(request)`: Tạo chương trình đào tạo mới
+- `update(id, request)`: Cập nhật chương trình đào tạo
+- `delete(id)`: Xoá chương trình đào tạo
+- `getAll()`: Lấy tất cả chương trình đào tạo (dành cho dropdown)
+- `getForPrint()`: Lấy tất cả chương trình đào tạo (dành cho print)
+- `exportExcel(response)`: Xuất danh sách chương trình đào tạo ra file Excel
+- `importExcel(file)`: Nhập danh sách chương trình đào tạo từ file Excel
+
+#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra Tính Duy Nhất**: Mã chương trình đào tạo và tên chương trình đào tạo phải duy nhất trong hệ thống
+- **Validate Dữ Liệu**: Mã chương trình đào tạo và tên chương trình đào tạo không được để trống
+- **Sắp Xếp Tự Động**: Danh sách chương trình đào tạo được sắp xếp theo tên chương trình đào tạo
+
+#### Tính Năng Import/Export/Print:
+
+**Export (Xuất dữ liệu):**
+- Xuất danh sách chương trình đào tạo ra file Excel (.xlsx)
+- File chứa 3 cột: Mã chương trình đào tạo, Tên chương trình đào tạo, Mô tả
+- Tự động định dạng với header rõ ràng
+- Có thể xuất từ API hoặc giao diện web
+
+**Import (Nhập dữ liệu):**
+- Nhập danh sách chương trình đào tạo từ file Excel
+- Tự động bỏ qua các chương trình đào tạo đã tồn tại (theo mã chương trình đào tạo)
+- Trả về số lượng chương trình đào tạo được import thành công
+- Hỗ trợ nhập hàng loạt
+
+**Print (In ấn):**
+- In danh sách chương trình đào tạo từ giao diện web
+- Định dạng in đẹp và dễ đọc
+- Hỗ trợ in từ trình duyệt
+
+#### Controller:
+
+- **CoursesController**: Quản lý API endpoints (CRUD, Import/Export)
+- **CoursesDashboardController**: Quản lý views HTML cho giao diện web (bao gồm Print)
+
 ##  Công Nghệ
 
 - **Java 17**: Ngôn ngữ lập trình
@@ -1362,6 +1531,19 @@ src/
 │   │       │   │   └── PositionRepository.java
 │   │       │   └── service/
 │   │       │       └── PositionService.java
+│   │       ├── courses/
+│   │       │   ├── controller/
+│   │       │   │   ├── CoursesController.java
+│   │       │   │   └── CoursesDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── CoursesRequest.java
+│   │       │   │   └── CoursesResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── Courses.java
+│   │       │   ├── repository/
+│   │       │   │   └── CoursesRepository.java
+│   │       │   └── service/
+│   │       │       └── CoursesService.java
 │   │       ├── common/
 │   │       │   └── service/
 │   │       │       └── FileStorageService.java
@@ -1404,6 +1586,10 @@ src/
 │       │   │   ├── form.html
 │       │   │   └── print.html
 │       │   ├── positions/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── courses/
 │       │   │   ├── index.html
 │       │   │   ├── form.html
 │       │   │   └── print.html
@@ -1886,7 +2072,58 @@ mvn spring-boot:run
    - Click nút "In" hoặc "Print" trên giao diện
    - Một trang in đẹp sẽ hiển thị
    - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
+### Quản Lý học phần:
 
+1. **Xem danh sách học phần**:
+   - Truy cập `/positions` trên giao diện web
+   - Hoặc gọi API `GET /api/positions`
+
+2. **Tìm kiếm học phần**:
+   - Sử dụng thanh tìm kiếm trên giao diện
+   - Hỗ trợ tìm kiếm theo mã học phần hoặc tên học phần
+
+3. **Tạo học phần mới**:
+   - Click nút "Thêm mới" trên giao diện
+   - Điền thông tin:
+     - Mã học phần (ví dụ: POS001) - phải duy nhất
+     - Tên học phần (ví dụ: toán cao cấp) - phải duy nhất
+     - Số tín chỉ
+     - Số tiết lý thuyết
+     - Số tiết thực hành
+     - Khoa
+     - Trạng thái
+     - Mô tả học phần 
+
+   - Click "Lưu"
+
+4. **Sửa học phần**:
+   - Click nút "Sửa" trên dòng học phần cần chỉnh sửa
+   - Cập nhật thông tin
+   - Click "Lưu"
+
+5. **Xoá học phần**:
+   - Click nút "Xoá" trên dòng học phần cần xoá
+   - Xác nhận xoá
+
+6. **Sắp xếp Danh sách**:
+   - Danh sách học phần được sắp xếp theo tên học phần tự động
+
+7. **Xuất (Export) học phần ra Excel**:
+   - Click nút "Xuất Excel" trên giao diện
+   - Hoặc gọi API `GET /api/courses/export`
+   - File Excel sẽ được tải xuống tự động với 3 cột: Mã học phần, Tên học phần, Mô tả
+
+8. **Nhập (Import) học phần từ Excel**:
+   - Chuẩn bị file Excel với 3 cột: Mã học phần, Tên học phần, Mô tả
+   - Click nút "Nhập Excel" trên giao diện
+   - Chọn file Excel từ máy tính
+   - Hệ thống sẽ import và hiển thị số lượng học phần được thêm
+   - Hoặc gọi API `POST /api/courses/import` với file Excel
+
+9. **In (Print) Danh sách học phần**:
+   - Click nút "In" hoặc "Print" trên giao diện
+   - Một trang in đẹp sẽ hiển thị
+   - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -1906,6 +2143,7 @@ mvn spring-boot:run
 - [x] Quản lý giảng viên (Lecturer Management)
 - [x] Quản lý chức danh (Position Management)
 - [x] Quản lý chương trình đào tạo (Training programs Management)
+- [x] Quản lý học phần (Courses Management)
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)

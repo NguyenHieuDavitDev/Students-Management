@@ -1,103 +1,98 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <body>
-<aside class="sidebar p-3 d-flex flex-column" th:fragment="sidebar(activeMenu)">
-    <div class="mb-3 d-flex align-items-center gap-2">
-        <div class="brand-icon-wrapper rounded-circle bg-primary d-flex align-items-center justify-content-center"
-             style="width: 32px; height: 32px;">
-            <i class="fa-solid fa-graduation-cap text-white"></i>
+    <aside class="sidebar p-3 d-flex flex-column" th:fragment="sidebar(activeMenu)">
+        <div class="mb-3 d-flex align-items-center gap-2">
+            <div class="brand-icon-wrapper rounded-circle bg-primary d-flex align-items-center justify-content-center"
+                style="width: 32px; height: 32px;">
+                <i class="fa-solid fa-graduation-cap text-white"></i>
+            </div>
+            <div class="brand-text-wrapper">
+                <div class="brand fs-6 mb-0">Students Management</div>
+                <div class="text-white-50 small">Admin dashboard</div>
+            </div>
         </div>
-        <div class="brand-text-wrapper">
-            <div class="brand fs-6 mb-0">Students Management</div>
-            <div class="text-white-50 small">Admin dashboard</div>
-        </div>
-    </div>
 
-    <nav class="nav nav-pills flex-column gap-1">
-        <a class="nav-link px-2 py-2"
-           th:href="@{/admin}"
-           th:classappend="${activeMenu}=='overview' ? ' active' : ''">
-            <i class="fa-solid fa-gauge-high"></i>
-            <span>Overview</span>
-        </a>
-        <a class="nav-link px-2 py-2"
-           th:classappend="${activeMenu}=='roles' ? ' active' : ''"
-           th:href="@{/admin/roles}">
-            <i class="fa-solid fa-shield-halved"></i>
-            <span>Roles</span>
-        </a>
-               <!-- Users -->
-        <a class="nav-link px-2 py-2"
-           th:href="@{/admin/users}"
-           th:classappend="${activeMenu}=='users' ? ' active' : ''">
-            <i class="fa-solid fa-users"></i>
-            <span>Users</span>
-        </a>
+        <nav class="nav nav-pills flex-column gap-1">
+            <a class="nav-link px-2 py-2" th:href="@{/admin}"
+                th:classappend="${activeMenu}=='overview' ? ' active' : ''">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span>Overview</span>
+            </a>
+            <a class="nav-link px-2 py-2" th:classappend="${activeMenu}=='roles' ? ' active' : ''"
+                th:href="@{/admin/roles}">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Roles</span>
+            </a>
+            <!-- Users -->
+            <a class="nav-link px-2 py-2" th:href="@{/admin/users}"
+                th:classappend="${activeMenu}=='users' ? ' active' : ''">
+                <i class="fa-solid fa-users"></i>
+                <span>Users</span>
+            </a>
 
-        <a class="nav-link px-2 py-2"
-           th:href="@{/admin/faculties}"
-           th:classappend="${activeMenu}=='faculties' ? ' active' : ''">
-            <i class="fa-solid fa-building-columns"></i>
-            <span>Faculties</span>
-        </a>
+            <a class="nav-link px-2 py-2" th:href="@{/admin/faculties}"
+                th:classappend="${activeMenu}=='faculties' ? ' active' : ''">
+                <i class="fa-solid fa-building-columns"></i>
+                <span>Faculties</span>
+            </a>
 
-        <a class="nav-link px-2 py-2"
-           th:href="@{/admin/majors}"
-           th:classappend="${activeMenu}=='majors' ? ' active' : ''">
-            <i class="fa-solid fa-layer-group"></i>
-            <span>Majors</span>
-        </a>
-        <a class="nav-link px-2 py-2"
-           th:href="@{/admin/classes}"
-           th:classappend="${activeMenu}=='classes' ? ' active' : ''">
-            <i class="fa-solid fa-chalkboard-user"></i>
-            <span>Classes</span>
-        </a>
-        <a class="nav-link px-2 py-2"
-           th:href="@{/admin/education-types}"
-           th:classappend="${activeMenu}=='education-types' ? ' active' : ''">
-            <i class="fa-solid fa-graduation-cap"></i>
-            <span>Education Types</span>
-        </a>
-        <a class="nav-link px-2 py-2"
-           th:href="@{/admin/training-levels}"
-           th:classappend="${activeMenu}=='trainingLevels' ? ' active' : ''">
-            <i class="fa-solid fa-graduation-cap"></i>
-            <span>Training Levels</span>
-        </a>
+            <a class="nav-link px-2 py-2" th:href="@{/admin/majors}"
+                th:classappend="${activeMenu}=='majors' ? ' active' : ''">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>Majors</span>
+            </a>
+            <a class="nav-link px-2 py-2" th:href="@{/admin/classes}"
+                th:classappend="${activeMenu}=='classes' ? ' active' : ''">
+                <i class="fa-solid fa-chalkboard-user"></i>
+                <span>Classes</span>
+            </a>
+            <a class="nav-link px-2 py-2" th:href="@{/admin/education-types}"
+                th:classappend="${activeMenu}=='education-types' ? ' active' : ''">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>Education Types</span>
+            </a>
+            <a class="nav-link px-2 py-2" th:href="@{/admin/training-levels}"
+                th:classappend="${activeMenu}=='trainingLevels' ? ' active' : ''">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>Training Levels</span>
+            </a>
 
-        <a class="nav-link px-2 py-2"
-           th:href="@{/admin/students}"
-           th:classappend="${activeMenu}=='students' ? ' active' : ''">
-            <i class="fa-solid fa-user-graduate"></i>
-            <span>Students</span>
-        </a>
+            <a class="nav-link px-2 py-2" th:href="@{/admin/students}"
+                th:classappend="${activeMenu}=='students' ? ' active' : ''">
+                <i class="fa-solid fa-user-graduate"></i>
+                <span>Students</span>
+            </a>
 
-        <a class="nav-link px-2 py-2"
-           th:href="@{/admin/lecturers}"
-           th:classappend="${activeMenu}=='lecturers' ? ' active' : ''">
-            <i class="fa-solid fa-chalkboard-teacher"></i>
-            <span>Lecturers</span>
-        </a>
-        <!-- Positions -->
-        <a class="nav-link px-2 py-2"
-           th:href="@{/admin/positions}"
-           th:classappend="${activeMenu}=='positions' ? ' active' : ''">
-            <i class="fa-solid fa-briefcase"></i>
-            <span>Positions</span>
-        </a>
-        <!-- Training Programs -->
-        <a class="nav-link px-2 py-2"
-           th:href="@{/admin/training-programs}"
-           th:classappend="${activeMenu}=='training-programs' ? ' active' : ''">
-            <i class="fa-solid fa-book-open"></i>
-            <span>Training Programs</span>
-        </a>
-    </nav>
+            <a class="nav-link px-2 py-2" th:href="@{/admin/lecturers}"
+                th:classappend="${activeMenu}=='lecturers' ? ' active' : ''">
+                <i class="fa-solid fa-chalkboard-teacher"></i>
+                <span>Lecturers</span>
+            </a>
+            <!-- Positions -->
+            <a class="nav-link px-2 py-2" th:href="@{/admin/positions}"
+                th:classappend="${activeMenu}=='positions' ? ' active' : ''">
+                <i class="fa-solid fa-briefcase"></i>
+                <span>Positions</span>
+            </a>
+            <!-- Training Programs -->
+            <a class="nav-link px-2 py-2" th:href="@{/admin/training-programs}"
+                th:classappend="${activeMenu}=='training-programs' ? ' active' : ''">
+                <i class="fa-solid fa-book-open"></i>
+                <span>Training Programs</span>
+            </a>
+            <!-- Courses -->
+            <a class="nav-link px-2 py-2" th:href="@{/admin/courses}"
+                th:classappend="${activeMenu}=='courses' ? ' active' : ''">
+                <i class="fa-solid fa-book"></i>
+                <span>Courses</span>
+            </a>
+        </nav>
 
 
 
-</aside>
+    </aside>
 </body>
-</html>
 
+</html>

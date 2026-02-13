@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa học phần':'Thêm học phần mới'),
+        (${mode}=='edit'?'Chỉnh sửa học phần':'Thêm học phần mới'),
+        'Form học phần',
+        'courses',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="card border-0 shadow-sm hover-card">
+        <div class="card-body">
+
+            <div class="alert alert-danger"
+                 th:if="${globalError}"
+                 th:text="${globalError}">
+            </div>
+
+            <form method="post"
+                  th:action="${mode}=='edit'
+                    ? @{/admin/courses/{id}(id=${courseId})}
+                    : @{/admin/courses}"
+                  th:object="${courseRequest}">
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Mã học phần <span class="text-danger">*</span></label>
+                        <input class="form-control"
+                               th:field="*{courseCode}"
+                               placeholder="Ví dụ: IT101">
+                        <div class="text-danger small"
+                             th:errors="*{courseCode}"></div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Tên học phần <span class="text-danger">*</span></label>
+                        <input class="form-control"
+                               th:field="*{courseName}"
+                               placeholder="Ví dụ: Lập trình Java">
+                        <div class="text-danger small"
+                             th:errors="*{courseName}"></div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Số tín chỉ</label>
+                        <input type="number"
+                               class="form-control"
+                               th:field="*{credits}"
+                               min="1">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Số tiết lý thuyết</label>
+                        <input type="number"
+                               class="form-control"
+                               th:field="*{lectureHours}"
+                               min="0">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Số tiết thực hành</label>
+                        <input type="number"
+                               class="form-control"
+                               th:field="*{practiceHours}"
+                               min="0">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Khoa <span class="text-danger">*</span></label>
+                    <select class="form-select"
+                            th:field="*{facultyId}">
+                        <option value="">-- Chọn khoa --</option>
+                        <option th:each="f : ${faculties}"
+                                th:value="${f.id}"
+                                th:text="${f.facultyName}">
+                        </option>
+                    </select>
+                    <div class="text-danger small"
+                         th:errors="*{facultyId}"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Mô tả</label>
+                    <textarea class="form-control"
+                              th:field="*{description}"
+                              rows="4"
+                              placeholder="Mô tả học phần"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               th:field="*{status}"
+                               id="status">
+                        <label class="form-check-label" for="status">
+                            Hoạt động
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary">
+                        <i class="fa-solid fa-save me-1"></i> Lưu
+                    </button>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/courses}">
+                        Hủy
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .hover-card {
+        transition: all .25s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+
+</body>
+</html>
