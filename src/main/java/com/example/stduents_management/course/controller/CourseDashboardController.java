@@ -27,7 +27,6 @@ public class CourseDashboardController {
     private final CourseService courseService;
     private final FacultyService facultyService;
 
-    /* ================= LIST ================= */
     @GetMapping
     public String index(
             @RequestParam(required = false) String keyword,
@@ -35,25 +34,23 @@ public class CourseDashboardController {
             @RequestParam(defaultValue = "10") int size,
             Model model
     ) {
-
         Page<CourseResponse> courses = courseService.search(keyword, page, size);
-
         model.addAttribute("courses", courses);
         model.addAttribute("keyword", keyword == null ? "" : keyword);
-
         return "courses/index";
     }
 
-    /* ================= CREATE FORM ================= */
     @GetMapping("/new")
     public String createForm(Model model) {
+        CourseRequest req = new CourseRequest();
+        req.setStatus(true);
+
         model.addAttribute("mode", "create");
-        model.addAttribute("courseRequest", new CourseRequest());
+        model.addAttribute("courseRequest", req);
         model.addAttribute("faculties", facultyService.getForPrint());
         return "courses/form";
     }
 
-    /* ================= CREATE ================= */
     @PostMapping
     public String create(
             @Valid @ModelAttribute("courseRequest") CourseRequest request,
@@ -61,7 +58,6 @@ public class CourseDashboardController {
             Model model,
             RedirectAttributes redirect
     ) {
-
         if (result.hasErrors()) {
             model.addAttribute("mode", "create");
             model.addAttribute("faculties", facultyService.getForPrint());
@@ -80,10 +76,8 @@ public class CourseDashboardController {
         }
     }
 
-    /* ================= EDIT FORM ================= */
     @GetMapping("/{id}/edit")
     public String edit(@PathVariable UUID id, Model model) {
-
         CourseResponse c = courseService.getById(id);
 
         CourseRequest req = new CourseRequest();
@@ -104,7 +98,6 @@ public class CourseDashboardController {
         return "courses/form";
     }
 
-    /* ================= UPDATE ================= */
     @PostMapping("/{id}")
     public String update(
             @PathVariable UUID id,
@@ -113,7 +106,6 @@ public class CourseDashboardController {
             Model model,
             RedirectAttributes redirect
     ) {
-
         if (result.hasErrors()) {
             model.addAttribute("mode", "edit");
             model.addAttribute("courseId", id);
@@ -134,62 +126,14 @@ public class CourseDashboardController {
         }
     }
 
-    /* ================= DELETE ================= */
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable UUID id, RedirectAttributes redirect) {
-
         try {
             courseService.delete(id);
             redirect.addFlashAttribute("success", "Xóa học phần thành công");
-        } catch (ResponseStatusException e) {
-            redirect.addFlashAttribute("error", e.getReason());
-        }
-
-        return "redirect:/admin/courses";
-    }
-
-    /* ================= EXPORT ================= */
-    @GetMapping("/export")
-    public void export(HttpServletResponse response) {
-        try {
-            response.reset();
-            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            response.setHeader("Content-Disposition", "attachment; filename=courses.xlsx");
-
-            courseService.exportExcel(response);
-        } catch (ResponseStatusException ex) {
-            throw ex;
-        } catch (Exception ex) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Không thể export Excel");
-        }
-    }
-
-    /* ================= IMPORT ================= */
-    @PostMapping("/import")
-    public String importExcel(
-            @RequestParam("file") MultipartFile file,
-            RedirectAttributes redirect
-    ) {
-
-        if (file == null || file.isEmpty()) {
-            redirect.addFlashAttribute("error", "Vui lòng chọn file Excel");
-            return "redirect:/admin/courses";
-        }
-
-        try {
-            int count = courseService.importExcel(file);
-            redirect.addFlashAttribute("success", "Đã import " + count + " học phần");
         } catch (Exception e) {
-            redirect.addFlashAttribute("error", "Import thất bại: " + e.getMessage());
+            redirect.addFlashAttribute("error", "Không thể xóa học phần");
         }
-
         return "redirect:/admin/courses";
-    }
-
-    /* ================= PRINT ================= */
-    @GetMapping("/print")
-    public String print(Model model) {
-        model.addAttribute("courses", courseService.getForPrint());
-        return "courses/print";
     }
 }

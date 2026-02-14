@@ -8,7 +8,9 @@ import com.example.stduents_management.faculty.entity.Faculty;
 import com.example.stduents_management.faculty.repository.FacultyRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
@@ -17,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -77,9 +81,7 @@ public class CourseService {
         c.setDescription(req.getDescription());
         c.setStatus(req.getStatus());
 
-        courseRepository.save(c);
-
-        return mapToResponse(c);
+        return mapToResponse(courseRepository.save(c));
     }
 
     /* ================= UPDATE ================= */
@@ -115,11 +117,13 @@ public class CourseService {
     /* ================= DELETE ================= */
     @Transactional
     public void delete(UUID id) {
+
         if (!courseRepository.existsById(id)) {
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND,
                     "Không tìm thấy học phần");
         }
+
         courseRepository.deleteById(id);
     }
 
@@ -145,6 +149,7 @@ public class CourseService {
             int rowIndex = 1;
 
             for (Course c : courses) {
+
                 Row row = sheet.createRow(rowIndex++);
 
                 row.createCell(0).setCellValue(c.getCourseCode());
@@ -152,14 +157,16 @@ public class CourseService {
                 row.createCell(2).setCellValue(c.getCredits() != null ? c.getCredits() : 0);
                 row.createCell(3).setCellValue(c.getLectureHours() != null ? c.getLectureHours() : 0);
                 row.createCell(4).setCellValue(c.getPracticeHours() != null ? c.getPracticeHours() : 0);
-                row.createCell(5).setCellValue(c.getFaculty().getFacultyName());
-                row.createCell(6).setCellValue(c.getDescription() != null ? c.getDescription() : "");
-                row.createCell(7).setCellValue(Boolean.TRUE.equals(c.getStatus()) ? "Hoạt động" : "Ngừng");
+                row.createCell(5).setCellValue(
+                        c.getFaculty() != null ? c.getFaculty().getFacultyName() : "");
+                row.createCell(6).setCellValue(
+                        c.getDescription() != null ? c.getDescription() : "");
+                row.createCell(7).setCellValue(
+                        Boolean.TRUE.equals(c.getStatus()) ? "Hoạt động" : "Ngừng");
             }
 
             response.setContentType(
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-
             response.setHeader(
                     "Content-Disposition",
                     "attachment; filename=courses.xlsx");
@@ -190,6 +197,11 @@ public class CourseService {
 
             Sheet sheet = workbook.getSheetAt(0);
 
+            // Cache faculty theo tên để tránh query nhiều lần
+            Map<String, Faculty> facultyMap = new HashMap<>();
+            facultyRepository.findAll().forEach(f ->
+                    facultyMap.put(f.getFacultyName().toLowerCase(), f));
+
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
 
                 Row row = sheet.getRow(i);
@@ -197,17 +209,12 @@ public class CourseService {
 
                 String code = row.getCell(0).getStringCellValue().trim();
                 String name = row.getCell(1).getStringCellValue().trim();
-                String facultyName = row.getCell(5).getStringCellValue().trim();
-
-                Faculty faculty = facultyRepository.findAll()
-                        .stream()
-                        .filter(f -> f.getFacultyName().equalsIgnoreCase(facultyName))
-                        .findFirst()
-                        .orElse(null);
-
-                if (faculty == null) continue;
+                String facultyName = row.getCell(5).getStringCellValue().trim().toLowerCase();
 
                 if (courseRepository.existsByCourseCodeIgnoreCase(code)) continue;
+
+                Faculty faculty = facultyMap.get(facultyName);
+                if (faculty == null) continue;
 
                 Course c = new Course();
                 c.setCourseCode(code);
@@ -240,6 +247,8 @@ public class CourseService {
     /* ================= MAPPER ================= */
     private CourseResponse mapToResponse(Course c) {
 
+        Faculty faculty = c.getFaculty();
+
         return new CourseResponse(
                 c.getId(),
                 c.getCourseCode(),
@@ -247,8 +256,8 @@ public class CourseService {
                 c.getCredits(),
                 c.getLectureHours(),
                 c.getPracticeHours(),
-                c.getFaculty().getFacultyId(),
-                c.getFaculty().getFacultyName(),
+                faculty != null ? faculty.getFacultyId() : null,
+                faculty != null ? faculty.getFacultyName() : null,
                 c.getDescription(),
                 c.getStatus(),
                 c.getCreatedAt(),
