@@ -3,20 +3,19 @@ package com.example.stduents_management.course.controller;
 import com.example.stduents_management.course.dto.CourseRequest;
 import com.example.stduents_management.course.dto.CourseResponse;
 import com.example.stduents_management.course.service.CourseService;
+import com.example.stduents_management.courseprerequisite.service.CoursePrerequisiteService;
 import com.example.stduents_management.faculty.service.FacultyService;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.List;
 import java.util.UUID;
 
 @Controller
@@ -26,6 +25,7 @@ public class CourseDashboardController {
 
     private final CourseService courseService;
     private final FacultyService facultyService;
+        private final CoursePrerequisiteService coursePrerequisiteService;
 
     @GetMapping
     public String index(
@@ -94,6 +94,8 @@ public class CourseDashboardController {
         model.addAttribute("courseId", id);
         model.addAttribute("courseRequest", req);
         model.addAttribute("faculties", facultyService.getForPrint());
+        model.addAttribute("allCourses", courseService.getForPrint());
+        model.addAttribute("selectedPrerequisiteIds", coursePrerequisiteService.getPrerequisiteIdsByCourseId(id));
 
         return "courses/form";
     }
@@ -103,6 +105,7 @@ public class CourseDashboardController {
             @PathVariable UUID id,
             @Valid @ModelAttribute("courseRequest") CourseRequest request,
             BindingResult result,
+            @RequestParam(value = "prerequisiteIds", required = false) List<UUID> prerequisiteIds,
             Model model,
             RedirectAttributes redirect
     ) {
@@ -110,17 +113,22 @@ public class CourseDashboardController {
             model.addAttribute("mode", "edit");
             model.addAttribute("courseId", id);
             model.addAttribute("faculties", facultyService.getForPrint());
+            model.addAttribute("allCourses", courseService.getForPrint());
+            model.addAttribute("selectedPrerequisiteIds", prerequisiteIds);
             return "courses/form";
         }
 
         try {
             courseService.update(id, request);
+            coursePrerequisiteService.updatePrerequisites(id, prerequisiteIds);
             redirect.addFlashAttribute("success", "Cập nhật học phần thành công");
             return "redirect:/admin/courses";
         } catch (ResponseStatusException e) {
             model.addAttribute("mode", "edit");
             model.addAttribute("courseId", id);
             model.addAttribute("faculties", facultyService.getForPrint());
+            model.addAttribute("allCourses", courseService.getForPrint());
+            model.addAttribute("selectedPrerequisiteIds", prerequisiteIds);
             model.addAttribute("globalError", e.getReason());
             return "courses/form";
         }

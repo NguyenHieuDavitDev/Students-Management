@@ -92,6 +92,34 @@
                               rows="4"></textarea>
                 </div>
 
+                <div class="mb-3" th:if="${mode}=='edit'">
+                    <label class="form-label">Học phần tiên quyết</label>
+                    <p class="text-muted small mb-2">
+                        Chọn các học phần mà sinh viên phải hoàn thành trước khi đăng ký học phần này.
+                    </p>
+                    <div class="border rounded p-2" style="max-height: 260px; overflow-y: auto;">
+                        <div th:if="${allCourses == null or #lists.isEmpty(allCourses)}"
+                             class="text-muted small">
+                            Chưa có học phần nào khác để chọn.
+                        </div>
+                        <div th:if="${allCourses != null}"
+                             th:each="c : ${allCourses}">
+                            <div th:if="${c.id != courseId}" class="form-check">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       name="prerequisiteIds"
+                                       th:value="${c.id}"
+                                       th:checked="${selectedPrerequisiteIds != null and selectedPrerequisiteIds.contains(c.id)}"
+                                       th:id="${'pre_' + c.id}">
+                                <label class="form-check-label" th:for="${'pre_' + c.id}">
+                                    <span th:text="${c.courseCode}"></span> - <span th:text="${c.courseName}"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
                 <div class="mb-3">
                     <div class="form-check">
                         <input type="hidden" th:name="*{status}" value="false"/>

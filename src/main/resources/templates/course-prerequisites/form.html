@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa học phần tiên quyết':'Thêm học phần tiên quyết'),
+        (${mode}=='edit'?'Chỉnh sửa học phần tiên quyết':'Thêm học phần tiên quyết'),
+        'Form học phần tiên quyết',
+        'course-prerequisites',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="card border-0 shadow-sm hover-card">
+        <div class="card-body">
+
+            <div th:if="${globalError}"
+                 class="alert alert-danger"
+                 th:text="${globalError}">
+            </div>
+
+            <form method="post"
+                  th:action="${mode}=='edit'
+                        ? @{/admin/course-prerequisites/{id}(id=${relationId})}
+                        : @{/admin/course-prerequisites}">
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Học phần</label>
+                        <select class="form-select" name="courseId" required>
+                            <option value="">-- Chọn học phần --</option>
+                            <option th:each="c : ${allCourses}"
+                                    th:value="${c.id}"
+                                    th:text="${c.courseCode + ' - ' + c.courseName}"
+                                    th:selected="${selectedCourseId != null and selectedCourseId.equals(c.id)}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Học phần tiên quyết</label>
+                        <select class="form-select" name="prerequisiteCourseId" required>
+                            <option value="">-- Chọn học phần tiên quyết --</option>
+                            <option th:each="c : ${allCourses}"
+                                    th:value="${c.id}"
+                                    th:text="${c.courseCode + ' - ' + c.courseName}"
+                                    th:selected="${selectedPrerequisiteCourseId != null and selectedPrerequisiteCourseId.equals(c.id)}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning small">
+                    Lưu ý: Học phần không thể là tiên quyết của chính nó
+                    và một cặp học phần - học phần tiên quyết chỉ được tạo một lần duy nhất.
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-save me-1"></i> Lưu
+                    </button>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/course-prerequisites}">
+                        Hủy
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<style>
+.hover-card { transition: all .25s ease; }
+.hover-card:hover { transform: translateY(-2px); }
+</style>
+
+</body>
+</html>
+
