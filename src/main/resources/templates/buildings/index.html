@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Tòa nhà',
+        'Danh sách tòa nhà',
+        'Quản lý tòa nhà',
+        'buildings',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <!-- ALERT -->
+    <div th:if="${success}" class="alert alert-success">
+        <i class="fa-solid fa-circle-check me-1"></i>
+        <span th:text="${success}"></span>
+    </div>
+
+    <div th:if="${error}" class="alert alert-danger">
+        <i class="fa-solid fa-triangle-exclamation me-1"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between mb-3">
+
+                <!-- SEARCH -->
+                <form class="d-flex gap-2" method="get" th:action="@{/admin/buildings}">
+                    <input class="form-control"
+                           name="keyword"
+                           placeholder="Tìm theo mã hoặc tên tòa nhà"
+                           th:value="${keyword}">
+                    <button class="btn btn-outline-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        Tìm
+                    </button>
+                </form>
+
+                <!-- ACTION BUTTONS -->
+                <div class="d-flex gap-2">
+
+                    <!-- EXPORT -->
+                    <a class="btn btn-outline-success"
+                       th:href="@{/api/buildings/export}">
+                        <i class="fa-solid fa-file-excel"></i>
+                        Export
+                    </a>
+
+                    <!-- PRINT -->
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/buildings/print}"
+                       target="_blank">
+                        <i class="fa-solid fa-print"></i>
+                        In
+                    </a>
+
+                    <!-- CREATE -->
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/buildings/new}">
+                        <i class="fa-solid fa-plus"></i>
+                        Thêm mới
+                    </a>
+                </div>
+            </div>
+
+            <!-- IMPORT -->
+            <form method="post"
+                  enctype="multipart/form-data"
+                  th:action="@{/api/buildings/import}"
+                  class="mb-3 d-flex gap-2">
+
+                <input type="file"
+                       name="file"
+                       class="form-control"
+                       accept=".xlsx,.xls"
+                       required>
+
+                <button class="btn btn-outline-primary">
+                    <i class="fa-solid fa-upload"></i>
+                    Import
+                </button>
+            </form>
+
+            <!-- TABLE -->
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>Mã</th>
+                    <th>Tên tòa nhà</th>
+                    <th>Địa chỉ</th>
+                    <th>Số tầng</th>
+                    <th>Diện tích (m²)</th>
+                    <th>Mô tả</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr th:each="b : ${buildings.content}">
+                    <td th:text="${b.buildingCode}"></td>
+                    <td th:text="${b.buildingName}"></td>
+                    <td th:text="${b.address}"></td>
+                    <td th:text="${b.numberOfFloors}"></td>
+                    <td th:text="${b.totalArea}"></td>
+                    <td th:text="${b.description}"></td>
+
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/admin/buildings/{id}/edit(id=${b.buildingId})}">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            Sửa
+                        </a>
+
+                        <form method="post"
+                              th:action="@{/admin/buildings/{id}/delete(id=${b.buildingId})}"
+                              style="display:inline;"
+                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa tòa nhà này?');">
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="fa-solid fa-trash"></i>
+                                Xóa
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+
+                <tr th:if="${buildings.content.isEmpty()}">
+                    <td colspan="7" class="text-center text-muted">
+                        Không có dữ liệu tòa nhà
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <!-- PAGINATION -->
+            <nav th:if="${buildings.totalPages > 1}">
+                <ul class="pagination justify-content-center">
+
+                    <li class="page-item"
+                        th:classappend="${buildings.first}? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/buildings(page=${buildings.number-1}, keyword=${keyword})}">
+                            Trước
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, buildings.totalPages-1)}"
+                        th:classappend="${i==buildings.number}? ' active'">
+                        <a class="page-link"
+                           th:text="${i+1}"
+                           th:href="@{/admin/buildings(page=${i}, keyword=${keyword})}">
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:classappend="${buildings.last}? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/buildings(page=${buildings.number+1}, keyword=${keyword})}">
+                            Sau
+                        </a>
+                    </li>
+
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

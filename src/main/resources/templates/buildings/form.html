@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa tòa nhà':'Thêm tòa nhà'),
+        (${mode}=='edit'?'Chỉnh sửa tòa nhà':'Thêm tòa nhà'),
+        'Form tòa nhà',
+        'buildings',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <form method="post"
+          th:action="${mode}=='edit'
+          ? @{/admin/buildings/{id}(id=${buildingId})}
+          : @{/admin/buildings}"
+          th:object="${buildingRequest}">
+
+        <div class="mb-3">
+            <label>Mã tòa nhà <span class="text-danger">*</span></label>
+            <input class="form-control" th:field="*{buildingCode}">
+            <small class="text-danger" th:errors="*{buildingCode}"></small>
+        </div>
+
+        <div class="mb-3">
+            <label>Tên tòa nhà <span class="text-danger">*</span></label>
+            <input class="form-control" th:field="*{buildingName}">
+            <small class="text-danger" th:errors="*{buildingName}"></small>
+        </div>
+
+        <div class="mb-3">
+            <label>Địa chỉ</label>
+            <input class="form-control" th:field="*{address}">
+        </div>
+
+        <div class="mb-3">
+            <label>Số tầng</label>
+            <input type="number" class="form-control" th:field="*{numberOfFloors}">
+        </div>
+
+        <div class="mb-3">
+            <label>Tổng diện tích (m²)</label>
+            <input type="number" step="0.01"
+                   class="form-control"
+                   th:field="*{totalArea}">
+        </div>
+
+        <div class="mb-3">
+            <label>Mô tả</label>
+            <textarea class="form-control"
+                      rows="3"
+                      th:field="*{description}"></textarea>
+        </div>
+
+        <button class="btn btn-primary">Lưu</button>
+        <a class="btn btn-secondary"
+           th:href="@{/admin/buildings}">Huỷ</a>
+
+    </form>
+
+</div>
+</body>
+</html>

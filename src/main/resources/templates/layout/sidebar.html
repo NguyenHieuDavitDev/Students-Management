@@ -94,6 +94,13 @@
                 <i class="fa-solid fa-diagram-project"></i>
                 <span>Course Prerequisites</span>
             </a>
+
+            <a class="nav-link px-2 py-2"
+               th:href="@{/admin/buildings}"
+               th:classappend="${activeMenu}=='buildings' ? ' active' : ''">
+                <i class="fa-solid fa-building"></i>
+                <span>Buildings</span>
+            </a>
         </nav>
 
 

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In danh sách tòa nhà</title>
+
+    <style>
+        @page { size: A4; margin: 20mm; }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #000;
+            padding: 6px;
+        }
+
+        th {
+            background: #f2f2f2;
+            text-align: center;
+        }
+
+        .text-center { text-align: center; }
+    </style>
+</head>
+
+<body onload="window.print()">
+
+<div class="header">
+    <h2>DANH SÁCH TÒA NHÀ</h2>
+    Ngày in:
+    <span th:text="${#dates.format(#dates.createNow(),'dd/MM/yyyy')}"></span>
+</div>
+
+<p>
+    Tổng số tòa nhà:
+    <strong th:text="${buildings.size()}"></strong>
+</p>
+
+<table>
+    <thead>
+    <tr>
+        <th>STT</th>
+        <th>Mã</th>
+        <th>Tên</th>
+        <th>Địa chỉ</th>
+        <th>Số tầng</th>
+        <th>Diện tích</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr th:each="b, i : ${buildings}">
+        <td class="text-center" th:text="${i.index+1}"></td>
+        <td th:text="${b.buildingCode}"></td>
+        <td th:text="${b.buildingName}"></td>
+        <td th:text="${b.address}"></td>
+        <td class="text-center" th:text="${b.numberOfFloors}"></td>
+        <td class="text-center" th:text="${b.totalArea}"></td>
+    </tr>
+
+    <tr th:if="${buildings.isEmpty()}">
+        <td colspan="6" class="text-center">
+            Không có dữ liệu
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+</body>
+</html>
