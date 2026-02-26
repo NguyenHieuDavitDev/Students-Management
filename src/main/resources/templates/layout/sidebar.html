@@ -101,6 +101,13 @@
                 <i class="fa-solid fa-building"></i>
                 <span>Buildings</span>
             </a>
+
+            <a class="nav-link px-2 py-2"
+               th:href="@{/admin/room-types}"
+               th:classappend="${activeMenu}=='room-types' ? ' active' : ''">
+                <i class="fa-solid fa-door-open"></i>
+                <span>Room Types</span>
+            </a>
         </nav>
 
 

@@ -901,7 +901,7 @@ Chức năng quản lý giảng viên cho phép quản trị viên tạo, sửa,
 - **Xoá**: Xoá giảng viên khỏi hệ thống
 - **Liên kết Khoa**: Mỗi giảng viên được liên kết với một khoa cụ thể
 - **Duy nhất**: Mã giảng viên phải duy nhất trong hệ thống
-- **Thông tin Chi Tiết**: Hỗ trợ lưu thông tin cá nhân đầy đủ (ngày sinh, giới tính, CMND, email, điện thoại, địa chỉ, avatar)
+- **Thông tin Chi Tiết**: Hỗ trợ lưu thông tin cá nhân đầy đủ (ngày sinh, giới tính, CMND, email, điện thoại, địa ch��, avatar)
 - **Học Vị và Học Hàm**: Lưu thông tin học vị (Cử nhân, Thạc sĩ, Tiến sĩ) và học hàm (Giảng viên, Phó giáo sư, Giáo sư)
 
 #### Endpoint API:
@@ -1371,6 +1371,350 @@ Class `CoursesService` cung cấp các phương thức:
 - **CoursesController**: Quản lý API endpoints (CRUD, Import/Export)
 - **CoursesDashboardController**: Quản lý views HTML cho giao diện web (bao gồm Print)
 
+### 12. Quản Lý Toà Nhà (Building Management)
+
+Chức năng quản lý toà nhà cho phép quản trị viên tạo, sửa, xoá thông tin các toà nhà trong hệ thống.
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Toà Nhà**: Xem toàn bộ danh sách toà nhà trong hệ thống
+- **Tìm kiếm**: Tìm kiếm toà nhà theo mã toà nhà hoặc tên toà nhà (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo toà nhà mới với đầy đủ thông tin
+- **Sửa**: Chỉnh sửa thông tin toà nhà đã tồn tại
+- **Xoá**: Xoá toà nhà khỏi hệ thống
+- **Duy nhất**: Mã toà nhà phải duy nhất trong hệ thống
+- **Thông tin Chi Tiết**: Hỗ trợ lưu địa chỉ, số tầng, tổng diện tích, mô tả
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/buildings` | Lấy danh sách toà nhà (có phân trang, tìm kiếm) |
+| POST | `/api/buildings` | Tạo toà nhà mới |
+| PUT | `/api/buildings/{id}` | Cập nhật toà nhà |
+| DELETE | `/api/buildings/{id}` | Xoá toà nhà |
+
+#### Cấu trúc Entity Building:
+
+```java
+@Entity
+@Table(name = "buildings",
+        uniqueConstraints = @UniqueConstraint(columnNames = "building_code"))
+public class Building {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID buildingId;          // ID duy nhất
+
+    @Column(nullable = false, length = 20, unique = true)
+    private String buildingCode;      // Mã toà nhà (duy nhất)
+
+    @Column(nullable = false)
+    private String buildingName;      // Tên toà nhà
+
+    private String address;           // Địa chỉ
+
+    private Integer numberOfFloors;   // Số tầng
+
+    private Double totalArea;         // Tổng diện tích (m²)
+
+    private String description;       // Mô tả
+}
+```
+
+#### Request/Response Model:
+
+**BuildingRequest** (Tạo/Cập nhật toà nhà):
+```json
+{
+  "buildingCode": "A1",
+  "buildingName": "Toà nhà A1",
+  "address": "123 Đường ABC",
+  "numberOfFloors": 10,
+  "totalArea": 5000.0,
+  "description": "Toà nhà giảng dạy chính"
+}
+```
+
+**BuildingResponse** (Phản hồi từ server):
+```json
+{
+  "buildingId": "uuid",
+  "buildingCode": "A1",
+  "buildingName": "Toà nhà A1",
+  "address": "123 Đường ABC",
+  "numberOfFloors": 10,
+  "totalArea": 5000.0,
+  "description": "Toà nhà giảng dạy chính"
+}
+```
+
+#### Service Layer:
+
+Class `BuildingService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm toà nhà với phân trang
+- `getById(id)`: Lấy toà nhà theo ID
+- `create(request)`: Tạo toà nhà mới
+- `update(id, request)`: Cập nhật toà nhà
+- `delete(id)`: Xoá toà nhà
+- `getForPrint()`: Lấy tất cả toà nhà (dành cho print)
+- `importExcel(file)`: Nhập danh sách toà nhà từ file Excel
+- `exportExcel()`: Xuất danh sách toà nhà ra file Excel
+
+#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra Tính Duy Nhất**: Mã toà nhà phải duy nhất trong hệ thống
+- **Validate Dữ Liệu**: Mã toà nhà và tên toà nhà không được để trống
+- **Sắp Xếp Tự Động**: Danh sách toà nhà được sắp xếp theo mã toà nhà
+
+#### Tính Năng Print:
+
+**Print (In ấn):**
+- In danh sách toà nhà từ giao diện web
+- Định dạng in đẹp và dễ đọc
+- Hỗ trợ in từ trình duyệt
+
+#### Controller:
+
+- **BuildingController**: Quản lý API endpoints (CRUD)
+- **BuildingDashboardController**: Quản lý views HTML cho giao diện web (bao gồm Print)
+
+
+### 13. Quản Lý Loại Phòng (Room Type Management)
+
+Chức năng quản lý loại phòng cho phép quản trị viên tạo, sửa, xoá các loại phòng trong hệ thống (ví dụ: phòng học, phòng thí nghiệm, hội trường,...).
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Loại Phòng**: Xem toàn bộ danh sách loại phòng trong hệ thống
+- **Tìm kiếm**: Tìm kiếm loại phòng theo mã hoặc tên loại phòng (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo loại phòng mới với mã, tên, mô tả và sức chứa tối đa
+- **Sửa**: Chỉnh sửa thông tin loại phòng đã tồn tại
+- **Xoá**: Xoá loại phòng khỏi hệ thống
+- **Duy nhất**: Mã loại phòng phải duy nhất trong hệ thống
+- **Sức Chứa**: Quản lý số lượng người tối đa của mỗi loại phòng
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/room-types` | Lấy danh sách loại phòng (có phân trang, tìm kiếm) |
+| GET | `/api/room-types/{id}` | Lấy chi tiết loại phòng theo ID |
+| POST | `/api/room-types` | Tạo loại phòng mới |
+| PUT | `/api/room-types/{id}` | Cập nhật loại phòng |
+| DELETE | `/api/room-types/{id}` | Xoá loại phòng |
+| GET | `/api/room-types/print` | Lấy tất cả loại phòng (dành cho print) |
+| GET | `/api/room-types/export` | Xuất danh sách loại phòng ra Excel |
+| POST | `/api/room-types/import` | Nhập danh sách loại phòng từ Excel |
+
+#### Cấu trúc Entity RoomType:
+
+```java
+@Entity
+@Table(name = "room_types",
+        uniqueConstraints = @UniqueConstraint(columnNames = "room_type_code"))
+public class RoomType {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID roomTypeId;          // ID duy nhất
+
+    @Column(nullable = false, length = 20, unique = true)
+    private String roomTypeCode;      // Mã loại phòng (duy nhất)
+
+    @Column(nullable = false)
+    private String roomTypeName;      // Tên loại phòng
+
+    private String description;       // Mô tả
+
+    private Integer maxCapacity;      // Sức chứa tối đa
+}
+```
+
+#### Request/Response Model:
+
+**RoomTypeRequest** (Tạo/Cập nhật loại phòng):
+```json
+{
+  "roomTypeCode": "PH",
+  "roomTypeName": "Phòng học",
+  "description": "Phòng học lý thuyết",
+  "maxCapacity": 50
+}
+```
+
+**RoomTypeResponse** (Phản hồi từ server):
+```json
+{
+  "roomTypeId": "uuid",
+  "roomTypeCode": "PH",
+  "roomTypeName": "Phòng học",
+  "description": "Phòng học lý thuyết",
+  "maxCapacity": 50
+}
+```
+
+#### Service Layer:
+
+Class `RoomTypeService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm loại phòng với phân trang
+- `getById(id)`: Lấy loại phòng theo ID
+- `create(request)`: Tạo loại phòng mới
+- `update(id, request)`: Cập nhật loại phòng
+- `delete(id)`: Xoá loại phòng
+- `getForPrint()`: Lấy tất cả loại phòng (dành cho print)
+- `importExcel(file)`: Nhập danh sách loại phòng từ file Excel
+- `exportExcel()`: Xuất danh sách loại phòng ra file Excel
+
+#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra Tính Duy Nhất**: Mã loại phòng phải duy nhất trong hệ thống
+- **Validate Dữ Liệu**: Mã loại phòng và tên loại phòng không được để trống
+- **Validate Sức Chứa**: Sức chứa tối đa phải lớn hơn 0
+- **Sắp Xếp Tự Động**: Danh sách loại phòng được sắp xếp theo mã loại phòng
+
+#### Tính Năng Import/Export/Print:
+
+**Export (Xuất dữ liệu):**
+- Xuất danh sách loại phòng ra file Excel (.xlsx)
+- File chứa 4 cột: Mã loại phòng, Tên loại phòng, Mô tả, Sức chứa tối đa
+- Tự động định dạng với header rõ ràng
+
+**Import (Nhập dữ liệu):**
+- Nhập danh sách loại phòng từ file Excel
+- File Excel cần có 4 cột: Mã loại phòng, Tên loại phòng, Mô tả, Sức chứa tối đa
+- Hỗ trợ nhập hàng loạt
+
+**Print (In ấn):**
+- In danh sách loại phòng từ giao diện web
+- Định dạng in đẹp và dễ đọc
+- Hỗ trợ in từ trình duyệt
+
+#### Controller:
+
+- **RoomTypeController**: Quản lý API endpoints (CRUD, Import/Export/Print)
+- **RoomTypeDashboardController**: Quản lý views HTML cho giao diện web
+
+
+### 14. Quản Lý Học Phần Tiên Quyết (Course Prerequisite Management)
+
+Chức năng quản lý học phần tiên quyết cho phép quản trị viên thiết lập quan hệ tiên quyết giữa các học phần. Một học phần tiên quyết là học phần phải hoàn thành trước khi đăng ký học phần khác.
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Học Phần Tiên Quyết**: Xem toàn bộ danh sách các quan hệ tiên quyết trong hệ thống
+- **Tìm kiếm**: Tìm kiếm theo mã hoặc tên học phần (hỗ trợ tìm kiếm gần đúng trên cả học phần chính và tiên quyết)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo quan hệ tiên quyết mới giữa hai học phần
+- **Sửa**: Chỉnh sửa quan hệ tiên quyết đã tồn tại
+- **Xoá**: Xoá quan hệ tiên quyết khỏi hệ thống
+- **Cập nhật hàng loạt**: Cập nhật toàn bộ danh sách tiên quyết của một học phần
+- **Lọc theo Học Phần**: Xem tất cả tiên quyết của một học phần cụ thể
+- **Chống Tự Tham Chiếu**: Không cho phép học phần là tiên quyết của chính nó
+- **Chống Trùng Lặp**: Không cho phép tạo quan hệ tiên quyết đã tồn tại
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/course-prerequisites` | Lấy danh sách (có phân trang, tìm kiếm) |
+| GET | `/api/course-prerequisites/{id}` | Lấy chi tiết theo ID |
+| GET | `/api/course-prerequisites/by-course/{courseId}` | Lấy tất cả tiên quyết của một học phần |
+| POST | `/api/course-prerequisites` | Tạo quan hệ tiên quyết mới |
+| PUT | `/api/course-prerequisites/{id}` | Cập nhật quan hệ tiên quyết |
+| PUT | `/api/course-prerequisites/by-course/{courseId}` | Cập nhật hàng loạt tiên quyết theo học phần |
+| DELETE | `/api/course-prerequisites/{id}` | Xoá quan hệ tiên quyết |
+| GET | `/api/course-prerequisites/export` | Xuất danh sách ra Excel |
+| POST | `/api/course-prerequisites/import` | Nhập danh sách từ Excel |
+| GET | `/api/course-prerequisites/print` | Lấy tất cả (dành cho print) |
+
+#### Cấu trúc Entity CoursePrerequisite:
+
+```java
+@Entity
+@Table(
+        name = "course_prerequisites",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"course_id", "prerequisite_course_id"})
+        }
+)
+public class CoursePrerequisite {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;                         // ID duy nhất
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id", nullable = false)
+    private Course course;                   // Học phần chính
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "prerequisite_course_id", nullable = false)
+    private Course prerequisiteCourse;       // Học phần tiên quyết
+}
+```
+
+#### Request/Response Model:
+
+**Tạo quan hệ tiên quyết** (Query parameters):
+```
+POST /api/course-prerequisites?courseId={uuid}&prerequisiteCourseId={uuid}
+```
+
+**CoursePrerequisiteResponse** (Phản hồi từ server):
+```json
+{
+  "id": "uuid",
+  "courseId": "uuid-course",
+  "courseCode": "IT101",
+  "courseName": "Lập Trình Java",
+  "prerequisiteCourseId": "uuid-pre",
+  "prerequisiteCourseCode": "IT100",
+  "prerequisiteCourseName": "Nhập Môn Lập Trình"
+}
+```
+
+#### Service Layer:
+
+Class `CoursePrerequisiteService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm với phân trang
+- `getById(id)`: Lấy quan hệ tiên quyết theo ID
+- `create(courseId, prerequisiteCourseId)`: Tạo quan hệ tiên quyết mới
+- `update(id, courseId, prerequisiteCourseId)`: Cập nhật quan hệ tiên quyết
+- `updatePrerequisites(courseId, prerequisiteIds)`: Cập nhật hàng loạt tiên quyết của học phần
+- `getPrerequisitesByCourseId(courseId)`: Lấy tất cả tiên quyết của học phần
+- `getPrerequisiteIdsByCourseId(courseId)`: Lấy danh sách ID tiên quyết
+- `delete(id)`: Xoá quan hệ tiên quyết
+- `getForPrint()`: Lấy tất cả (dành cho print/export)
+
+#### Xác Thực & Bảo Mật:
+
+- **Chống Tự Tham Chiếu**: Học phần không thể là tiên quyết của chính nó
+- **Chống Trùng Lặp**: Quan hệ tiên quyết phải duy nhất trong hệ thống
+- **Kiểm tra Học Phần**: Học phần và học phần tiên quyết phải tồn tại trước khi tạo quan hệ
+- **Validate Dữ Liệu**: Cả hai học phần phải được cung cấp đầy đủ
+
+#### Tính Năng Import/Export/Print:
+
+**Export (Xuất dữ liệu):**
+- Xuất danh sách quan hệ tiên quyết ra file Excel (.xlsx)
+- File chứa 4 cột: Mã học phần, Tên học phần, Mã học phần tiên quyết, Tên học phần tiên quyết
+- Tự động định dạng với header rõ ràng
+
+**Import (Nhập dữ liệu):**
+- Nhập danh sách quan hệ tiên quyết từ file Excel
+- File Excel cần có ít nhất 3 cột: Mã học phần, Tên học phần, Mã học phần tiên quyết
+- Tự động tra cứu học phần theo mã và bỏ qua quan hệ đã tồn tại
+
+**Print (In ấn):**
+- In danh sách quan hệ tiên quyết từ giao diện web
+- Định dạng in đẹp và dễ đọc
+- Hỗ trợ in từ trình duyệt
+
+#### Controller:
+
+- **CoursePrerequisiteController**: Quản lý API endpoints (CRUD, Import/Export/Print)
+- **CoursePrerequisiteDashboardController**: Quản lý views HTML cho giao diện web
+
 ##  Công Nghệ
 
 - **Java 17**: Ngôn ngữ lập trình
@@ -1544,6 +1888,44 @@ src/
 │   │       │   │   └── CoursesRepository.java
 │   │       │   └── service/
 │   │       │       └── CoursesService.java
+│   │       ├── building/
+│   │       │   ├── controller/
+│   │       │   │   ├── BuildingController.java
+│   │       │   │   └── BuildingDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── BuildingRequest.java
+│   │       │   │   └── BuildingResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── Building.java
+│   │       │   ├── repository/
+│   │       │   │   └── BuildingRepository.java
+│   │       │   └── service/
+│   │       │       └── BuildingService.java
+│   │       ├── roomtype/
+│   │       │   ├── controller/
+│   │       │   │   ├── RoomTypeController.java
+│   │       │   │   └── RoomTypeDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── RoomTypeRequest.java
+│   │       │   │   └── RoomTypeResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── RoomType.java
+│   │       │   ├── repository/
+│   │       │   │   └── RoomTypeRepository.java
+│   │       │   └── service/
+│   │       │       └── RoomTypeService.java
+│   │       ├── courseprerequisite/
+│   │       │   ├── controller/
+│   │       │   │   ├── CoursePrerequisiteController.java
+│   │       │   │   └── CoursePrerequisiteDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   └── CoursePrerequisiteResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── CoursePrerequisite.java
+│   │       │   ├── repository/
+│   │       │   │   └── CoursePrerequisiteRepository.java
+│   │       │   └── service/
+│   │       │       └── CoursePrerequisiteService.java
 │   │       ├── common/
 │   │       │   └── service/
 │   │       │       └── FileStorageService.java
@@ -1593,6 +1975,17 @@ src/
 │       │   │   ├── index.html
 │       │   │   ├── form.html
 │       │   │   └── print.html
+│       │   ├── buildings/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── room-types/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── course-prerequisites/
+│       │   │   ├── index.html
+│       │   │   └── form.html
 │       │   ├── layout/
 │       │   │   ├── dashboard.html
 │       │   │   ├── header.html
@@ -2101,7 +2494,7 @@ mvn spring-boot:run
    - Cập nhật thông tin
    - Click "Lưu"
 
-5. **Xoá học phần**:
+5. **Xo�� học phần**:
    - Click nút "Xoá" trên dòng học phần cần xoá
    - Xác nhận xoá
 
@@ -2124,6 +2517,134 @@ mvn spring-boot:run
    - Click nút "In" hoặc "Print" trên giao diện
    - Một trang in đẹp sẽ hiển thị
    - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
+
+### Quản Lý Toà Nhà:
+
+1. **Xem danh sách Toà Nhà**:
+   - Truy cập `/admin/buildings` trên giao diện web
+   - Hoặc gọi API `GET /api/buildings`
+
+2. **Tìm kiếm Toà Nhà**:
+   - Sử dụng thanh tìm kiếm trên giao diện
+   - Hỗ trợ tìm kiếm theo mã toà nhà hoặc tên toà nhà
+
+3. **Tạo Toà Nhà mới**:
+   - Click nút "Thêm mới" trên giao diện
+   - Điền thông tin:
+     - Mã toà nhà (phải duy nhất, ví dụ: A1, B2)
+     - Tên toà nhà
+     - Địa chỉ (tùy chọn)
+     - Số tầng
+     - Tổng diện tích (m²)
+     - Mô tả (tùy chọn)
+   - Click "Lưu"
+
+4. **Sửa Toà Nhà**:
+   - Click nút "Sửa" trên dòng toà nhà cần chỉnh sửa
+   - Cập nhật thông tin
+   - Click "Lưu"
+
+5. **Xoá Toà Nhà**:
+   - Click nút "Xoá" trên dòng toà nhà cần xoá
+   - Xác nhận xoá
+
+6. **In (Print) Danh sách Toà Nhà**:
+   - Click nút "In" hoặc "Print" trên giao diện
+   - Một trang in đẹp sẽ hiển thị
+   - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
+
+### Quản Lý Loại Phòng:
+
+1. **Xem danh sách Loại Phòng**:
+   - Truy cập `/admin/room-types` trên giao diện web
+   - Hoặc gọi API `GET /api/room-types`
+
+2. **Tìm kiếm Loại Phòng**:
+   - Sử dụng thanh tìm kiếm trên giao diện
+   - Hỗ trợ tìm kiếm theo mã loại phòng hoặc tên loại phòng
+
+3. **Tạo Loại Phòng mới**:
+   - Click nút "Thêm mới" trên giao diện
+   - Điền thông tin:
+     - Mã loại phòng (phải duy nhất, ví dụ: PH, PTN, HT)
+     - Tên loại phòng (ví dụ: Phòng học, Phòng thí nghiệm)
+     - Mô tả (tùy chọn)
+     - Sức chứa tối đa (số người, phải lớn hơn 0)
+   - Click "Lưu"
+
+4. **Sửa Loại Phòng**:
+   - Click nút "Sửa" trên dòng loại phòng cần chỉnh sửa
+   - Cập nhật thông tin
+   - Click "Lưu"
+
+5. **Xoá Loại Phòng**:
+   - Click nút "Xoá" trên dòng loại phòng cần xoá
+   - Xác nhận xoá
+
+6. **Xuất (Export) Loại Phòng ra Excel**:
+   - Click nút "Xuất Excel" trên giao diện
+   - Hoặc gọi API `GET /api/room-types/export`
+   - File Excel sẽ được tải xuống tự động với 4 cột: Mã, Tên, Mô tả, Sức chứa
+
+7. **Nhập (Import) Loại Phòng từ Excel**:
+   - Chuẩn bị file Excel với 4 cột: Mã loại phòng, Tên loại phòng, Mô tả, Sức chứa tối đa
+   - Click nút "Nhập Excel" trên giao diện
+   - Chọn file Excel từ máy tính
+   - Hoặc gọi API `POST /api/room-types/import` với file Excel
+
+8. **In (Print) Danh sách Loại Phòng**:
+   - Click nút "In" hoặc "Print" trên giao diện
+   - Một trang in đẹp sẽ hiển thị
+   - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
+
+### Quản Lý Học Phần Tiên Quyết:
+
+1. **Xem danh sách Học Phần Tiên Quyết**:
+   - Truy cập `/admin/course-prerequisites` trên giao diện web
+   - Hoặc gọi API `GET /api/course-prerequisites`
+
+2. **Tìm kiếm Học Phần Tiên Quyết**:
+   - Sử dụng thanh tìm kiếm trên giao diện
+   - Hỗ trợ tìm kiếm theo mã hoặc tên học phần (cả học phần chính lẫn tiên quyết)
+
+3. **Tạo Quan Hệ Tiên Quyết mới**:
+   - Click nút "Thêm mới" trên giao diện
+   - Chọn học phần chính từ dropdown
+   - Chọn học phần tiên quyết từ dropdown
+   - Lưu ý: Không thể chọn cùng một học phần cho cả hai
+   - Click "Lưu"
+
+4. **Sửa Quan Hệ Tiên Quyết**:
+   - Click nút "Sửa" trên dòng quan hệ cần chỉnh sửa
+   - Thay đổi học phần hoặc học phần tiên quyết
+   - Click "Lưu"
+
+5. **Xoá Quan Hệ Tiên Quyết**:
+   - Click nút "Xoá" trên dòng quan hệ cần xoá
+   - Xác nhận xoá
+
+6. **Xem tiên quyết của một Học Phần**:
+   - Gọi API `GET /api/course-prerequisites/by-course/{courseId}`
+   - Trả về danh sách tất cả học phần tiên quyết của học phần đó
+
+7. **Cập nhật hàng loạt tiên quyết**:
+   - Gọi API `PUT /api/course-prerequisites/by-course/{courseId}`
+   - Body: mảng các UUID học phần tiên quyết
+   - Hệ thống sẽ xoá toàn bộ tiên quyết cũ và thêm tiên quyết mới
+
+8. **Xuất (Export) Học Phần Tiên Quyết ra Excel**:
+   - Hoặc gọi API `GET /api/course-prerequisites/export`
+   - File Excel sẽ được tải xuống với 4 cột: Mã học phần, Tên học phần, Mã tiên quyết, Tên tiên quyết
+
+9. **Nhập (Import) Học Phần Tiên Quyết từ Excel**:
+   - Chuẩn bị file Excel với 3 cột: Mã học phần, Tên học phần, Mã học phần tiên quyết
+   - Gọi API `POST /api/course-prerequisites/import` với file Excel
+
+10. **In (Print) Danh sách Học Phần Tiên Quyết**:
+    - Click nút "In" hoặc "Print" trên giao diện
+    - Hoặc gọi API `GET /api/course-prerequisites/print`
+    - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -2144,6 +2665,9 @@ mvn spring-boot:run
 - [x] Quản lý chức danh (Position Management)
 - [x] Quản lý chương trình đào tạo (Training programs Management)
 - [x] Quản lý học phần (Courses Management)
+- [x] Quản lý toà nhà (Building Management)
+- [x] Quản lý loại phòng (Room Type Management)
+- [x] Quản lý học phần tiên quyết (Course Prerequisite Management)
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
@@ -2153,5 +2677,5 @@ mvn spring-boot:run
 - [ ] API Documentation (Swagger)
 
 
-**Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 12/02/2026 (Position Management features added)
+**Phiên bản**: 0.0.1-SNAPSHOT
+**Cập nhật lần cuối**: 26/02/2026 (Building, Room Type, Course Prerequisite Management features added)

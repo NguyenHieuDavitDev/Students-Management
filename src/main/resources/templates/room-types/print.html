@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In danh sách loại phòng</title>
+
+    <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: "Segoe UI", Arial; font-size: 13px; }
+        .header { text-align: center; margin-bottom: 16px; }
+        .header h2 { margin: 0; font-size: 20px; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #000; padding: 6px; }
+        th { background: #f2f2f2; }
+        .text-center { text-align: center; }
+        .footer { margin-top: 20px; text-align: right; }
+    </style>
+</head>
+
+<body onload="window.print()">
+
+<div class="header">
+    <h2>DANH SÁCH LOẠI PHÒNG</h2>
+    Ngày in:
+    <span th:text="${#dates.format(#dates.createNow(), 'dd/MM/yyyy')}"></span>
+</div>
+
+<p>Tổng số loại phòng: <strong th:text="${roomTypes.size()}"></strong></p>
+
+<table>
+    <thead>
+    <tr>
+        <th>STT</th>
+        <th>Mã loại</th>
+        <th>Tên loại phòng</th>
+        <th>Sức chứa</th>
+        <th>Mô tả</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="rt, i : ${roomTypes}">
+        <td class="text-center" th:text="${i.index + 1}"></td>
+        <td th:text="${rt.roomTypeCode}"></td>
+        <td th:text="${rt.roomTypeName}"></td>
+        <td class="text-center" th:text="${rt.maxCapacity}"></td>
+        <td th:text="${rt.description}"></td>
+    </tr>
+
+    <tr th:if="${roomTypes.isEmpty()}">
+        <td colspan="5" class="text-center">Không có dữ liệu</td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    <p><strong>Người lập danh sách</strong></p>
+    <p style="margin-top:40px;">(Ký, ghi rõ họ tên)</p>
+</div>
+
+</body>
+</html>

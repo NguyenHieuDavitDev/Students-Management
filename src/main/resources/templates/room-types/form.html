@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa loại phòng':'Thêm loại phòng'),
+        (${mode}=='edit'?'Chỉnh sửa loại phòng':'Thêm loại phòng'),
+        'Form loại phòng',
+        'room-types',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-danger"
+         th:if="${globalError}"
+         th:text="${globalError}"></div>
+
+    <form method="post"
+          th:action="${mode}=='edit'
+        ? @{/admin/room-types/{id}(id=${roomTypeId})}
+        : @{/admin/room-types}"
+          th:object="${roomTypeRequest}">
+
+        <div class="mb-3">
+            <label>Mã loại phòng <span class="text-danger">*</span></label>
+            <input class="form-control" th:field="*{roomTypeCode}">
+            <small class="text-danger" th:errors="*{roomTypeCode}"></small>
+        </div>
+
+        <div class="mb-3">
+            <label>Tên loại phòng <span class="text-danger">*</span></label>
+            <input class="form-control" th:field="*{roomTypeName}">
+            <small class="text-danger" th:errors="*{roomTypeName}"></small>
+        </div>
+
+        <div class="mb-3">
+            <label>Sức chứa mặc định</label>
+            <input type="number" class="form-control" th:field="*{maxCapacity}">
+        </div>
+
+        <div class="mb-3">
+            <label>Mô tả</label>
+            <textarea class="form-control" rows="3" th:field="*{description}"></textarea>
+        </div>
+
+        <button class="btn btn-primary">Lưu</button>
+        <a class="btn btn-secondary" th:href="@{/admin/room-types}">Huỷ</a>
+
+    </form>
+
+</div>
+</body>
+</html>
