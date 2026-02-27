@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Phòng học',
+        'Danh sách phòng học',
+        'Quản lý phòng học',
+        'rooms',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <!-- ALERT -->
+    <div th:if="${success}" class="alert alert-success">
+        <i class="fa-solid fa-circle-check me-1"></i>
+        <span th:text="${success}"></span>
+    </div>
+
+    <div th:if="${error}" class="alert alert-danger">
+        <i class="fa-solid fa-triangle-exclamation me-1"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between mb-3">
+
+                <!-- SEARCH -->
+                <form class="d-flex gap-2" method="get" th:action="@{/admin/rooms}">
+                    <input class="form-control"
+                           name="keyword"
+                           placeholder="Tìm theo mã hoặc tên phòng"
+                           th:value="${keyword}">
+                    <input type="hidden" name="size" th:value="${size}">
+                    <button class="btn btn-outline-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        Tìm
+                    </button>
+                </form>
+
+                <!-- ACTION BUTTONS -->
+                <div class="d-flex gap-2">
+
+                    <!-- EXPORT -->
+                    <a class="btn btn-outline-success"
+                       th:href="@{/admin/rooms/export}">
+                        <i class="fa-solid fa-file-excel"></i>
+                        Export
+                    </a>
+
+                    <!-- PRINT -->
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/rooms/print}"
+                       target="_blank">
+                        <i class="fa-solid fa-print"></i>
+                        In
+                    </a>
+
+                    <!-- CREATE -->
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/rooms/new}">
+                        <i class="fa-solid fa-plus"></i>
+                        Thêm mới
+                    </a>
+                </div>
+            </div>
+
+            <!-- IMPORT -->
+            <form method="post"
+                  enctype="multipart/form-data"
+                  th:action="@{/admin/rooms/import}"
+                  class="mb-3 d-flex gap-2">
+
+                <input type="file"
+                       name="file"
+                       class="form-control"
+                       accept=".xlsx,.xls"
+                       required>
+
+                <button class="btn btn-outline-primary">
+                    <i class="fa-solid fa-upload"></i>
+                    Import
+                </button>
+            </form>
+
+            <!-- TABLE -->
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>Mã phòng</th>
+                    <th>Tên phòng</th>
+                    <th>Tòa nhà</th>
+                    <th>Loại phòng</th>
+                    <th class="text-center">Tầng</th>
+                    <th class="text-center">Sức chứa</th>
+                    <th class="text-center">Diện tích</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th class="text-center">Hoạt động</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr th:each="r : ${rooms.content}">
+                    <td th:text="${r.roomCode}"></td>
+                    <td th:text="${r.roomName}"></td>
+                    <td th:text="${r.buildingName}"></td>
+                    <td th:text="${r.roomTypeName}"></td>
+                    <td class="text-center" th:text="${r.floor}"></td>
+                    <td class="text-center" th:text="${r.capacity}"></td>
+                    <td class="text-center" th:text="${r.area}"></td>
+                    <td class="text-center">
+                        <span class="badge text-bg-success"
+                              th:if="${r.status.name() == 'AVAILABLE'}">AVAILABLE</span>
+                        <span class="badge text-bg-primary"
+                              th:if="${r.status.name() == 'IN_USE'}">IN_USE</span>
+                        <span class="badge text-bg-warning"
+                              th:if="${r.status.name() == 'MAINTENANCE'}">MAINTENANCE</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge text-bg-success" th:if="${r.isActive}">ON</span>
+                        <span class="badge text-bg-secondary" th:if="${!r.isActive}">OFF</span>
+                    </td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/admin/rooms/{id}/edit(id=${r.roomId})}">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            Sửa
+                        </a>
+                        <form method="post"
+                              th:action="@{/admin/rooms/{id}/delete(id=${r.roomId})}"
+                              style="display:inline;"
+                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa phòng này?');">
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="fa-solid fa-trash"></i>
+                                Xóa
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+
+                <tr th:if="${rooms.content.isEmpty()}">
+                    <td colspan="10" class="text-center text-muted">
+                        <i class="fa-solid fa-box-open"></i>
+                        Không có dữ liệu phòng học
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <!-- PAGINATION -->
+            <nav th:if="${rooms.totalPages > 1}">
+                <ul class="pagination justify-content-center">
+
+                    <li class="page-item"
+                        th:classappend="${rooms.first}? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/rooms(page=${rooms.number-1}, size=${size}, keyword=${keyword})}">
+                            Trước
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, rooms.totalPages-1)}"
+                        th:classappend="${i==rooms.number}? ' active'">
+                        <a class="page-link"
+                           th:text="${i+1}"
+                           th:href="@{/admin/rooms(page=${i}, size=${size}, keyword=${keyword})}">
+                        </a>
+                    </li>
+
+                    <li class="page-item"
+                        th:classappend="${rooms.last}? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/rooms(page=${rooms.number+1}, size=${size}, keyword=${keyword})}">
+                            Sau
+                        </a>
+                    </li>
+
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

@@ -108,6 +108,13 @@
                 <i class="fa-solid fa-door-open"></i>
                 <span>Room Types</span>
             </a>
+
+            <a class="nav-link px-2 py-2"
+               th:href="@{/admin/rooms}"
+               th:classappend="${activeMenu}=='rooms' ? ' active' : ''">
+                <i class="fa-solid fa-door-closed"></i>
+                <span>Rooms</span>
+            </a>
         </nav>
 
 

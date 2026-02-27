@@ -1,6 +1,6 @@
 # Students Management System
 
-Hệ thống quản lý sinh viên xây dựng bằng **Spring Boot 3** với các tính năng quản lý role, người dùng và sinh viên.
+Hệ thống quản lý sinh viên xây dựng bằng **Spring Boot 3** với các tính năng quản lý.
 
 **Last updated**: February 6, 2026 - Updated by MinhHieu via Pull Request
 
@@ -1595,6 +1595,46 @@ Class `RoomTypeService` cung cấp các phương thức:
 - **RoomTypeController**: Quản lý API endpoints (CRUD, Import/Export/Print)
 - **RoomTypeDashboardController**: Quản lý views HTML cho giao diện web
 
+
+### Quản Lý Phòng Học (Room Management)
+
+Chức năng quản lý phòng học cho phép quản trị viên tạo, sửa, xoá phòng học và quản lý thông tin phòng theo tòa nhà, loại phòng, sức chứa và trạng thái sử dụng.
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Phòng học**: Xem toàn bộ danh sách phòng học trong hệ thống
+- **Tìm kiếm**: Tìm kiếm phòng học theo mã hoặc tên phòng (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới / Sửa / Xoá**: CRUD đầy đủ trên giao diện và API
+- **Duy nhất**: Mã phòng (`roomCode`) phải duy nhất khi tạo/cập nhật
+- **Enum trạng thái**: `AVAILABLE`, `IN_USE`, `MAINTENANCE`
+- **Active**: Bật/tắt trạng thái hoạt động của phòng
+- **created_at / updated_at**: Tự động cập nhật bằng `@PrePersist`, `@PreUpdate`
+
+#### Import/Export/Print:
+
+- **Export**: Xuất danh sách phòng học ra Excel (`.xlsx`)
+- **Import**: Nhập danh sách phòng học từ Excel (dựa theo `buildingCode` và `roomTypeCode`)
+- **Print**: In danh sách phòng học từ giao diện web
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/rooms` | Lấy danh sách phòng học (có phân trang, tìm kiếm) |
+| GET | `/api/rooms/{id}` | Lấy chi tiết phòng học theo ID |
+| POST | `/api/rooms` | Tạo phòng học mới |
+| PUT | `/api/rooms/{id}` | Cập nhật phòng học |
+| DELETE | `/api/rooms/{id}` | Xoá phòng học |
+| GET | `/api/rooms/print` | Lấy tất cả phòng học (dành cho print) |
+| GET | `/api/rooms/export` | Xuất danh sách phòng học ra Excel |
+| POST | `/api/rooms/import` | Nhập danh sách phòng học từ Excel |
+
+#### Giao diện Admin:
+
+- Danh sách: `/admin/rooms` (tìm kiếm, phân trang, import/export/print)
+- Form: `/admin/rooms/new`, `/admin/rooms/{id}/edit`
+- Print: `/admin/rooms/print`
 
 ### 14. Quản Lý Học Phần Tiên Quyết (Course Prerequisite Management)
 

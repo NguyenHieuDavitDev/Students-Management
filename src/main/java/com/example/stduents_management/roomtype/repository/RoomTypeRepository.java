@@ -4,6 +4,7 @@ import com.example.stduents_management.roomtype.entity.RoomType;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface RoomTypeRepository extends JpaRepository<RoomType, UUID> {
@@ -17,4 +18,6 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, UUID> {
             String name,
             Pageable pageable
     );
+
+    Optional<RoomType> findByRoomTypeCodeIgnoreCase(String roomTypeCode);
 }
