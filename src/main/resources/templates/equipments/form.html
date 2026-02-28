@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa thiết bị':'Thêm thiết bị'),
+        (${mode}=='edit'?'Chỉnh sửa thiết bị':'Thêm thiết bị'),
+        'Form thiết bị',
+        'equipments',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-danger"
+         th:if="${globalError}"
+         th:text="${globalError}"></div>
+
+    <form method="post"
+          th:action="${mode}=='edit'
+        ? @{/admin/equipments/{id}(id=${equipmentId})}
+        : @{/admin/equipments}"
+          th:object="${equipmentRequest}">
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label>Mã thiết bị <span class="text-danger">*</span></label>
+                <input class="form-control" th:field="*{equipmentCode}">
+                <small class="text-danger" th:errors="*{equipmentCode}"></small>
+            </div>
+
+            <div class="col-md-6">
+                <label>Tên thiết bị <span class="text-danger">*</span></label>
+                <input class="form-control" th:field="*{equipmentName}">
+                <small class="text-danger" th:errors="*{equipmentName}"></small>
+            </div>
+
+            <div class="col-md-6">
+                <label>Số serial</label>
+                <input class="form-control" th:field="*{serialNumber}">
+            </div>
+
+            <div class="col-md-6">
+                <label>Ngày mua</label>
+                <input type="date" class="form-control" th:field="*{purchaseDate}">
+            </div>
+
+            <div class="col-md-6">
+                <label>Trạng thái <span class="text-danger">*</span></label>
+                <select class="form-select" th:field="*{status}">
+                    <option th:each="s : ${statuses}"
+                            th:value="${s}"
+                            th:text="${s}"></option>
+                </select>
+                <small class="text-danger" th:errors="*{status}"></small>
+            </div>
+
+            <div class="col-md-6">
+                <label>Phòng (tùy chọn)</label>
+                <select class="form-select" th:field="*{roomId}">
+                    <option value="">— Không gán phòng —</option>
+                    <option th:each="r : ${rooms}"
+                            th:value="${r.roomId}"
+                            th:text="${r.roomCode + ' - ' + r.roomName}"></option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button class="btn btn-primary">Lưu</button>
+            <a class="btn btn-secondary" th:href="@{/admin/equipments}">Huỷ</a>
+        </div>
+
+    </form>
+
+</div>
+</body>
+</html>

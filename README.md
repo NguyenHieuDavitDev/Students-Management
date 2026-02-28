@@ -1928,6 +1928,19 @@ src/
 │   │       │   │   └── CoursesRepository.java
 │   │       │   └── service/
 │   │       │       └── CoursesService.java
+│   │       ├── equipment/
+│   │       │   ├── controller/
+│   │       │   │   ├── equipmentController.java
+│   │       │   │   └── equipmentDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── equipmentRequest.java
+│   │       │   │   └── equipmentResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── equipment.java
+│   │       │   ├── repository/
+│   │       │   │   └── equipmentRepository.java
+│   │       │   └── service/
+│   │       │       └── equipmentService.java
 │   │       ├── building/
 │   │       │   ├── controller/
 │   │       │   │   ├── BuildingController.java
@@ -2685,6 +2698,166 @@ mvn spring-boot:run
     - Hoặc gọi API `GET /api/course-prerequisites/print`
     - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
 
+### 15. Quản Lý Thiết Bị (Equipment Management)
+
+Chức năng quản lý thiết bị cho phép quản trị viên tạo, sửa, xoá và theo dõi trạng thái các thiết bị trong hệ thống. Mỗi thiết bị có thể được liên kết với một phòng học cụ thể.
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Thiết Bị**: Xem toàn bộ danh sách thiết bị trong hệ thống
+- **Tìm kiếm**: Tìm kiếm thiết bị theo mã thiết bị hoặc tên thiết bị (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo thiết bị mới với mã, tên, serial number, ngày mua và trạng thái
+- **Sửa**: Chỉnh sửa thông tin thiết bị đã tồn tại
+- **Xoá**: Xoá thiết bị khỏi hệ thống
+- **Liên kết Phòng Học**: Thiết bị có thể được gắn với một phòng học cụ thể
+- **Duy nhất**: Mã thiết bị (`equipmentCode`) phải duy nhất trong hệ thống
+- **Quản lý Trạng thái**: Ba trạng thái `ACTIVE`, `BROKEN`, `MAINTENANCE`
+- **Theo Dõi Thời Gian**: Tự động ghi nhận thời gian tạo (`createdAt`) và cập nhật (`updatedAt`) qua `@PrePersist`, `@PreUpdate`
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/equipments` | Lấy danh sách thiết bị (có phân trang, tìm kiếm) |
+| GET | `/api/equipments/{id}` | Lấy chi tiết thiết bị theo ID |
+| POST | `/api/equipments` | Tạo thiết bị mới |
+| PUT | `/api/equipments/{id}` | Cập nhật thiết bị |
+| DELETE | `/api/equipments/{id}` | Xoá thiết bị |
+| GET | `/api/equipments/print` | Lấy tất cả thiết bị (dành cho print) |
+| GET | `/api/equipments/export` | Xuất danh sách thiết bị ra Excel |
+| POST | `/api/equipments/import` | Nhập danh sách thiết bị từ Excel |
+
+#### Giao diện Admin:
+
+- Danh sách: `/admin/equipments` (tìm kiếm, phân trang, import/export/print)
+- Form tạo mới: `/admin/equipments/new`
+- Form chỉnh sửa: `/admin/equipments/{id}/edit`
+- In: `/admin/equipments/print`
+
+#### Cấu trúc Entity Equipment:
+
+```java
+@Entity
+@Table(
+        name = "equipments",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "equipment_code")
+        }
+)
+public class Equipment {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long equipmentId;              // ID tự tăng
+
+    @Column(name = "equipment_code", nullable = false, length = 50)
+    private String equipmentCode;          // Mã thiết bị (duy nhất)
+
+    @Column(name = "equipment_name", nullable = false)
+    private String equipmentName;          // Tên thiết bị
+
+    @Column(name = "serial_number")
+    private String serialNumber;           // Số serial
+
+    @Column(name = "purchase_date")
+    private LocalDate purchaseDate;        // Ngày mua
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20)
+    private EquipmentStatus status;        // Trạng thái: ACTIVE, BROKEN, MAINTENANCE
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id")
+    private Room room;                     // Phòng học liên kết
+
+    private LocalDateTime createdAt;       // Thời gian tạo
+    private LocalDateTime updatedAt;       // Thời gian cập nhật
+}
+```
+
+#### Enum EquipmentStatus:
+
+```java
+public enum EquipmentStatus {
+    ACTIVE,       // Đang hoạt động
+    BROKEN,       // Hỏng
+    MAINTENANCE   // Đang bảo trì
+}
+```
+
+#### Request/Response Model:
+
+**EquipmentRequest** (Tạo/Cập nhật thiết bị):
+```json
+{
+  "equipmentCode": "TB001",
+  "equipmentName": "Máy chiếu Epson",
+  "serialNumber": "SN-2024-001",
+  "purchaseDate": "2024-01-15",
+  "status": "ACTIVE",
+  "roomId": 1
+}
+```
+
+**EquipmentResponse** (Phản hồi từ server):
+```json
+{
+  "equipmentId": 1,
+  "equipmentCode": "TB001",
+  "equipmentName": "Máy chiếu Epson",
+  "serialNumber": "SN-2024-001",
+  "purchaseDate": "2024-01-15",
+  "status": "ACTIVE",
+  "roomId": 1,
+  "roomCode": "P101",
+  "roomName": "Phòng học 101",
+  "createdAt": "2026-02-28T10:00:00",
+  "updatedAt": "2026-02-28T10:00:00"
+}
+```
+
+#### Service Layer:
+
+Class `EquipmentService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm thiết bị theo mã hoặc tên với phân trang
+- `getById(id)`: Lấy chi tiết thiết bị theo ID
+- `create(request)`: Tạo thiết bị mới
+- `update(id, request)`: Cập nhật thiết bị
+- `delete(id)`: Xoá thiết bị
+- `getForPrint()`: Lấy tất cả thiết bị (dành cho in ấn)
+- `importExcel(file)`: Nhập danh sách thiết bị từ file Excel
+- `exportExcel()`: Xuất danh sách thiết bị ra file Excel
+
+#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra Tính Duy Nhất**: Mã thiết bị phải duy nhất trong hệ thống (kiểm tra cả khi tạo và cập nhật)
+- **Validate Dữ Liệu**: Mã thiết bị, tên thiết bị và trạng thái không được để trống
+- **Kiểm tra Phòng Học**: Phòng học phải tồn tại nếu được cung cấp `roomId`
+- **Trạng Thái Mặc Định**: Nếu không cung cấp trạng thái, mặc định là `ACTIVE`
+
+#### Tính Năng Import/Export/Print:
+
+**Export (Xuất dữ liệu):**
+- Xuất danh sách thiết bị ra file Excel (`.xlsx`)
+- Tên file: `equipments.xlsx`
+- Có thể xuất từ API hoặc giao diện web
+
+**Import (Nhập dữ liệu):**
+- Nhập danh sách thiết bị từ file Excel
+- Hỗ trợ nhập hàng loạt
+
+**Print (In ấn):**
+- In danh sách thiết bị từ giao diện web (`/admin/equipments/print`)
+- Định dạng in đẹp và dễ đọc
+- Hỗ trợ in từ trình duyệt
+
+#### Controller:
+
+- **EquipmentController**: Quản lý API endpoints (CRUD, Import/Export/Print) tại `/api/equipments`
+- **EquipmentDashboardController**: Quản lý views HTML cho giao diện web tại `/admin/equipments`
+
+---
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -2708,6 +2881,7 @@ mvn spring-boot:run
 - [x] Quản lý toà nhà (Building Management)
 - [x] Quản lý loại phòng (Room Type Management)
 - [x] Quản lý học phần tiên quyết (Course Prerequisite Management)
+- [x] Quản lý thiết bị (Equipment Management)
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
@@ -2718,4 +2892,4 @@ mvn spring-boot:run
 
 
 **Phiên bản**: 0.0.1-SNAPSHOT
-**Cập nhật lần cuối**: 26/02/2026 (Building, Room Type, Course Prerequisite Management features added)
+**Cập nhật lần cuối**: 28/02/2026 (Equipment Management feature added)

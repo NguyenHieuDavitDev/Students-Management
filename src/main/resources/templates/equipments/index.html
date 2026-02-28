@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Thiết bị',
+        'Danh sách thiết bị',
+        'Quản lý thiết bị',
+        'equipments',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div th:if="${success}" class="alert alert-success">
+        <i class="fa-solid fa-circle-check me-1"></i>
+        <span th:text="${success}"></span>
+    </div>
+
+    <div th:if="${error}" class="alert alert-danger">
+        <i class="fa-solid fa-triangle-exclamation me-1"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between mb-3">
+
+                <form class="d-flex gap-2" method="get" th:action="@{/admin/equipments}">
+                    <input class="form-control"
+                           name="keyword"
+                           placeholder="Tìm theo mã hoặc tên thiết bị"
+                           th:value="${keyword}">
+                    <input type="hidden" name="size" th:value="${size}">
+                    <button class="btn btn-outline-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        Tìm
+                    </button>
+                </form>
+
+                <div class="d-flex gap-2">
+                    <a class="btn btn-outline-success"
+                       th:href="@{/admin/equipments/export}">
+                        <i class="fa-solid fa-file-excel"></i>
+                        Export
+                    </a>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/equipments/print}"
+                       target="_blank">
+                        <i class="fa-solid fa-print"></i>
+                        In
+                    </a>
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/equipments/new}">
+                        <i class="fa-solid fa-plus"></i>
+                        Thêm mới
+                    </a>
+                </div>
+            </div>
+
+            <form method="post"
+                  enctype="multipart/form-data"
+                  th:action="@{/admin/equipments/import}"
+                  class="mb-3 d-flex gap-2">
+                <input type="file"
+                       name="file"
+                       class="form-control"
+                       accept=".xlsx,.xls"
+                       required>
+                <button class="btn btn-outline-primary">
+                    <i class="fa-solid fa-upload"></i>
+                    Import
+                </button>
+            </form>
+
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>Mã thiết bị</th>
+                    <th>Tên thiết bị</th>
+                    <th>Số serial</th>
+                    <th class="text-center">Ngày mua</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th>Phòng</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="e : ${equipments.content}">
+                    <td th:text="${e.equipmentCode}"></td>
+                    <td th:text="${e.equipmentName}"></td>
+                    <td th:text="${e.serialNumber}"></td>
+                    <td class="text-center" th:text="${e.purchaseDate != null ? #temporals.format(e.purchaseDate, 'dd/MM/yyyy') : ''}"></td>
+                    <td class="text-center">
+                        <span class="badge text-bg-success" th:if="${e.status.name() == 'ACTIVE'}">ACTIVE</span>
+                        <span class="badge text-bg-danger" th:if="${e.status.name() == 'BROKEN'}">BROKEN</span>
+                        <span class="badge text-bg-warning" th:if="${e.status.name() == 'MAINTENANCE'}">MAINTENANCE</span>
+                    </td>
+                    <td th:text="${e.roomName != null ? e.roomCode + ' - ' + e.roomName : '—'}"></td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/admin/equipments/{id}/edit(id=${e.equipmentId})}">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            Sửa
+                        </a>
+                        <form method="post"
+                              th:action="@{/admin/equipments/{id}/delete(id=${e.equipmentId})}"
+                              style="display:inline;"
+                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa thiết bị này?');">
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="fa-solid fa-trash"></i>
+                                Xóa
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${equipments.content.isEmpty()}">
+                    <td colspan="7" class="text-center text-muted">
+                        <i class="fa-solid fa-box-open"></i>
+                        Không có dữ liệu thiết bị
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <nav th:if="${equipments.totalPages > 1}">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${equipments.first}? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/equipments(page=${equipments.number-1}, size=${size}, keyword=${keyword})}">Trước</a>
+                    </li>
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, equipments.totalPages-1)}"
+                        th:classappend="${i==equipments.number}? ' active'">
+                        <a class="page-link"
+                           th:text="${i+1}"
+                           th:href="@{/admin/equipments(page=${i}, size=${size}, keyword=${keyword})}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${equipments.last}? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/equipments(page=${equipments.number+1}, size=${size}, keyword=${keyword})}">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
