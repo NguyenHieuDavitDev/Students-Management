@@ -117,6 +117,13 @@
             </a>
 
             <a class="nav-link px-2 py-2"
+               th:href="@{/admin/semesters}"
+               th:classappend="${activeMenu}=='semesters' ? ' active' : ''">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>Semesters</span>
+            </a>
+
+            <a class="nav-link px-2 py-2"
                th:href="@{/admin/equipments}"
                th:classappend="${activeMenu}=='equipments' ? ' active' : ''">
                 <i class="fa-solid fa-laptop"></i>

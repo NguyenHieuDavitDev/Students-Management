@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa học kỳ':'Thêm học kỳ'),
+        (${mode}=='edit'?'Chỉnh sửa học kỳ':'Thêm học kỳ'),
+        'Form học kỳ',
+        'semesters',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-danger"
+         th:if="${error}"
+         th:text="${error}"></div>
+
+    <div class="alert alert-danger"
+         th:if="${globalError}"
+         th:text="${globalError}"></div>
+
+    <form method="post"
+          th:action="${mode}=='edit'
+        ? @{/admin/semesters/{id}(id=${semesterId})}
+        : @{/admin/semesters}"
+          th:object="${semesterRequest}">
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label>Mã học kỳ <span class="text-danger">*</span></label>
+                <input class="form-control" th:field="*{code}">
+                <small class="text-danger" th:errors="*{code}"></small>
+            </div>
+
+            <div class="col-md-8">
+                <label>Tên học kỳ <span class="text-danger">*</span></label>
+                <input class="form-control" th:field="*{name}">
+                <small class="text-danger" th:errors="*{name}"></small>
+            </div>
+
+            <div class="col-md-4">
+                <label>Năm học <span class="text-danger">*</span></label>
+                <input class="form-control" th:field="*{academicYear}" placeholder="2024-2025">
+                <small class="text-danger" th:errors="*{academicYear}"></small>
+            </div>
+
+            <div class="col-md-2">
+                <label>Kỳ <span class="text-danger">*</span></label>
+                <select class="form-select" th:field="*{term}">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                </select>
+                <small class="text-danger" th:errors="*{term}"></small>
+            </div>
+
+            <div class="col-md-3">
+                <label>Ngày bắt đầu <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" th:field="*{startDate}" required>
+                <small class="text-danger" th:errors="*{startDate}"></small>
+            </div>
+
+            <div class="col-md-3">
+                <label>Ngày kết thúc <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" th:field="*{endDate}" required>
+                <small class="text-danger" th:errors="*{endDate}"></small>
+            </div>
+
+            <div class="col-md-3">
+                <label>Mở đăng ký <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" th:field="*{registrationStart}" required>
+                <small class="text-danger" th:errors="*{registrationStart}"></small>
+            </div>
+
+            <div class="col-md-3">
+                <label>Đóng đăng ký <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" th:field="*{registrationEnd}" required>
+                <small class="text-danger" th:errors="*{registrationEnd}"></small>
+            </div>
+
+            <div class="col-12">
+                <small class="text-muted">
+                    <i class="fa-solid fa-info-circle me-1"></i>
+                    Thứ tự ngày: Mở đăng ký ≤ Đóng đăng ký ≤ Ngày bắt đầu &lt; Ngày kết thúc
+                </small>
+            </div>
+
+            <div class="col-12" th:if="${#fields.hasErrors('validStartEnd') || #fields.hasErrors('validRegistrationRange') || #fields.hasErrors('validRegistrationEnd')}">
+                <div class="alert alert-warning py-2 mb-0">
+                    <small class="text-danger d-block" th:each="err : ${#fields.errors('validStartEnd')}" th:text="${err}"></small>
+                    <small class="text-danger d-block" th:each="err : ${#fields.errors('validRegistrationRange')}" th:text="${err}"></small>
+                    <small class="text-danger d-block" th:each="err : ${#fields.errors('validRegistrationEnd')}" th:text="${err}"></small>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <label>Trạng thái <span class="text-danger">*</span></label>
+                <select class="form-select" th:field="*{status}">
+                    <option th:each="s : ${statuses}"
+                            th:value="${s}"
+                            th:text="${s}"></option>
+                </select>
+                <small class="text-danger" th:errors="*{status}"></small>
+            </div>
+
+            <div class="col-12">
+                <label>Ghi chú</label>
+                <textarea class="form-control" rows="3" th:field="*{description}"></textarea>
+                <small class="text-danger" th:errors="*{description}"></small>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button class="btn btn-primary">Lưu</button>
+            <a class="btn btn-secondary" th:href="@{/admin/semesters}">Huỷ</a>
+        </div>
+
+    </form>
+
+</div>
+</body>
+</html>

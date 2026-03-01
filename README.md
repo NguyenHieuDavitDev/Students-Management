@@ -1636,6 +1636,54 @@ Chức năng quản lý phòng học cho phép quản trị viên tạo, sửa, 
 - Form: `/admin/rooms/new`, `/admin/rooms/{id}/edit`
 - Print: `/admin/rooms/print`
 
+### Quản Lý Học Kỳ (Semester Management)
+
+Chức năng quản lý học kỳ cho phép quản trị viên tạo, sửa, xoá và theo dõi tiến trình các học kỳ (thời gian đăng ký, thời gian diễn ra, trạng thái mở/đóng).
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Học Kỳ**: Xem toàn bộ danh sách học kỳ trong hệ thống
+- **Tìm kiếm**: Tìm kiếm theo mã hoặc tên học kỳ (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang & Sắp xếp**: Phân trang, sắp xếp theo `startDate` giảm dần
+- **Thêm mới / Sửa / Xoá**: CRUD đầy đủ trên giao diện và API
+- **Duy nhất**: Mã học kỳ (`code`) phải duy nhất
+- **Ràng buộc ngày**:
+  - `startDate < endDate`
+  - `registrationStart ≤ registrationEnd`
+  - `registrationEnd ≤ startDate`
+- **Term hợp lệ**: `term` chỉ nhận giá trị 1, 2 hoặc 3
+- **Không cho xoá khi đang mở**: Không cho phép xoá nếu `status = OPEN`
+- **Tự động thời gian**: `createdAt` khi tạo, `updatedAt` khi cập nhật (qua `@PrePersist`, `@PreUpdate`)
+- **Badge trạng thái**: Hiển thị badge đẹp trên dashboard theo `UPCOMING`, `OPEN`, `CLOSED`
+
+#### Import/Export/Print:
+
+- **Export**: Xuất danh sách học kỳ ra Excel (`.xlsx`)
+  - Cột: Code, Name, AcademicYear, Term, StartDate, EndDate, RegistrationStart, RegistrationEnd, Status, Description
+- **Import**: Nhập danh sách học kỳ từ Excel
+  - Kiểm tra trùng mã (`code`), validate logic ngày và `term`
+  - Bỏ qua các dòng trống hoặc dòng có mã đã tồn tại
+- **Print**: In danh sách học kỳ từ giao diện web (A4, dễ đọc)
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/semesters` | Lấy danh sách học kỳ (có phân trang, tìm kiếm) |
+| GET | `/api/semesters/{id}` | Lấy chi tiết học kỳ theo ID |
+| POST | `/api/semesters` | Tạo học kỳ mới |
+| PUT | `/api/semesters/{id}` | Cập nhật học kỳ |
+| DELETE | `/api/semesters/{id}` | Xoá học kỳ (chỉ khi không OPEN) |
+| GET | `/api/semesters/print` | Lấy tất cả học kỳ (dành cho print/export) |
+| GET | `/api/semesters/export` | Xuất danh sách học kỳ ra Excel |
+| POST | `/api/semesters/import` | Nhập danh sách học kỳ từ Excel |
+
+#### Giao diện Admin:
+
+- Danh sách: `/admin/semesters` (tìm kiếm, phân trang, import/export/print)
+- Form: `/admin/semesters/new`, `/admin/semesters/{id}/edit`
+- Print: `/admin/semesters/print`
+
 ### 14. Quản Lý Học Phần Tiên Quyết (Course Prerequisite Management)
 
 Chức năng quản lý học phần tiên quyết cho phép quản trị viên thiết lập quan hệ tiên quyết giữa các học phần. Một học phần tiên quyết là học phần phải hoàn thành trước khi đăng ký học phần khác.
