@@ -8,10 +8,13 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface SemesterRepository extends JpaRepository<Semester, Long> {
 
     boolean existsByCode(String code);
+
+    Optional<Semester> findByCodeIgnoreCase(String code);
 
     boolean existsByCodeAndIdNot(String code, Long id);
 

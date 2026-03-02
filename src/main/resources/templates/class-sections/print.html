@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In danh sách lớp học phần</title>
+    <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: "Segoe UI", Arial, sans-serif; font-size: 13px; color: #000; }
+        .header { text-align: center; margin-bottom: 16px; }
+        .header h2 { margin: 0; font-size: 20px; text-transform: uppercase; }
+        .header .sub { font-size: 12px; margin-top: 4px; }
+        .info { margin-bottom: 10px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #000; padding: 6px 8px; }
+        th { background: #f2f2f2; text-align: center; font-weight: 600; }
+        td { vertical-align: middle; }
+        .text-center { text-align: center; }
+        .footer { margin-top: 20px; display: flex; justify-content: space-between; font-size: 12px; }
+        .signature { text-align: center; width: 200px; }
+        .signature p { margin: 0; }
+    </style>
+</head>
+<body onload="window.print()">
+
+<div class="header">
+    <h2>DANH SÁCH LỚP HỌC PHẦN</h2>
+    <div class="sub">
+        Ngày in:
+        <span th:text="${#dates.format(#dates.createNow(), 'dd/MM/yyyy')}"></span>
+    </div>
+</div>
+
+<div class="info">
+    Tổng số lớp:
+    <strong th:text="${sections.size()}"></strong>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th style="width:40px">STT</th>
+        <th style="width:90px">Mã lớp</th>
+        <th>Tên lớp</th>
+        <th style="width:120px">Môn học</th>
+        <th style="width:100px">Học kỳ</th>
+        <th style="width:80px">Sĩ số</th>
+        <th style="width:80px">Trạng thái</th>
+        <th style="width:80px">Phòng</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="s, i : ${sections}">
+        <td class="text-center" th:text="${i.index + 1}"></td>
+        <td th:text="${s.classCode}"></td>
+        <td th:text="${s.className}"></td>
+        <td th:text="${s.courseCode + ' - ' + s.courseName}"></td>
+        <td th:text="${s.semesterCode}"></td>
+        <td class="text-center" th:text="${s.currentStudents + '/' + s.maxStudents}"></td>
+        <td class="text-center"
+            th:text="${s.status.name() == 'OPEN' ? 'Đang mở' : (s.status.name() == 'CLOSED' ? 'Đã đóng' : 'Hủy')}"></td>
+        <td th:text="${s.roomCode != null ? s.roomCode : '—'}"></td>
+    </tr>
+    <tr th:if="${sections.isEmpty()}">
+        <td colspan="8" class="text-center">Không có dữ liệu lớp học phần</td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    <div></div>
+    <div class="signature">
+        <p><strong>Người lập danh sách</strong></p>
+        <p style="margin-top: 40px;">(Ký, ghi rõ họ tên)</p>
+    </div>
+</div>
+
+</body>
+</html>

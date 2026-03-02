@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Lớp học phần',
+        'Danh sách lớp học phần',
+        'Quản lý lớp học phần',
+        'class-sections',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div th:if="${success}" class="alert alert-success d-flex align-items-center">
+        <i class="fa-solid fa-circle-check me-2"></i>
+        <span th:text="${success}"></span>
+    </div>
+
+    <div th:if="${error}" class="alert alert-danger d-flex align-items-center">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                <form class="d-flex gap-2 flex-grow-1" method="get" th:action="@{/admin/class-sections}" style="min-width: 280px;">
+                    <input class="form-control"
+                           name="keyword"
+                           placeholder="Tìm theo mã lớp, tên, môn học, học kỳ"
+                           th:value="${keyword}">
+                    <input type="hidden" name="size" th:value="${size}">
+                    <button class="btn btn-primary">
+                        <i class="fa-solid fa-magnifying-glass me-1"></i>Tìm
+                    </button>
+                </form>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-outline-success"
+                       th:href="@{/admin/class-sections/export}">
+                        <i class="fa-solid fa-file-excel"></i>
+                        Export
+                    </a>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/class-sections/print}"
+                       target="_blank">
+                        <i class="fa-solid fa-print"></i>
+                        In
+                    </a>
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/class-sections/new}">
+                        <i class="fa-solid fa-plus"></i>
+                        Thêm mới
+                    </a>
+                </div>
+            </div>
+
+            <form method="post"
+                  enctype="multipart/form-data"
+                  th:action="@{/admin/class-sections/import}"
+                  class="mb-4 d-flex gap-2 align-items-center flex-wrap">
+                <input type="file"
+                       name="file"
+                       class="form-control form-control-sm"
+                       accept=".xlsx,.xls"
+                       style="max-width: 220px;"
+                       required>
+                <button class="btn btn-outline-primary btn-sm">
+                    <i class="fa-solid fa-upload me-1"></i>Import
+                </button>
+            </form>
+
+            <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                <tr>
+                    <th>Mã lớp</th>
+                    <th>Tên lớp</th>
+                    <th>Môn học</th>
+                    <th>Học kỳ</th>
+                    <th class="text-center">Sĩ số</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th>Phòng</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${sections.content}">
+                    <td th:text="${s.classCode}"></td>
+                    <td th:text="${s.className}"></td>
+                    <td th:text="${s.courseCode + ' - ' + s.courseName}"></td>
+                    <td th:text="${s.semesterCode + ' - ' + s.semesterName}"></td>
+                    <td class="text-center">
+                        <span th:text="${s.currentStudents + '/' + s.maxStudents}"></span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge text-bg-success" th:if="${s.status.name() == 'OPEN'}">Đang mở</span>
+                        <span class="badge text-bg-secondary" th:if="${s.status.name() == 'CLOSED'}">Đã đóng</span>
+                        <span class="badge text-bg-danger" th:if="${s.status.name() == 'CANCELLED'}">Hủy</span>
+                    </td>
+                    <td th:text="${s.roomCode != null ? s.roomCode : '—'}"></td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/admin/class-sections/{id}/edit(id=${s.id})}">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            Sửa
+                        </a>
+                        <form method="post"
+                              th:action="@{/admin/class-sections/{id}/delete(id=${s.id})}"
+                              style="display:inline;"
+                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa lớp học phần này?');">
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="fa-solid fa-trash"></i>
+                                Xóa
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+
+                <tr th:if="${sections.content.isEmpty()}">
+                    <td colspan="8" class="text-center text-muted">
+                        <i class="fa-solid fa-box-open"></i>
+                        Không có dữ liệu lớp học phần
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            </div>
+
+            <nav th:if="${sections.totalPages > 1}" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${sections.first}? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/class-sections(page=${sections.number-1}, size=${size}, keyword=${keyword})}">Trước</a>
+                    </li>
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, sections.totalPages-1)}"
+                        th:classappend="${i==sections.number}? ' active'">
+                        <a class="page-link"
+                           th:text="${i+1}"
+                           th:href="@{/admin/class-sections(page=${i}, size=${size}, keyword=${keyword})}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${sections.last}? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/class-sections(page=${sections.number+1}, size=${size}, keyword=${keyword})}">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

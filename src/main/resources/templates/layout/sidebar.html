@@ -1,139 +1,140 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <body>
-    <aside class="sidebar p-3 d-flex flex-column" th:fragment="sidebar(activeMenu)">
-        <div class="mb-3 d-flex align-items-center gap-2">
-            <div class="brand-icon-wrapper rounded-circle bg-primary d-flex align-items-center justify-content-center"
-                style="width: 32px; height: 32px;">
-                <i class="fa-solid fa-graduation-cap text-white"></i>
-            </div>
-            <div class="brand-text-wrapper">
-                <div class="brand fs-6 mb-0">Students Management</div>
-                <div class="text-white-50 small">Admin dashboard</div>
-            </div>
-        </div>
+<aside class="main-sidebar" th:fragment="sidebar(activeMenu)">
+    <a href="/admin" class="brand-link">
+        <span class="brand-image"><i class="fa-solid fa-graduation-cap text-white"></i></span>
+        <span class="brand-text">Students Management</span>
+    </a>
+    <nav class="sidebar">
+        <ul class="nav nav-pills nav-sidebar flex-column">
+            <li class="nav-header">Hệ thống</li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin}" th:classappend="${activeMenu}=='overview' ? 'active' : ''">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span>Overview</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/roles}" th:classappend="${activeMenu}=='roles' ? 'active' : ''">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Roles</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/users}" th:classappend="${activeMenu}=='users' ? 'active' : ''">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Users</span>
+                </a>
+            </li>
 
-        <nav class="nav nav-pills flex-column gap-1">
-            <a class="nav-link px-2 py-2" th:href="@{/admin}"
-                th:classappend="${activeMenu}=='overview' ? ' active' : ''">
-                <i class="fa-solid fa-gauge-high"></i>
-                <span>Overview</span>
-            </a>
-            <a class="nav-link px-2 py-2" th:classappend="${activeMenu}=='roles' ? ' active' : ''"
-                th:href="@{/admin/roles}">
-                <i class="fa-solid fa-shield-halved"></i>
-                <span>Roles</span>
-            </a>
-            <!-- Users -->
-            <a class="nav-link px-2 py-2" th:href="@{/admin/users}"
-                th:classappend="${activeMenu}=='users' ? ' active' : ''">
-                <i class="fa-solid fa-users"></i>
-                <span>Users</span>
-            </a>
+            <li class="nav-header">Đào tạo</li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/faculties}" th:classappend="${activeMenu}=='faculties' ? 'active' : ''">
+                    <i class="fa-solid fa-building-columns"></i>
+                    <span>Faculties</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/majors}" th:classappend="${activeMenu}=='majors' ? 'active' : ''">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>Majors</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/classes}" th:classappend="${activeMenu}=='classes' ? 'active' : ''">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                    <span>Classes</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/education-types}" th:classappend="${activeMenu}=='education-types' ? 'active' : ''">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>Education Types</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/training-levels}" th:classappend="${activeMenu}=='trainingLevels' ? 'active' : ''">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>Training Levels</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/students}" th:classappend="${activeMenu}=='students' ? 'active' : ''">
+                    <i class="fa-solid fa-user-graduate"></i>
+                    <span>Students</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/lecturers}" th:classappend="${activeMenu}=='lecturers' ? 'active' : ''">
+                    <i class="fa-solid fa-chalkboard-teacher"></i>
+                    <span>Lecturers</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/positions}" th:classappend="${activeMenu}=='positions' ? 'active' : ''">
+                    <i class="fa-solid fa-briefcase"></i>
+                    <span>Positions</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/training-programs}" th:classappend="${activeMenu}=='training-programs' ? 'active' : ''">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>Training Programs</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/courses}" th:classappend="${activeMenu}=='courses' ? 'active' : ''">
+                    <i class="fa-solid fa-book"></i>
+                    <span>Courses</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/course-prerequisites}" th:classappend="${activeMenu}=='course-prerequisites' ? 'active' : ''">
+                    <i class="fa-solid fa-diagram-project"></i>
+                    <span>Course Prerequisites</span>
+                </a>
+            </li>
 
-            <a class="nav-link px-2 py-2" th:href="@{/admin/faculties}"
-                th:classappend="${activeMenu}=='faculties' ? ' active' : ''">
-                <i class="fa-solid fa-building-columns"></i>
-                <span>Faculties</span>
-            </a>
-
-            <a class="nav-link px-2 py-2" th:href="@{/admin/majors}"
-                th:classappend="${activeMenu}=='majors' ? ' active' : ''">
-                <i class="fa-solid fa-layer-group"></i>
-                <span>Majors</span>
-            </a>
-            <a class="nav-link px-2 py-2" th:href="@{/admin/classes}"
-                th:classappend="${activeMenu}=='classes' ? ' active' : ''">
-                <i class="fa-solid fa-chalkboard-user"></i>
-                <span>Classes</span>
-            </a>
-            <a class="nav-link px-2 py-2" th:href="@{/admin/education-types}"
-                th:classappend="${activeMenu}=='education-types' ? ' active' : ''">
-                <i class="fa-solid fa-graduation-cap"></i>
-                <span>Education Types</span>
-            </a>
-            <a class="nav-link px-2 py-2" th:href="@{/admin/training-levels}"
-                th:classappend="${activeMenu}=='trainingLevels' ? ' active' : ''">
-                <i class="fa-solid fa-graduation-cap"></i>
-                <span>Training Levels</span>
-            </a>
-
-            <a class="nav-link px-2 py-2" th:href="@{/admin/students}"
-                th:classappend="${activeMenu}=='students' ? ' active' : ''">
-                <i class="fa-solid fa-user-graduate"></i>
-                <span>Students</span>
-            </a>
-
-            <a class="nav-link px-2 py-2" th:href="@{/admin/lecturers}"
-                th:classappend="${activeMenu}=='lecturers' ? ' active' : ''">
-                <i class="fa-solid fa-chalkboard-teacher"></i>
-                <span>Lecturers</span>
-            </a>
-            <!-- Positions -->
-            <a class="nav-link px-2 py-2" th:href="@{/admin/positions}"
-                th:classappend="${activeMenu}=='positions' ? ' active' : ''">
-                <i class="fa-solid fa-briefcase"></i>
-                <span>Positions</span>
-            </a>
-            <!-- Training Programs -->
-            <a class="nav-link px-2 py-2" th:href="@{/admin/training-programs}"
-                th:classappend="${activeMenu}=='training-programs' ? ' active' : ''">
-                <i class="fa-solid fa-book-open"></i>
-                <span>Training Programs</span>
-            </a>
-            <!-- Courses -->
-            <a class="nav-link px-2 py-2" th:href="@{/admin/courses}"
-                th:classappend="${activeMenu}=='courses' ? ' active' : ''">
-                <i class="fa-solid fa-book"></i>
-                <span>Courses</span>
-            </a>
-            <!-- Course Prerequisites -->
-            <a class="nav-link px-2 py-2" th:href="@{/admin/course-prerequisites}"
-               th:classappend="${activeMenu}=='course-prerequisites' ? ' active' : ''">
-                <i class="fa-solid fa-diagram-project"></i>
-                <span>Course Prerequisites</span>
-            </a>
-
-            <a class="nav-link px-2 py-2"
-               th:href="@{/admin/buildings}"
-               th:classappend="${activeMenu}=='buildings' ? ' active' : ''">
-                <i class="fa-solid fa-building"></i>
-                <span>Buildings</span>
-            </a>
-
-            <a class="nav-link px-2 py-2"
-               th:href="@{/admin/room-types}"
-               th:classappend="${activeMenu}=='room-types' ? ' active' : ''">
-                <i class="fa-solid fa-door-open"></i>
-                <span>Room Types</span>
-            </a>
-
-            <a class="nav-link px-2 py-2"
-               th:href="@{/admin/rooms}"
-               th:classappend="${activeMenu}=='rooms' ? ' active' : ''">
-                <i class="fa-solid fa-door-closed"></i>
-                <span>Rooms</span>
-            </a>
-
-            <a class="nav-link px-2 py-2"
-               th:href="@{/admin/semesters}"
-               th:classappend="${activeMenu}=='semesters' ? ' active' : ''">
-                <i class="fa-solid fa-calendar-days"></i>
-                <span>Semesters</span>
-            </a>
-
-            <a class="nav-link px-2 py-2"
-               th:href="@{/admin/equipments}"
-               th:classappend="${activeMenu}=='equipments' ? ' active' : ''">
-                <i class="fa-solid fa-laptop"></i>
-                <span>Equipments</span>
-            </a>
-        </nav>
-
-
-
-    </aside>
+            <li class="nav-header">Cơ sở vật chất</li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/buildings}" th:classappend="${activeMenu}=='buildings' ? 'active' : ''">
+                    <i class="fa-solid fa-building"></i>
+                    <span>Buildings</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/room-types}" th:classappend="${activeMenu}=='room-types' ? 'active' : ''">
+                    <i class="fa-solid fa-door-open"></i>
+                    <span>Room Types</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/rooms}" th:classappend="${activeMenu}=='rooms' ? 'active' : ''">
+                    <i class="fa-solid fa-door-closed"></i>
+                    <span>Rooms</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/semesters}" th:classappend="${activeMenu}=='semesters' ? 'active' : ''">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>Semesters</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/class-sections}" th:classappend="${activeMenu}=='class-sections' ? 'active' : ''">
+                    <i class="fa-solid fa-chalkboard"></i>
+                    <span>Class Sections</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/equipments}" th:classappend="${activeMenu}=='equipments' ? 'active' : ''">
+                    <i class="fa-solid fa-laptop"></i>
+                    <span>Equipments</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</aside>
 </body>
-
 </html>
