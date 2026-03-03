@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Phân công giảng viên',
+        ${mode} == 'create' ? 'Thêm phân công giảng viên' : 'Cập nhật phân công giảng viên',
+        'Quản lý phân công giảng viên',
+        'lecturer-course-classes',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div th:if="${error}" class="alert alert-danger d-flex align-items-center">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <form th:action="${mode} == 'create' ?
+                               @{/admin/lecturer-course-classes} :
+                               @{/admin/lecturer-course-classes/{id}(id=${itemId})}"
+                  method="post"
+                  th:object="${request}">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Lớp học phần <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{classSectionId}">
+                            <option value="">-- Chọn lớp học phần --</option>
+                            <option th:each="cs : ${classSections}"
+                                    th:value="${cs.id}"
+                                    th:text="${cs.classCode + ' - ' + cs.className}"></option>
+                        </select>
+                        <div class="text-danger small" th:if="${#fields.hasErrors('classSectionId')}"
+                             th:errors="*{classSectionId}"></div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Giảng viên <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{lecturerId}">
+                            <option value="">-- Chọn giảng viên --</option>
+                            <option th:each="l : ${lecturers}"
+                                    th:value="${l.lecturerId}"
+                                    th:text="${l.lecturerCode + ' - ' + l.fullName}"></option>
+                        </select>
+                        <div class="text-danger small" th:if="${#fields.hasErrors('lecturerId')}"
+                             th:errors="*{lecturerId}"></div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Ghi chú</label>
+                        <textarea class="form-control" rows="3" th:field="*{note}"
+                                  placeholder="Ghi chú thêm (nếu có)"></textarea>
+                        <div class="text-danger small" th:if="${#fields.hasErrors('note')}"
+                             th:errors="*{note}"></div>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-between">
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/lecturer-course-classes}">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        Quay lại
+                    </a>
+
+                    <button class="btn btn-primary">
+                        <i class="fa-solid" th:classappend="${mode} == 'create' ? ' fa-plus' : ' fa-floppy-disk'"></i>
+                        <span th:text="${mode} == 'create' ? 'Lưu phân công' : 'Cập nhật'}"></span>
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
+

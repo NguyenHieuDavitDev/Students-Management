@@ -128,6 +128,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/lecturer-course-classes}" th:classappend="${activeMenu}=='lecturer-course-classes' ? 'active' : ''">
+                    <i class="fa-solid fa-user-tie"></i>
+                    <span>Lecturer Course Classes</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/equipments}" th:classappend="${activeMenu}=='equipments' ? 'active' : ''">
                     <i class="fa-solid fa-laptop"></i>
                     <span>Equipments</span>

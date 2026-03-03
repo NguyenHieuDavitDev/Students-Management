@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Phân công giảng viên',
+        'Danh sách phân công giảng viên',
+        'Quản lý phân công giảng viên',
+        'lecturer-course-classes',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div th:if="${success}" class="alert alert-success d-flex align-items-center">
+        <i class="fa-solid fa-circle-check me-2"></i>
+        <span th:text="${success}"></span>
+    </div>
+
+    <div th:if="${error}" class="alert alert-danger d-flex align-items-center">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                <form class="d-flex gap-2 flex-grow-1" method="get"
+                      th:action="@{/admin/lecturer-course-classes}"
+                      style="min-width: 280px;">
+                    <input class="form-control"
+                           name="keyword"
+                           placeholder="Tìm theo lớp, môn học, học kỳ, mã GV, tên GV"
+                           th:value="${keyword}">
+                    <input type="hidden" name="size" th:value="${size}">
+                    <button class="btn btn-primary">
+                        <i class="fa-solid fa-magnifying-glass me-1"></i>Tìm
+                    </button>
+                </form>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-outline-success"
+                       th:href="@{/admin/lecturer-course-classes/export}">
+                        <i class="fa-solid fa-file-excel"></i>
+                        Export
+                    </a>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/lecturer-course-classes/print}"
+                       target="_blank">
+                        <i class="fa-solid fa-print"></i>
+                        In
+                    </a>
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/lecturer-course-classes/new}">
+                        <i class="fa-solid fa-plus"></i>
+                        Thêm mới
+                    </a>
+                </div>
+            </div>
+
+            <form method="post"
+                  enctype="multipart/form-data"
+                  th:action="@{/admin/lecturer-course-classes/import}"
+                  class="mb-4 d-flex gap-2 align-items-center flex-wrap">
+                <input type="file"
+                       name="file"
+                       class="form-control form-control-sm"
+                       accept=".xlsx,.xls"
+                       style="max-width: 220px;"
+                       required>
+                <button class="btn btn-outline-primary btn-sm">
+                    <i class="fa-solid fa-upload me-1"></i>Import
+                </button>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <th>Lớp học phần</th>
+                        <th>Môn học</th>
+                        <th>Học kỳ</th>
+                        <th>Giảng viên</th>
+                        <th>Khoa</th>
+                        <th>Ghi chú</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="i : ${items.content}">
+                        <td>
+                            <div class="fw-semibold" th:text="${i.classCode}"></div>
+                            <div class="text-muted small" th:text="${i.className}"></div>
+                        </td>
+                        <td th:text="${i.courseCode + ' - ' + i.courseName}"></td>
+                        <td th:text="${i.semesterCode}"></td>
+                        <td>
+                            <div class="fw-semibold" th:text="${i.lecturerCode}"></div>
+                            <div class="text-muted small" th:text="${i.lecturerName}"></div>
+                        </td>
+                        <td th:text="${i.facultyName}"></td>
+                        <td th:text="${i.note != null ? i.note : '—'}"></td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary"
+                               th:href="@{/admin/lecturer-course-classes/{id}/edit(id=${i.id})}">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                Sửa
+                            </a>
+                            <form method="post"
+                                  th:action="@{/admin/lecturer-course-classes/{id}/delete(id=${i.id})}"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa phân công này?');">
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fa-solid fa-trash"></i>
+                                    Xóa
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    <tr th:if="${items.content.isEmpty()}">
+                        <td colspan="7" class="text-center text-muted">
+                            <i class="fa-solid fa-box-open"></i>
+                            Không có dữ liệu phân công giảng viên
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <nav th:if="${items.totalPages > 1}" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${items.first}? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/lecturer-course-classes(page=${items.number-1}, size=${size}, keyword=${keyword})}">Trước</a>
+                    </li>
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, items.totalPages-1)}"
+                        th:classappend="${i==items.number}? ' active'">
+                        <a class="page-link"
+                           th:text="${i+1}"
+                           th:href="@{/admin/lecturer-course-classes(page=${i}, size=${size}, keyword=${keyword})}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${items.last}? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/lecturer-course-classes(page=${items.number+1}, size=${size}, keyword=${keyword})}">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
+
