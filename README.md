@@ -2904,6 +2904,150 @@ Class `EquipmentService` cung cấp các phương thức:
 - **EquipmentController**: Quản lý API endpoints (CRUD, Import/Export/Print) tại `/api/equipments`
 - **EquipmentDashboardController**: Quản lý views HTML cho giao diện web tại `/admin/equipments`
 
+### 16. Quản Lý Phân Công Giảng Viên (Lecturer Course Class Assignment Management)
+
+Chức năng quản lý phân công giảng viên cho phép gán giảng viên vào các lớp học phần đang mở trong học kỳ, đảm bảo mỗi lớp học phần được phụ trách bởi giảng viên phù hợp.
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Phân Công**: Xem toàn bộ danh sách phân công giảng viên trong hệ thống
+- **Tìm kiếm**: Tìm kiếm theo mã lớp, tên lớp, mã giảng viên hoặc tên giảng viên (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Phân công giảng viên cho lớp học phần, kèm ghi chú tuỳ chọn
+- **Sửa**: Chỉnh sửa thông tin phân công (đổi giảng viên, cập nhật ghi chú)
+- **Xoá**: Huỷ phân công giảng viên khỏi lớp học phần
+- **Kiểm tra trùng lặp**: Ngăn phân công cùng một giảng viên vào cùng một lớp học phần hai lần
+- **Ghi chú**: Cho phép thêm ghi chú cho mỗi lần phân công (tối đa 500 ký tự)
+
+#### Endpoint API:
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/api/lecturer-course-classes` | Tìm kiếm phân công với phân trang (`keyword`, `page`, `size`) |
+| GET | `/api/lecturer-course-classes/{id}` | Lấy chi tiết phân công theo ID |
+| POST | `/api/lecturer-course-classes` | Tạo phân công mới |
+| PUT | `/api/lecturer-course-classes/{id}` | Cập nhật phân công |
+| DELETE | `/api/lecturer-course-classes/{id}` | Xoá phân công |
+| GET | `/api/lecturer-course-classes/print` | Lấy danh sách để in (sắp xếp theo mã lớp và mã giảng viên) |
+| POST | `/api/lecturer-course-classes/import` | Nhập phân công từ file Excel |
+| GET | `/api/lecturer-course-classes/export` | Xuất danh sách phân công ra file Excel |
+
+#### Giao diện Web (Dashboard):
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/admin/lecturer-course-classes` | Trang danh sách phân công |
+| GET | `/admin/lecturer-course-classes/new` | Form tạo phân công mới |
+| POST | `/admin/lecturer-course-classes` | Xử lý tạo phân công mới |
+| GET | `/admin/lecturer-course-classes/{id}/edit` | Form chỉnh sửa phân công |
+| POST | `/admin/lecturer-course-classes/{id}` | Xử lý cập nhật phân công |
+| POST | `/admin/lecturer-course-classes/{id}/delete` | Xử lý xoá phân công |
+| GET | `/admin/lecturer-course-classes/print` | Trang in danh sách phân công |
+| POST | `/admin/lecturer-course-classes/import` | Xử lý import từ Excel |
+| GET | `/admin/lecturer-course-classes/export` | Tải file Excel xuất dữ liệu |
+
+#### Cấu trúc Entity LecturerCourseClass:
+
+```java
+@Entity
+@Table(
+    name = "lecturer_course_classes",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"class_section_id", "lecturer_id"})
+    }
+)
+public class LecturerCourseClass {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;                    // ID phân công
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_section_id", nullable = false)
+    private ClassSection classSection;  // Lớp học phần được phân công
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lecturer_id", nullable = false)
+    private Lecturer lecturer;          // Giảng viên được phân công
+
+    @Column(name = "note", columnDefinition = "NVARCHAR(500)")
+    private String note;                // Ghi chú (tối đa 500 ký tự)
+
+    private LocalDateTime createdAt;    // Thời gian tạo (tự động)
+    private LocalDateTime updatedAt;    // Thời gian cập nhật (tự động)
+}
+```
+
+#### Request/Response Model:
+
+**LecturerCourseClassRequest** (Tạo/Cập nhật phân công):
+```json
+{
+  "classSectionId": 1,
+  "lecturerId": "uuid-lecturer",
+  "note": "Giảng viên phụ trách chính"
+}
+```
+
+**LecturerCourseClassResponse** (Phản hồi từ server):
+```json
+{
+  "id": 1,
+  "classSectionId": 1,
+  "classCode": "CS101-01",
+  "className": "Nhập môn lập trình - Lớp 1",
+  "courseCode": "CS101",
+  "courseName": "Nhập môn lập trình",
+  "semesterCode": "HK1-2025",
+  "lecturerId": "uuid-lecturer",
+  "lecturerCode": "GV001",
+  "lecturerName": "Nguyễn Văn A",
+  "facultyName": "Khoa Công Nghệ Thông Tin",
+  "note": "Giảng viên phụ trách chính",
+  "createdAt": "2025-01-01T08:00:00",
+  "updatedAt": "2025-01-01T08:00:00"
+}
+```
+
+#### Service Layer:
+
+Class `LecturerCourseClassService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm phân công với phân trang
+- `getById(id)`: Lấy chi tiết phân công theo ID
+- `create(request)`: Tạo phân công mới (kiểm tra trùng lặp)
+- `update(id, request)`: Cập nhật phân công (kiểm tra trùng lặp)
+- `delete(id)`: Xoá phân công
+- `getForPrint()`: Lấy danh sách đã sắp xếp để in
+- `importExcel(file)`: Nhập phân công từ file Excel (bỏ qua bản ghi đã tồn tại)
+- `exportExcel()`: Xuất toàn bộ phân công ra file Excel
+
+#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra Trùng Lặp**: Mỗi cặp (lớp học phần, giảng viên) chỉ được tồn tại một lần
+- **Validate Dữ Liệu**: Lớp học phần và giảng viên không được để trống
+- **Giới Hạn Ghi Chú**: Trường ghi chú tối đa 500 ký tự
+- **Kiểm tra Tồn Tại**: Xác minh lớp học phần và giảng viên tồn tại trước khi phân công
+
+#### Tính Năng Import/Export/Print:
+
+**Export (Xuất dữ liệu):**
+- Xuất danh sách phân công ra file Excel (`lecturer_course_classes.xlsx`)
+- Các cột: Class Code, Class Name, Course Code, Course Name, Semester Code, Lecturer Code, Lecturer Name, Faculty, Note
+- Sắp xếp theo mã lớp và mã giảng viên
+
+**Import (Nhập dữ liệu):**
+- Nhập từ file Excel với 3 cột: Mã lớp học phần, Mã giảng viên, Ghi chú
+- Tự động bỏ qua các bản ghi đã tồn tại (không báo lỗi)
+- Báo lỗi kèm số dòng khi không tìm thấy lớp học phần hoặc giảng viên
+
+**Print (In ấn):**
+- In danh sách phân công đầy đủ từ giao diện web
+- Dữ liệu sắp xếp theo mã lớp học phần rồi đến mã giảng viên
+
+#### Controller:
+
+- **LecturerCourseClassController**: Quản lý API endpoints (CRUD, Import/Export/Print) tại `/api/lecturer-course-classes`
+- **LecturerCourseClassDashboardController**: Quản lý views HTML cho giao diện web tại `/admin/lecturer-course-classes`
+
 ---
 
 ## Tác Giả
@@ -2930,6 +3074,7 @@ Class `EquipmentService` cung cấp các phương thức:
 - [x] Quản lý loại phòng (Room Type Management)
 - [x] Quản lý học phần tiên quyết (Course Prerequisite Management)
 - [x] Quản lý thiết bị (Equipment Management)
+- [x] Quản lý phân công giảng viên (Lecturer Course Class Assignment Management)
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
