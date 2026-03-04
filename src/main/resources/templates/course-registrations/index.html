@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Đăng ký học phần',
+        'Danh sách đăng ký học phần',
+        'Quản lý đăng ký học phần',
+        'course-registrations',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div th:if="${success}" class="alert alert-success d-flex align-items-center">
+        <i class="fa-solid fa-circle-check me-2"></i>
+        <span th:text="${success}"></span>
+    </div>
+
+    <div th:if="${error}" class="alert alert-danger d-flex align-items-center">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                <form class="d-flex gap-2 flex-grow-1" method="get"
+                      th:action="@{/admin/course-registrations}" style="min-width: 280px;">
+                    <input class="form-control"
+                           name="keyword"
+                           placeholder="Tìm theo mã SV, tên SV, mã lớp, mã học phần, học kỳ"
+                           th:value="${keyword}">
+                    <input type="hidden" name="size" th:value="${size}">
+                    <button class="btn btn-primary">
+                        <i class="fa-solid fa-magnifying-glass me-1"></i>Tìm
+                    </button>
+                </form>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-outline-success"
+                       th:href="@{/admin/course-registrations/export}">
+                        <i class="fa-solid fa-file-excel"></i>
+                        Export
+                    </a>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/course-registrations/print}"
+                       target="_blank">
+                        <i class="fa-solid fa-print"></i>
+                        In
+                    </a>
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/course-registrations/new}">
+                        <i class="fa-solid fa-plus"></i>
+                        Thêm mới
+                    </a>
+                </div>
+            </div>
+
+            <form method="post"
+                  enctype="multipart/form-data"
+                  th:action="@{/admin/course-registrations/import}"
+                  class="mb-4 d-flex gap-2 align-items-center flex-wrap">
+                <input type="file"
+                       name="file"
+                       class="form-control form-control-sm"
+                       accept=".xlsx,.xls"
+                       style="max-width: 260px;"
+                       required>
+                <button class="btn btn-outline-primary btn-sm">
+                    <i class="fa-solid fa-upload me-1"></i>Import
+                </button>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <th>Mã SV</th>
+                        <th>Họ tên SV</th>
+                        <th>Lớp HP</th>
+                        <th>Học phần</th>
+                        <th>Học kỳ</th>
+                        <th>Thời gian ĐK</th>
+                        <th>Ghi chú</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="r : ${registrations.content}">
+                        <td th:text="${r.studentCode}"></td>
+                        <td th:text="${r.studentName}"></td>
+                        <td th:text="${r.classCode}"></td>
+                        <td th:text="${r.courseCode + ' - ' + r.courseName}"></td>
+                        <td th:text="${r.semesterCode}"></td>
+                        <td th:text="${#temporals.format(r.registeredAt, 'dd/MM/yyyy HH:mm')}"></td>
+                        <td th:text="${r.note}"></td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary"
+                               th:href="@{/admin/course-registrations/{id}/edit(id=${r.id})}">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                Sửa
+                            </a>
+                            <form method="post"
+                                  th:action="@{/admin/course-registrations/{id}/delete(id=${r.id})}"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa đăng ký này?');">
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fa-solid fa-trash"></i>
+                                    Xóa
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    <tr th:if="${registrations.content.isEmpty()}">
+                        <td colspan="8" class="text-center text-muted">
+                            <i class="fa-solid fa-box-open"></i>
+                            Không có dữ liệu đăng ký học phần
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <nav th:if="${registrations.totalPages > 1}" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${registrations.first}? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/course-registrations(page=${registrations.number-1}, size=${size}, keyword=${keyword})}">Trước</a>
+                    </li>
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, registrations.totalPages-1)}"
+                        th:classappend="${i==registrations.number}? ' active'">
+                        <a class="page-link"
+                           th:text="${i+1}"
+                           th:href="@{/admin/course-registrations(page=${i}, size=${size}, keyword=${keyword})}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${registrations.last}? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/course-registrations(page=${registrations.number+1}, size=${size}, keyword=${keyword})}">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
+

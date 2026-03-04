@@ -1,8 +1,10 @@
 # Students Management System
 
-Hệ thống quản lý sinh viên xây dựng bằng **Spring Boot 3** với các tính năng quản lý.
+Students Management System là dự án xây dựng hệ thống quản lý sinh viên dành cho môi trường giáo dục (trường đại học, cao đẳng hoặc trung tâm đào tạo).
 
-**Last updated**: February 6, 2026 - Updated by MinhHieu via Pull Request
+Dự án được phát triển bằng **Spring Boot 3**, áp dụng kiến trúc RESTful API nhằm hỗ trợ quản lý thông tin sinh viên, lớp học và các nghiệp vụ liên quan một cách khoa học, rõ ràng và dễ mở rộng.
+
+Mục tiêu của dự án là áp dụng kiến thức về lập trình Backend, thiết kế cơ sở dữ liệu và xây dựng API vào một bài toán thực tế trong lĩnh vực quản lý giáo dục
 
 ## Tính Năng
 
@@ -1684,6 +1686,44 @@ Chức năng quản lý học kỳ cho phép quản trị viên tạo, sửa, xo
 - Form: `/admin/semesters/new`, `/admin/semesters/{id}/edit`
 - Print: `/admin/semesters/print`
 
+### Quản Lý Lớp Học Phần (Class Section Management)
+
+Module này quản lý các lớp học phần – tức là các lớp cụ thể của một học phần trong một học kỳ. Mỗi lớp học phần gắn với môn học, học kỳ, sĩ số tối đa, phòng học và trạng thái (Đang mở, Đã đóng, Hủy). Đây là nền tảng để sinh viên đăng ký học phần và giảng viên được phân công giảng dạy.
+
+#### Các tính năng:
+
+- **Danh sách lớp học phần**: Xem toàn bộ lớp học phần, tìm kiếm gần đúng theo mã lớp, tên lớp, mã/tên môn học, mã học kỳ
+- **Phân trang**: Hỗ trợ phân trang, có thể chọn số bản ghi mỗi trang
+- **Thêm/Sửa/Xóa**: CRUD đầy đủ qua giao diện web
+- **Import Excel**: Nhập hàng loạt từ file Excel (mã lớp, mã môn, mã học kỳ, tên lớp, sĩ số tối đa, sĩ số hiện tại, trạng thái, mã phòng, ghi chú)
+- **Export Excel**: Xuất danh sách ra file Excel
+- **Print**: In danh sách lớp học phần từ giao diện (chuẩn A4, có chữ ký)
+
+#### Ràng buộc nghiệp vụ:
+
+- Mã lớp (`classCode`) phải duy nhất trong hệ thống
+- Sĩ số hiện tại không được lớn hơn sĩ số tối đa
+- Liên kết với môn học (Course), học kỳ (Semester), phòng (Room – tùy chọn)
+- Trạng thái: `OPEN` (Đang mở), `CLOSED` (Đã đóng), `CANCELLED` (Hủy)
+
+#### Endpoint (Web Dashboard):
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/admin/class-sections` | Danh sách (tìm kiếm, phân trang) |
+| GET | `/admin/class-sections/new` | Form thêm mới |
+| POST | `/admin/class-sections` | Lưu lớp học phần mới |
+| GET | `/admin/class-sections/{id}/edit` | Form chỉnh sửa |
+| POST | `/admin/class-sections/{id}` | Cập nhật |
+| POST | `/admin/class-sections/{id}/delete` | Xóa |
+| GET | `/admin/class-sections/print` | In danh sách |
+| POST | `/admin/class-sections/import` | Import Excel |
+| GET | `/admin/class-sections/export` | Export Excel |
+
+#### Controller:
+
+- **ClassSectionDashboardController**: Xử lý toàn bộ giao diện tại `/admin/class-sections`
+
 ### 14. Quản Lý Học Phần Tiên Quyết (Course Prerequisite Management)
 
 Chức năng quản lý học phần tiên quyết cho phép quản trị viên thiết lập quan hệ tiên quyết giữa các học phần. Một học phần tiên quyết là học phần phải hoàn thành trước khi đăng ký học phần khác.
@@ -2027,6 +2067,35 @@ src/
 │   │       │   │   └── CoursePrerequisiteRepository.java
 │   │       │   └── service/
 │   │       │       └── CoursePrerequisiteService.java
+│   │       ├── classsection/
+│   │       │   ├── controller/
+│   │       │   │   └── ClassSectionDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── ClassSectionRequest.java
+│   │       │   │   └── ClassSectionResponse.java
+│   │       │   ├── entity/
+│   │       │   │   ├── ClassSection.java
+│   │       │   │   └── ClassSectionStatus.java
+│   │       │   ├── repository/
+│   │       │   │   └── ClassSectionRepository.java
+│   │       │   └── service/
+│   │       │       └── ClassSectionService.java
+│   │       ├── courseregistration/
+│   │       │   ├── controller/
+│   │       │   │   └── CourseRegistrationDashboardController.java
+│   │       │   ├── dto/
+│   │       │   │   ├── CourseRegistrationRequest.java
+│   │       │   │   └── CourseRegistrationResponse.java
+│   │       │   ├── entity/
+│   │       │   │   └── CourseRegistration.java
+│   │       │   ├── repository/
+│   │       │   │   └── CourseRegistrationRepository.java
+│   │       │   └── service/
+│   │       │       └── CourseRegistrationService.java
+│   │       ├── semester/
+│   │       ├── room/
+│   │       ├── lecturercourseclass/
+│   │       ├── trainingprogram/
 │   │       ├── common/
 │   │       │   └── service/
 │   │       │       └── FileStorageService.java
@@ -2086,7 +2155,36 @@ src/
 │       │   │   └── print.html
 │       │   ├── course-prerequisites/
 │       │   │   ├── index.html
-│       │   │   └── form.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── class-sections/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── course-registrations/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── lecturer-course-classes/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── semesters/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── rooms/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── training-programs/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
+│       │   ├── equipments/
+│       │   │   ├── index.html
+│       │   │   ├── form.html
+│       │   │   └── print.html
 │       │   ├── layout/
 │       │   │   ├── dashboard.html
 │       │   │   ├── header.html
@@ -2746,6 +2844,31 @@ mvn spring-boot:run
     - Hoặc gọi API `GET /api/course-prerequisites/print`
     - Sử dụng Ctrl+P hoặc Command+P để in tài liệu
 
+### Quản Lý Lớp Học Phần:
+
+1. **Xem danh sách Lớp học phần**: Truy cập `/admin/class-sections`
+2. **Tìm kiếm**: Gõ vào ô tìm (mã lớp, tên lớp, môn học, học kỳ) rồi bấm Tìm
+3. **Thêm lớp mới**: Bấm "Thêm mới" → Chọn môn học, học kỳ, điền mã lớp, tên lớp, sĩ số tối đa, chọn phòng (nếu có) → Lưu
+4. **Sửa / Xóa**: Bấm nút tương ứng trên từng dòng
+5. **Import / Export**: Dùng form Import hoặc nút Export Excel trên trang danh sách
+6. **In**: Bấm "In" để mở trang in (Ctrl+P để in ra giấy)
+
+### Quản Lý Đăng Ký Học Phần:
+
+1. **Xem danh sách đăng ký**: Truy cập `/admin/course-registrations`
+2. **Tìm kiếm**: Tìm theo mã SV, tên SV, mã lớp, môn học, học kỳ
+3. **Thêm đăng ký mới**: Bấm "Thêm mới" → Chọn sinh viên + lớp học phần (chỉ hiển thị lớp đang mở và còn chỗ) → Lưu
+4. **Sửa / Huỷ đăng ký**: Dùng nút Sửa hoặc Xóa; khi huỷ đăng ký hệ thống tự giảm sĩ số lớp
+5. **Import Excel**: File Excel gồm 3 cột: Mã sinh viên, Mã lớp học phần, Ghi chú (cột 3 có thể để trống)
+6. **Export / In**: Xuất Excel hoặc in danh sách từ nút trên trang
+
+### Quản Lý Phân Công Giảng Viên:
+
+1. **Xem danh sách phân công**: Truy cập `/admin/lecturer-course-classes`
+2. **Thêm phân công**: Chọn lớp học phần + giảng viên, có thể thêm ghi chú
+3. **Sửa / Xóa**: Dùng nút trên từng dòng
+4. **Import / Export / Print**: Tương tự các module khác, file Excel dùng mã lớp và mã giảng viên
+
 ### 15. Quản Lý Thiết Bị (Equipment Management)
 
 Chức năng quản lý thiết bị cho phép quản trị viên tạo, sửa, xoá và theo dõi trạng thái các thiết bị trong hệ thống. Mỗi thiết bị có thể được liên kết với một phòng học cụ thể.
@@ -3050,6 +3173,139 @@ Class `LecturerCourseClassService` cung cấp các phương thức:
 
 ---
 
+### 16. Đăng Ký Học Phần (Course Registration Management)
+
+Chức năng quản lý đăng ký học phần cho phép ghi nhận việc sinh viên đăng ký vào các lớp học phần đang mở trong học kỳ, với đầy đủ kiểm tra nghiệp vụ và hỗ trợ import/export Excel.
+
+#### Các tính năng chi tiết:
+
+- **Danh sách đăng ký**: Xem toàn bộ danh sách đăng ký học phần, sắp xếp theo thời gian đăng ký mới nhất
+- **Tìm kiếm**: Tìm kiếm theo mã sinh viên, tên sinh viên, mã lớp học phần, mã/tên học phần, mã học kỳ
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Đăng ký sinh viên vào lớp học phần với kiểm tra điều kiện nghiệp vụ
+- **Sửa**: Cập nhật thông tin đăng ký (sinh viên, lớp học phần, ghi chú)
+- **Xoá**: Huỷ đăng ký và tự động giảm sĩ số hiện tại của lớp học phần
+- **Import Excel**: Nhập hàng loạt đăng ký từ file Excel
+- **Export Excel**: Xuất toàn bộ danh sách đăng ký ra file Excel
+- **In ấn**: In danh sách đăng ký học phần từ giao diện web
+
+#### Kiểm tra nghiệp vụ khi đăng ký:
+
+- **Trạng thái lớp**: Chỉ cho phép đăng ký vào lớp học phần đang mở (không phải `CLOSED` hoặc `CANCELLED`)
+- **Sĩ số tối đa**: Không cho phép đăng ký khi lớp học phần đã đủ số sinh viên tối đa
+- **Trùng lặp**: Mỗi sinh viên chỉ được đăng ký một lần vào cùng một lớp học phần
+- **Cập nhật sĩ số**: Tự động tăng/giảm `currentStudents` của lớp học phần khi đăng ký hoặc huỷ
+
+#### Endpoint (Web Dashboard):
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/admin/course-registrations` | Xem danh sách đăng ký (tìm kiếm, phân trang) |
+| GET | `/admin/course-registrations/new` | Form thêm đăng ký mới |
+| POST | `/admin/course-registrations` | Lưu đăng ký mới |
+| GET | `/admin/course-registrations/{id}/edit` | Form chỉnh sửa đăng ký |
+| POST | `/admin/course-registrations/{id}` | Cập nhật đăng ký |
+| POST | `/admin/course-registrations/{id}/delete` | Xoá đăng ký |
+| GET | `/admin/course-registrations/print` | In danh sách đăng ký |
+| POST | `/admin/course-registrations/import` | Import từ file Excel |
+| GET | `/admin/course-registrations/export` | Export ra file Excel |
+
+#### Cấu trúc Entity CourseRegistration:
+
+```java
+@Entity
+@Table(
+    name = "course_registrations",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"student_id", "class_section_id"})
+    }
+)
+public class CourseRegistration {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;                        // ID đăng ký
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id", nullable = false)
+    private Student student;                // Sinh viên đăng ký
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_section_id", nullable = false)
+    private ClassSection classSection;      // Lớp học phần được đăng ký
+
+    @Column(name = "registered_at", nullable = false)
+    private LocalDateTime registeredAt;     // Thời gian đăng ký (tự động)
+
+    @Column(name = "note", columnDefinition = "NVARCHAR(500)")
+    private String note;                    // Ghi chú (tối đa 500 ký tự)
+}
+```
+
+#### Request/Response Model:
+
+**CourseRegistrationRequest** (Tạo/Cập nhật đăng ký):
+```json
+{
+  "studentId": "uuid-student",
+  "classSectionId": 1,
+  "note": "Đăng ký học kỳ chính thức"
+}
+```
+
+**CourseRegistrationResponse** (Phản hồi từ server):
+```json
+{
+  "id": 1,
+  "studentId": "uuid-student",
+  "studentCode": "SV001",
+  "studentName": "Nguyễn Văn A",
+  "classSectionId": 1,
+  "classCode": "CS101-01",
+  "className": "Nhập môn lập trình - Lớp 1",
+  "courseCode": "CS101",
+  "courseName": "Nhập môn lập trình",
+  "semesterCode": "HK1-2025",
+  "semesterName": "Học kỳ 1 năm 2025",
+  "registeredAt": "2025-09-01T08:00:00",
+  "note": "Đăng ký học kỳ chính thức"
+}
+```
+
+#### Service Layer:
+
+Class `CourseRegistrationService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm đăng ký với phân trang
+- `getById(id)`: Lấy chi tiết đăng ký theo ID
+- `create(request)`: Tạo đăng ký mới (kiểm tra đầy đủ nghiệp vụ)
+- `update(id, request)`: Cập nhật đăng ký (kiểm tra nghiệp vụ khi đổi lớp)
+- `delete(id)`: Huỷ đăng ký và cập nhật sĩ số lớp
+- `getForPrint()`: Lấy danh sách sắp xếp để in
+- `importExcel(file)`: Nhập đăng ký từ file Excel (bỏ qua bản ghi đã tồn tại)
+- `exportExcel()`: Xuất toàn bộ đăng ký ra file Excel
+
+#### Tính Năng Import/Export/Print:
+
+**Export (Xuất dữ liệu):**
+- Xuất danh sách đăng ký ra file Excel (`course_registrations.xlsx`)
+- Các cột: Student Code, Student Name, Class Code, Class Name, Course Code, Course Name, Semester Code, Registered At, Note
+- Sắp xếp theo thời gian đăng ký mới nhất
+
+**Import (Nhập dữ liệu):**
+- Nhập từ file Excel với 3 cột: Mã sinh viên, Mã lớp học phần, Ghi chú
+- Tự động bỏ qua các bản ghi đã tồn tại
+- Kiểm tra đầy đủ nghiệp vụ (trạng thái lớp, sĩ số) cho từng dòng
+- Báo lỗi kèm số dòng khi không tìm thấy sinh viên hoặc lớp học phần
+
+**Print (In ấn):**
+- In danh sách đăng ký đầy đủ từ giao diện web
+- Dữ liệu sắp xếp theo thời gian đăng ký mới nhất
+
+#### Controller:
+
+- **CourseRegistrationDashboardController**: Quản lý views HTML cho giao diện web tại `/admin/course-registrations` (bao gồm CRUD, Import/Export/Print)
+
+---
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -3073,8 +3329,10 @@ Class `LecturerCourseClassService` cung cấp các phương thức:
 - [x] Quản lý toà nhà (Building Management)
 - [x] Quản lý loại phòng (Room Type Management)
 - [x] Quản lý học phần tiên quyết (Course Prerequisite Management)
+- [x] Quản lý lớp học phần (Class Section Management)
 - [x] Quản lý thiết bị (Equipment Management)
 - [x] Quản lý phân công giảng viên (Lecturer Course Class Assignment Management)
+- [x] Đăng ký học phần (Course Registration Management)
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
@@ -3084,5 +3342,5 @@ Class `LecturerCourseClassService` cung cấp các phương thức:
 - [ ] API Documentation (Swagger)
 
 
-**Phiên bản**: 0.0.1-SNAPSHOT
-**Cập nhật lần cuối**: 28/02/2026 (Equipment Management feature added)
+**Phiên bản**: 0.0.1-SNAPSHOT  
+**Cập nhật lần cuối**: 03/03/2026 – Bổ sung mô tả Lớp học phần, Đăng ký học phần, cấu trúc dự án và hướng dẫn sử dụng

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa đăng ký học phần':'Thêm đăng ký học phần'),
+        (${mode}=='edit'?'Chỉnh sửa đăng ký học phần':'Thêm đăng ký học phần'),
+        'Form đăng ký học phần',
+        'course-registrations',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-danger d-flex align-items-center"
+         th:if="${globalError}">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>
+        <span th:text="${globalError}"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+
+            <form method="post"
+                  th:action="${mode}=='edit'
+                    ? @{/admin/course-registrations/{id}(id=${registrationId})}
+                    : @{/admin/course-registrations}"
+                  th:object="${registrationRequest}">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium">Sinh viên <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{studentId}">
+                            <option value="">-- Chọn sinh viên --</option>
+                            <option th:each="s : ${students}"
+                                    th:value="${s.studentId}"
+                                    th:text="${s.studentCode + ' - ' + s.fullName}"></option>
+                        </select>
+                        <small class="text-danger" th:errors="*{studentId}"></small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium">Lớp học phần <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{classSectionId}">
+                            <option value="">-- Chọn lớp học phần --</option>
+                            <option th:each="cs : ${sections}"
+                                    th:value="${cs.id}"
+                                    th:text="${cs.classCode + ' - ' + cs.className}"></option>
+                        </select>
+                        <small class="text-danger" th:errors="*{classSectionId}"></small>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-medium">Ghi chú</label>
+                        <textarea class="form-control" rows="3" th:field="*{note}"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-2">
+                    <button class="btn btn-primary">
+                        <i class="fa-solid fa-check me-1"></i>Lưu
+                    </button>
+                    <a class="btn btn-outline-secondary ms-2" th:href="@{/admin/course-registrations}">
+                        <i class="fa-solid fa-times me-1"></i>Huỷ
+                    </a>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
+

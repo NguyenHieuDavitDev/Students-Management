@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.UUID;
+import java.util.Optional;
 
 public interface ClassSectionRepository extends JpaRepository<ClassSection, Long> {
 
@@ -28,4 +28,6 @@ public interface ClassSectionRepository extends JpaRepository<ClassSection, Long
             @Param("keyword") String keyword,
             Pageable pageable
     );
+
+    Optional<ClassSection> findByClassCodeIgnoreCase(String classCode);
 }
