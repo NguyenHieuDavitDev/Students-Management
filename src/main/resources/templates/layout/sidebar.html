@@ -122,6 +122,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/time-slots}" th:classappend="${activeMenu}=='time-slots' ? 'active' : ''">
+                    <i class="fa-solid fa-clock"></i>
+                    <span>Time Slots</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/class-sections}" th:classappend="${activeMenu}=='class-sections' ? 'active' : ''">
                     <i class="fa-solid fa-chalkboard"></i>
                     <span>Class Sections</span>

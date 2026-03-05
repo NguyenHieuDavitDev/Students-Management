@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa khung giờ':'Thêm khung giờ'),
+        (${mode}=='edit'?'Chỉnh sửa khung giờ':'Thêm khung giờ'),
+        'Form khung giờ chuẩn',
+        'time-slots',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-danger" th:if="${globalError}" th:text="${globalError}"></div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post"
+                  th:action="${mode}=='edit'
+                    ? @{/admin/time-slots/{id}(id=${timeSlotId})}
+                    : @{/admin/time-slots}"
+                  th:object="${timeSlotRequest}">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Mã khung giờ <span class="text-danger">*</span></label>
+                        <input class="form-control" th:field="*{slotCode}" placeholder="VD: P1_3">
+                        <small class="text-danger" th:errors="*{slotCode}"></small>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Tiết bắt đầu <span class="text-danger">*</span></label>
+                        <input type="number" min="1" class="form-control" th:field="*{periodStart}">
+                        <small class="text-danger" th:errors="*{periodStart}"></small>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Tiết kết thúc <span class="text-danger">*</span></label>
+                        <input type="number" min="1" class="form-control" th:field="*{periodEnd}">
+                        <small class="text-danger" th:errors="*{periodEnd}"></small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Giờ bắt đầu <span class="text-danger">*</span></label>
+                        <input type="time" class="form-control" th:field="*{startTime}">
+                        <small class="text-danger" th:errors="*{startTime}"></small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Giờ kết thúc <span class="text-danger">*</span></label>
+                        <input type="time" class="form-control" th:field="*{endTime}">
+                        <small class="text-danger" th:errors="*{endTime}"></small>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" th:field="*{isActive}" id="isActive">
+                            <label class="form-check-label" for="isActive">Đang sử dụng</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-check me-1"></i>Lưu
+                    </button>
+                    <a class="btn btn-secondary ms-2" th:href="@{/admin/time-slots}">
+                        <i class="fa-solid fa-times me-1"></i>Huỷ
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

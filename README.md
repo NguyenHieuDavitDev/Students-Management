@@ -3304,6 +3304,139 @@ Class `CourseRegistrationService` cung cấp các phương thức:
 
 - **CourseRegistrationDashboardController**: Quản lý views HTML cho giao diện web tại `/admin/course-registrations` (bao gồm CRUD, Import/Export/Print)
 
+### 17. Quản Lý Khung Giờ (Time Slot Management)
+
+Chức năng quản lý khung giờ cho phép quản trị viên tạo, sửa, xoá và quản lý các khung giờ học trong ngày. Mỗi khung giờ xác định phạm vi tiết học và thời gian bắt đầu/kết thúc tương ứng, được dùng để lập thời khóa biểu.
+
+#### Các tính năng chi tiết:
+
+- **Danh sách Khung Giờ**: Xem toàn bộ danh sách khung giờ trong hệ thống, sắp xếp theo mã khung giờ
+- **Tìm kiếm**: Tìm kiếm khung giờ theo mã khung giờ (hỗ trợ tìm kiếm gần đúng)
+- **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
+- **Thêm mới**: Tạo khung giờ mới với mã, phạm vi tiết và giờ học
+- **Sửa**: Chỉnh sửa thông tin khung giờ đã tồn tại
+- **Xoá**: Xoá khung giờ khỏi hệ thống
+- **Kích hoạt/Vô hiệu hóa**: Bật/tắt trạng thái hoạt động của khung giờ
+- **Sắp xếp tự động**: Danh sách sắp xếp theo mã khung giờ
+
+#### Endpoint Web (Dashboard):
+
+| Method | URL | Mô Tả |
+|--------|-----|-------|
+| GET | `/admin/time-slots` | Trang danh sách khung giờ (có tìm kiếm & phân trang) |
+| GET | `/admin/time-slots/new` | Form thêm mới khung giờ |
+| POST | `/admin/time-slots` | Lưu khung giờ mới |
+| GET | `/admin/time-slots/{id}/edit` | Form chỉnh sửa khung giờ |
+| POST | `/admin/time-slots/{id}` | Cập nhật khung giờ |
+| POST | `/admin/time-slots/{id}/delete` | Xoá khung giờ |
+| GET | `/admin/time-slots/print` | Trang in danh sách khung giờ |
+| GET | `/admin/time-slots/export` | Xuất danh sách ra file Excel |
+| POST | `/admin/time-slots/import` | Nhập danh sách từ file Excel |
+
+#### Cấu trúc Entity TimeSlot:
+
+```java
+@Entity
+@Table(
+    name = "time_slots",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = "slot_code")
+    }
+)
+public class TimeSlot {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;              // ID tự tăng
+
+    @Column(name = "slot_code", nullable = false, unique = true, length = 20)
+    private String slotCode;         // Mã khung giờ (duy nhất, ví dụ: "CA1", "CA2")
+
+    @Column(name = "period_start", nullable = false)
+    private Integer periodStart;     // Tiết bắt đầu (ví dụ: 1)
+
+    @Column(name = "period_end", nullable = false)
+    private Integer periodEnd;       // Tiết kết thúc (ví dụ: 5)
+
+    @Column(name = "start_time", nullable = false)
+    private LocalTime startTime;     // Giờ bắt đầu (ví dụ: 07:00)
+
+    @Column(name = "end_time", nullable = false)
+    private LocalTime endTime;       // Giờ kết thúc (ví dụ: 11:30)
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true; // Trạng thái kích hoạt
+}
+```
+
+#### Request/Response Model:
+
+**TimeSlotRequest** (Tạo/Cập nhật khung giờ):
+```json
+{
+  "slotCode": "CA1",
+  "periodStart": 1,
+  "periodEnd": 5,
+  "startTime": "07:00",
+  "endTime": "11:30",
+  "isActive": true
+}
+```
+
+**TimeSlotResponse** (Phản hồi từ server):
+```json
+{
+  "id": 1,
+  "slotCode": "CA1",
+  "periodStart": 1,
+  "periodEnd": 5,
+  "startTime": "07:00",
+  "endTime": "11:30",
+  "isActive": true
+}
+```
+
+#### Service Layer:
+
+Class `TimeSlotService` cung cấp các phương thức:
+- `search(keyword, page, size)`: Tìm kiếm khung giờ theo mã, có phân trang
+- `getById(id)`: Lấy chi tiết khung giờ theo ID
+- `create(request)`: Tạo khung giờ mới (kiểm tra mã duy nhất, validate tiết và giờ)
+- `update(id, request)`: Cập nhật khung giờ (kiểm tra mã duy nhất ngoại trừ bản ghi hiện tại)
+- `delete(id)`: Xoá khung giờ theo ID
+- `getForPrint()`: Lấy toàn bộ danh sách sắp xếp theo mã (dành cho in ấn)
+- `exportExcel()`: Xuất danh sách khung giờ ra file Excel (.xlsx)
+- `importExcel(file)`: Nhập danh sách khung giờ từ file Excel (bỏ qua bản ghi đã tồn tại)
+
+#### Xác Thực & Bảo Mật:
+
+- **Kiểm tra Tính Duy Nhất**: Mã khung giờ (`slotCode`) phải duy nhất trong hệ thống
+- **Validate Tiết Học**: Tiết kết thúc phải lớn hơn hoặc bằng tiết bắt đầu
+- **Validate Giờ Học**: Giờ kết thúc phải sau giờ bắt đầu
+- **Validate Dữ Liệu**: Mã khung giờ, tiết học và giờ học không được để trống
+- **Sắp Xếp Tự Động**: Danh sách khung giờ được sắp xếp theo mã khung giờ
+
+#### Tính Năng Import/Export/Print:
+
+**Export (Xuất dữ liệu):**
+- Xuất danh sách khung giờ ra file Excel (`time_slots.xlsx`)
+- Các cột: Slot Code, Period Start, Period End, Start Time, End Time, Is Active
+- Sắp xếp theo mã khung giờ
+
+**Import (Nhập dữ liệu):**
+- Nhập từ file Excel với 6 cột: Slot Code, Period Start, Period End, Start Time, End Time, Is Active
+- Tự động bỏ qua các khung giờ đã tồn tại (theo mã khung giờ)
+- Hỗ trợ nhiều định dạng giờ: cell số, cell text `HH:mm`
+- Hỗ trợ cột Is Active với giá trị: `1`, `0`, `true`, `false`, `x`
+- Hỗ trợ nhập hàng loạt
+
+**Print (In ấn):**
+- In danh sách khung giờ đầy đủ từ giao diện web
+- Dữ liệu sắp xếp theo mã khung giờ
+
+#### Controller:
+
+- **TimeSlotDashboardController**: Quản lý views HTML cho giao diện web tại `/admin/time-slots` (bao gồm CRUD, Import/Export/Print)
+
 ---
 
 ## Tác Giả
@@ -3333,6 +3466,7 @@ Class `CourseRegistrationService` cung cấp các phương thức:
 - [x] Quản lý thiết bị (Equipment Management)
 - [x] Quản lý phân công giảng viên (Lecturer Course Class Assignment Management)
 - [x] Đăng ký học phần (Course Registration Management)
+- [x] Quản lý khung giờ (Time Slot Management)
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
