@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa lịch học':'Thêm lịch học'),
+        (${mode}=='edit'?'Chỉnh sửa lịch học':'Thêm lịch học'),
+        'Form lịch học',
+        'schedules',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-danger" th:if="${globalError}" th:text="${globalError}"></div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post"
+                  th:action="${mode}=='edit' ? @{/admin/schedules/{id}(id=${scheduleId})} : @{/admin/schedules}"
+                  th:object="${scheduleRequest}">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Học kỳ <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{semesterId}">
+                            <option value="">-- Chọn học kỳ --</option>
+                            <option th:each="sem : ${semesters}" th:value="${sem.id}"
+                                    th:text="${sem.code + ' - ' + sem.name}"></option>
+                        </select>
+                        <small class="text-danger" th:errors="*{semesterId}"></small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Lớp học phần <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{classSectionId}">
+                            <option value="">-- Chọn lớp HP --</option>
+                            <option th:each="cs : ${classSections}" th:value="${cs.id}"
+                                    th:text="${cs.classCode + ' - ' + cs.className}"></option>
+                        </select>
+                        <small class="text-danger" th:errors="*{classSectionId}"></small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Giảng viên <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{lecturerId}">
+                            <option value="">-- Chọn giảng viên --</option>
+                            <option th:each="lec : ${lecturers}" th:value="${lec.lecturerId}"
+                                    th:text="${lec.lecturerCode + ' - ' + lec.fullName}"></option>
+                        </select>
+                        <small class="text-danger" th:errors="*{lecturerId}"></small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Phòng học <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{roomId}">
+                            <option value="">-- Chọn phòng --</option>
+                            <option th:each="r : ${rooms}" th:value="${r.roomId}"
+                                    th:text="${r.roomCode + ' - ' + r.roomName}"></option>
+                        </select>
+                        <small class="text-danger" th:errors="*{roomId}"></small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Khung giờ <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{timeSlotId}">
+                            <option value="">-- Chọn khung giờ --</option>
+                            <option th:each="ts : ${timeSlots}" th:value="${ts.id}"
+                                    th:text="${ts.slotCode}"></option>
+                        </select>
+                        <small class="text-danger" th:errors="*{timeSlotId}"></small>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Thứ (2-8) <span class="text-danger">*</span></label>
+                        <input type="number" min="2" max="8" class="form-control" th:field="*{dayOfWeek}">
+                        <small class="text-danger" th:errors="*{dayOfWeek}"></small>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tuần bắt đầu <span class="text-danger">*</span></label>
+                        <input type="number" min="1" class="form-control" th:field="*{startWeek}">
+                        <small class="text-danger" th:errors="*{startWeek}"></small>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tuần kết thúc <span class="text-danger">*</span></label>
+                        <input type="number" min="1" class="form-control" th:field="*{endWeek}">
+                        <small class="text-danger" th:errors="*{endWeek}"></small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Kiểu tuần</label>
+                        <select class="form-select" th:field="*{weekPattern}">
+                            <option th:each="wp : ${weekPatterns}" th:value="${wp}" th:text="${wp.name()}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Loại buổi</label>
+                        <select class="form-select" th:field="*{sessionType}">
+                            <option th:each="st : ${sessionTypes}" th:value="${st}" th:text="${st.name()}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Loại lịch</label>
+                        <select class="form-select" th:field="*{scheduleType}">
+                            <option th:each="sct : ${scheduleTypes}" th:value="${sct}" th:text="${sct.name()}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Trạng thái</label>
+                        <select class="form-select" th:field="*{status}">
+                            <option th:each="ss : ${scheduleStatuses}" th:value="${ss}" th:text="${ss.name()}"></option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Ghi chú</label>
+                        <input type="text" class="form-control" th:field="*{note}" maxlength="255">
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check me-1"></i>Lưu</button>
+                    <a class="btn btn-secondary ms-2" th:href="@{/admin/schedules}"><i class="fa-solid fa-times me-1"></i>Huỷ</a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

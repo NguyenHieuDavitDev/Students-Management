@@ -1,15 +1,19 @@
 package com.example.stduents_management.classsection.repository;
 
 import com.example.stduents_management.classsection.entity.ClassSection;
+import com.example.stduents_management.classsection.entity.ClassSectionStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ClassSectionRepository extends JpaRepository<ClassSection, Long> {
+
+    List<ClassSection> findBySemester_IdAndStatus(Long semesterId, ClassSectionStatus status);
 
     boolean existsByClassCode(String classCode);
 

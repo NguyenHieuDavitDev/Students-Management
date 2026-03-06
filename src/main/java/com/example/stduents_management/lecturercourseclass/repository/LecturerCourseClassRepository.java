@@ -7,7 +7,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface LecturerCourseClassRepository extends JpaRepository<LecturerCourseClass, Long> {
+
+    List<LecturerCourseClass> findByClassSection_Semester_IdOrderByClassSection_ClassCode(Long semesterId);
 
     boolean existsByClassSection_IdAndLecturer_LecturerId(Long classSectionId, java.util.UUID lecturerId);
 

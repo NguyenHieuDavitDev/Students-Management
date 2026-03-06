@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Phân lịch tự động',
+        'Phân lịch tự động',
+        'schedules',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-danger" th:if="${globalError}" th:text="${globalError}"></div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>Phân lịch tự động (thuật toán tham lam)</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small">
+                Hệ thống lấy danh sách phân công giảng viên – lớp học phần của học kỳ, tính số buổi lý thuyết/thực hành theo học phần,
+                rồi lần lượt gán mỗi buổi vào ô (thứ, khung giờ, phòng) đầu tiên không trùng giảng viên, phòng hoặc lớp.
+                Chỉ xét lớp học phần đang mở và phòng/khung giờ đang hoạt động.
+            </p>
+
+            <form method="post" th:action="@{/admin/schedules/auto}" th:object="${autoScheduleRequest}" class="mt-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Học kỳ <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{semesterId}">
+                            <option value="">-- Chọn học kỳ --</option>
+                            <option th:each="sem : ${semesters}" th:value="${sem.id}"
+                                    th:text="${sem.code + ' - ' + sem.name}"></option>
+                        </select>
+                        <small class="text-danger" th:errors="*{semesterId}"></small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tuần bắt đầu</label>
+                        <input type="number" min="1" class="form-control" th:field="*{startWeek}">
+                        <small class="text-danger" th:errors="*{startWeek}"></small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tuần kết thúc</label>
+                        <input type="number" min="1" max="53" class="form-control" th:field="*{endWeek}">
+                        <small class="text-danger" th:errors="*{endWeek}"></small>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" th:field="*{clearExisting}" id="clearExisting">
+                            <label class="form-check-label" for="clearExisting">
+                                Xóa toàn bộ lịch học kỳ này trước khi phân lịch mới
+                            </label>
+                        </div>
+                        <small class="text-muted">Bật nếu muốn phân lại từ đầu; tắt nếu chỉ bổ sung thêm vào lịch hiện có.</small>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Chọn lớp học phần (tuỳ chọn)</label>
+                        <select class="form-select" th:field="*{classSectionIds}" multiple size="8">
+                            <option th:each="cs : ${classSections}"
+                                    th:value="${cs.id}"
+                                    th:text="${cs.classCode + ' - ' + cs.className + ' (' + cs.semester.code + ')'}">
+                            </option>
+                        </select>
+                        <small class="text-muted">
+                            Nếu không chọn lớp nào, hệ thống sẽ phân lịch cho tất cả lớp học phần đang mở của học kỳ.
+                        </small>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-play me-1"></i>Chạy phân lịch
+                    </button>
+                    <a class="btn btn-secondary ms-2" th:href="@{/admin/schedules}">
+                        <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

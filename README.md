@@ -3439,6 +3439,75 @@ Class `TimeSlotService` cung cấp các phương thức:
 
 ---
 
+### 18. Quản Lý Lịch Học (Schedule Management)
+
+Chức năng quản lý lịch học cho phép quản trị viên tạo, sửa, xoá và tra cứu thời khóa biểu của các lớp học phần trong từng học kỳ. Hệ thống hỗ trợ cả lập lịch thủ công lẫn **phân lịch tự động** bằng thuật toán tham lam (greedy), đồng thời cung cấp Import/Export Excel và chức năng in ấn.
+
+#### Thông Tin Lịch Học:
+
+| Trường | Kiểu | Mô Tả |
+|---|---|---|
+| `id` | UUID | Mã định danh duy nhất |
+| `semester` | Semester | Học kỳ áp dụng lịch học |
+| `classSection` | ClassSection | Lớp học phần được phân lịch |
+| `lecturer` | Lecturer | Giảng viên phụ trách |
+| `room` | Room | Phòng học |
+| `timeSlot` | TimeSlot | Khung giờ học |
+| `dayOfWeek` | Integer | Thứ trong tuần (2 = Thứ 2, …, 8 = Chủ nhật) |
+| `startWeek` | Integer | Tuần bắt đầu |
+| `endWeek` | Integer | Tuần kết thúc |
+| `weekPattern` | Enum | Kiểu tuần: `ALL` (tất cả), `ODD` (lẻ), `EVEN` (chẵn) |
+| `sessionType` | Enum | Loại buổi: `THEORY` (lý thuyết), `PRACTICE` (thực hành), `EXAM` (thi) |
+| `scheduleType` | Enum | Loại lịch: `NORMAL` (bình thường), `MAKEUP` (học bù), `EXTRA` (học thêm) |
+| `status` | Enum | Trạng thái: `ACTIVE` (hoạt động), `CANCELLED` (đã hủy), `MOVED` (đã chuyển) |
+| `note` | String | Ghi chú (tối đa 255 ký tự) |
+
+#### Chức Năng Chính:
+
+- **Xem Danh Sách**: Hiển thị toàn bộ lịch học với phân trang, tìm kiếm theo từ khóa; sắp xếp theo thứ trong tuần và mã khung giờ
+- **Thêm Mới**: Tạo lịch học thủ công, chọn đầy đủ học kỳ, lớp học phần, giảng viên, phòng, khung giờ, tuần học và loại buổi
+- **Chỉnh Sửa**: Cập nhật thông tin một lịch học đã tồn tại
+- **Xóa**: Xóa lịch học theo ID
+- **In Ấn**: Xem và in toàn bộ thời khóa biểu qua trang print, sắp xếp theo học kỳ → thứ → khung giờ
+
+#### Phân Lịch Tự Động (Auto Schedule):
+
+Hệ thống cung cấp tính năng phân lịch tự động theo **thuật toán tham lam (greedy)**:
+
+1. **Đầu vào**: Chọn học kỳ, phạm vi tuần (mặc định tuần 1–15) và tùy chọn chỉ định một số lớp học phần cụ thể
+2. **Nguồn dữ liệu**: Lấy danh sách phân công giảng viên (`LecturerCourseClass`) của học kỳ, chỉ xử lý các lớp học phần có trạng thái `OPEN`
+3. **Xác định số buổi**: Dựa trên số tiết lý thuyết và thực hành của học phần để tạo các `ScheduleTask` (buổi lý thuyết / thực hành)
+4. **Xếp lịch**: Với mỗi buổi, lần lượt duyệt qua các ô (Thứ 2 → Thứ 6) × (khung giờ đang hoạt động) và chọn ô đầu tiên **không trùng** giảng viên, phòng, lớp học phần
+5. **Kết quả**: Trả về số buổi đã xếp được và số buổi bỏ qua (do hết ô trống)
+6. **Tùy chọn xóa**: Có thể xóa toàn bộ lịch cũ của học kỳ trước khi phân lịch lại
+
+#### Kiểm Tra Nghiệp Vụ:
+
+- **Kiểm Tra Tồn Tại**: Học kỳ, lớp học phần, giảng viên, phòng và khung giờ phải tồn tại trong hệ thống
+- **Validate Tuần**: Tuần bắt đầu phải nhỏ hơn hoặc bằng tuần kết thúc
+- **Phòng & Khung Giờ**: Phân lịch tự động chỉ dùng phòng và khung giờ đang ở trạng thái hoạt động (`isActive = true`)
+- **Giới Hạn Ghi Chú**: Trường ghi chú tối đa 255 ký tự
+
+#### Tính Năng Import/Export/Print:
+
+**Export (Xuất dữ liệu):**
+- Xuất toàn bộ lịch học ra file Excel (`schedules.xlsx`)
+- Các cột: Semester Code, Class Code, Lecturer Code, Room Code, Slot Code, Day, Start Week, End Week, Week Pattern, Session Type, Schedule Type, Status, Note
+
+**Import (Nhập dữ liệu):**
+- Nhập lịch học hàng loạt từ file Excel theo đúng cấu trúc cột trên
+- Bỏ qua dòng thiếu thông tin bắt buộc; báo lỗi cụ thể (số dòng) nếu mã học kỳ/lớp/giảng viên/phòng/khung giờ không tìm thấy
+
+**Print (In ấn):**
+- In thời khóa biểu đầy đủ từ giao diện web
+- Dữ liệu sắp xếp theo học kỳ → thứ trong tuần → mã khung giờ
+
+#### Controller:
+
+- **ScheduleDashboardController**: Quản lý views HTML cho giao diện web tại `/admin/schedules` (bao gồm CRUD, Import/Export/Print, Auto Schedule)
+
+---
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -3467,6 +3536,7 @@ Class `TimeSlotService` cung cấp các phương thức:
 - [x] Quản lý phân công giảng viên (Lecturer Course Class Assignment Management)
 - [x] Đăng ký học phần (Course Registration Management)
 - [x] Quản lý khung giờ (Time Slot Management)
+- [x] Quản lý lịch học (Schedule Management)
 - [ ] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
