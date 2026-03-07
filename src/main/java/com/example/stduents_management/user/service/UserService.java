@@ -9,6 +9,7 @@ import com.example.stduents_management.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -23,6 +24,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /* ================= SEARCH ================= */
 
@@ -60,7 +62,7 @@ public class UserService {
         User user = new User();
         user.setUsername(request.getUsername().trim());
         user.setEmail(request.getEmail().trim());
-        user.setPassword(request.getPassword()); // 👉 sau này encode
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEnabled(request.isEnabled());
         user.setRoles(loadRoles(request.getRoleIds()));
 
@@ -87,7 +89,7 @@ public class UserService {
 
         // chỉ đổi password khi có nhập
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            user.setPassword(request.getPassword());
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
         user.setRoles(loadRoles(request.getRoleIds()));

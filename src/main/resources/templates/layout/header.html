@@ -16,9 +16,12 @@
                 <button id="sidebarToggle" type="button" class="sidebar-toggle-btn btn btn-default">
                     <i class="fa-solid fa-bars"></i>
                 </button>
-                <a href="/" class="btn btn-sm btn-outline-secondary">
-                    <i class="fa-solid fa-arrow-left-long me-1"></i>Về trang user
-                </a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="fa-solid fa-right-from-bracket me-1"></i>Đăng xuất
+                    </button>
+                </form>
             </div>
         </div>
     </div>
