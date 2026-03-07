@@ -30,4 +30,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
                 OR LOWER(s.timeSlot.slotCode) LIKE LOWER(CONCAT('%', :keyword, '%')))
             """)
     Page<Schedule> search(@Param("keyword") String keyword, Pageable pageable);
+
+    @Query("SELECT s FROM Schedule s LEFT JOIN FETCH s.semester LEFT JOIN FETCH s.classSection cs LEFT JOIN FETCH cs.course LEFT JOIN FETCH s.timeSlot ORDER BY s.semester.code, cs.classCode, s.timeSlot.slotCode")
+    List<Schedule> findAllForDropdown();
 }

@@ -134,6 +134,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/schedule-overrides}" th:classappend="${activeMenu}=='schedule-overrides' ? 'active' : ''">
+                    <i class="fa-solid fa-calendar-day"></i>
+                    <span>Dạy bù / Đổi phòng</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/class-sections}" th:classappend="${activeMenu}=='class-sections' ? 'active' : ''">
                     <i class="fa-solid fa-chalkboard"></i>
                     <span>Class Sections</span>
