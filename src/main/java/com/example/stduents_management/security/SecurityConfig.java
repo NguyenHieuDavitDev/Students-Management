@@ -9,7 +9,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers("/register", "/register/**").permitAll()
                         .requestMatchers("/forgot-password", "/forgot-password/**").permitAll()
                         .requestMatchers("/reset-password", "/reset-password/**").permitAll()
+                        .requestMatchers("/admin/login").permitAll()
                         .requestMatchers("/admin/roles", "/admin/roles/**").hasRole("ADMIN")
                         .requestMatchers("/admin/users", "/admin/users/**").hasRole("ADMIN")
                         .requestMatchers("/admin/permissions", "/admin/permissions/**").hasRole("ADMIN")
@@ -46,7 +50,7 @@ public class SecurityConfig {
                         .usernameParameter("username")
                         .passwordParameter("password")
                         .successHandler(loginSuccessHandler())
-                        .failureUrl("/login?error")
+                        .failureHandler(loginFailureHandler())
                         .permitAll()
                 )
                 .logout(logout -> logout
@@ -58,13 +62,41 @@ public class SecurityConfig {
                 )
                 .userDetailsService(userDetailsService)
                 .exceptionHandling(ex -> ex
-                        .accessDeniedPage("/login?denied")
+                        .authenticationEntryPoint(authenticationEntryPoint())
+                        .accessDeniedPage("/?denied")
                 );
         return http.build();
     }
 
     private static final Set<String> DASHBOARD_ROLES = Set.of("ROLE_ADMIN", "ROLE_MANAGER", "ROLE_LECTURER");
     private static final String ROLE_STUDENT = "ROLE_STUDENT";
+
+    /** Khi chưa đăng nhập: truy cập /admin/** → chuyển tới /admin/login; còn lại → chuyển tới trang chủ /. */
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        return (HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) -> {
+            String ctx = request.getContextPath();
+            String path = request.getRequestURI();
+            boolean isAdminArea = path != null && (path.equals(ctx + "/admin") || path.startsWith(ctx + "/admin/"));
+            boolean isAdminLogin = path != null && path.equals(ctx + "/admin/login");
+            if (isAdminArea && !isAdminLogin) {
+                response.sendRedirect(ctx + "/admin/login");
+            } else {
+                response.sendRedirect(ctx + "/");
+            }
+        };
+    }
+
+    @Bean
+    public AuthenticationFailureHandler loginFailureHandler() {
+        return (request, response, exception) -> {
+            String referer = request.getHeader("Referer");
+            String ctx = request.getContextPath();
+            boolean fromAdminLogin = referer != null && referer.contains("/admin/login");
+            String target = fromAdminLogin ? ctx + "/admin/login?error" : ctx + "/?error";
+            response.sendRedirect(target);
+        };
+    }
 
     @Bean
     public AuthenticationSuccessHandler loginSuccessHandler() {

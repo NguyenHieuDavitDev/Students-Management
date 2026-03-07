@@ -8,28 +8,68 @@
 <body>
 <div th:fragment="content">
     <div class="container">
-        <div class="row justify-content-center">
+        <!-- Đã đăng nhập: nội dung chào mừng -->
+        <div th:if="${userProfile != null}" class="row justify-content-center">
             <div class="col-lg-8">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4 p-md-5">
                         <h1 class="h3 mb-3">Trang chủ</h1>
-                        <p class="text-muted mb-4" th:if="${userProfile != null}">
+                        <p class="text-muted mb-4">
                             Xin chào <strong th:text="${userProfile.displayName}">User</strong>.
                             Đây là trang dành cho người dùng (sinh viên / giảng viên).
                             Bạn có thể xem thông tin cá nhân tại header và footer.
                         </p>
-                        <p class="text-muted mb-4" th:if="${userProfile == null}">
-                            Đây là trang chủ hệ thống quản lý đào tạo.
-                            Vui lòng <a th:href="@{/login}">đăng nhập</a> để sử dụng đầy đủ tính năng.
-                        </p>
-                        <div th:if="${userProfile != null and userProfile.canAccessDashboard}">
+                        <div th:if="${userProfile.canAccessDashboard}">
                             <a class="btn btn-primary" th:href="@{/admin}">
                                 <i class="fa-solid fa-gauge-high me-1"></i>Vào trang quản lý
                             </a>
                         </div>
-                        <div th:if="${userProfile == null}">
-                            <a class="btn btn-outline-primary" th:href="@{/login}">
-                                <i class="fa-solid fa-right-to-bracket me-1"></i>Đăng nhập
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chưa đăng nhập: form đăng nhập + link Đăng ký, Quên mật khẩu riêng -->
+        <div th:if="${userProfile == null}" class="row justify-content-center">
+            <div class="col-lg-5 col-md-6">
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-dark text-white py-2">
+                        <h2 class="h6 mb-0"><i class="fa-solid fa-right-to-bracket me-2"></i>Đăng nhập</h2>
+                    </div>
+                    <div class="card-body p-4">
+                        <div th:if="${param.error}" class="alert alert-danger py-2">
+                            <i class="fa-solid fa-circle-exclamation me-2"></i>Sai tên đăng nhập hoặc mật khẩu.
+                        </div>
+                        <div th:if="${param.denied}" class="alert alert-warning py-2">
+                            <i class="fa-solid fa-lock me-2"></i>Tài khoản không có quyền truy cập.
+                        </div>
+                        <div th:if="${message}" class="alert alert-success py-2">
+                            <i class="fa-solid fa-check me-2"></i><span th:text="${message}"></span>
+                        </div>
+                        <form th:action="@{/login}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <div class="mb-3">
+                                <label class="form-label">Tên đăng nhập</label>
+                                <input type="text" class="form-control" name="username" placeholder="Tên đăng nhập" required autofocus>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mật khẩu</label>
+                                <input type="password" class="form-control" name="password" placeholder="Mật khẩu" required>
+                            </div>
+                            <button type="submit" class="btn btn-dark w-100">
+                                <i class="fa-solid fa-right-to-bracket me-2"></i>Đăng nhập
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-3">
+                        <div class="d-flex flex-column gap-2">
+                            <a th:href="@{/register}" class="btn btn-outline-primary btn-sm">
+                                <i class="fa-solid fa-user-plus me-2"></i>Đăng ký tài khoản
+                            </a>
+                            <a th:href="@{/forgot-password}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fa-solid fa-key me-2"></i>Quên mật khẩu?
                             </a>
                         </div>
                     </div>
