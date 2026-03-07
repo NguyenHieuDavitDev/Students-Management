@@ -3568,6 +3568,50 @@ Module **schedule_overrides** dùng để quản lý các thay đổi áp dụng
 
 ---
 
+### 20. Quản Lý Permissions (Gán quyền cho vai trò)
+
+Module **permissions** dùng để gán quyền cụ thể cho từng vai trò (role): định nghĩa danh sách quyền (mã, tên, mô tả) và quản lý bảng gán vai trò – quyền (phân quyền).
+
+#### Bảng / Entity:
+
+- **permissions**: `id` (UUID), `code` (unique), `name`, `description`
+- **role_permissions**: `id` (UUID), `role_id` (FK → roles), `permission_id` (FK → permissions), unique(role_id, permission_id)
+
+#### Tính năng:
+
+- **CRUD phân quyền**: Danh sách gán quyền (vai trò + quyền), thêm gán quyền (chọn vai trò + quyền), bỏ gán (xóa bản ghi role_permission)
+- **CRUD định nghĩa quyền**: Danh sách quyền (mã, tên, mô tả), thêm/sửa/xóa quyền tại `/admin/permissions/definitions`
+- **Phân trang**: Cả danh sách phân quyền và danh sách định nghĩa quyền đều có phân trang (mặc định 10/trang)
+- **Tìm kiếm gần đúng**: Phân quyền theo tên vai trò, mô tả vai trò, mã quyền, tên quyền; định nghĩa quyền theo mã, tên, mô tả
+- **Import Excel**: Nhập phân quyền từ file (cột: Tên vai trò, Mã quyền)
+- **Export Excel**: Xuất danh sách phân quyền ra `role-permissions.xlsx`
+- **Print**: In danh sách phân quyền (vai trò, mã quyền, tên quyền)
+
+#### URL Admin:
+
+| Chức năng | URL |
+|-----------|-----|
+| Danh sách phân quyền | GET `/admin/permissions` |
+| Gán quyền (form) | GET `/admin/permissions/new`, POST `/admin/permissions` |
+| Bỏ gán | POST `/admin/permissions/{id}/delete` |
+| Định nghĩa quyền | GET `/admin/permissions/definitions` (list), `/definitions/new`, `/definitions/{id}/edit`, POST tương ứng |
+| In | GET `/admin/permissions/print` |
+| Import | POST `/admin/permissions/import` (file) |
+| Export | GET `/admin/permissions/export` |
+
+#### Cấu trúc code (module riêng `permission`):
+
+- **Package**: `com.example.stduents_management.permission`
+- **Entity**: `permission.entity.Permission`, `permission.entity.RolePermission` (tham chiếu `role.entity.Role`)
+- **DTO**: `permission.dto.PermissionRequest`, `PermissionResponse`, `RolePermissionRequest`, `RolePermissionResponse`
+- **Repository**: `permission.repository.PermissionRepository`, `RolePermissionRepository`
+- **Service**: `permission.service.PermissionService` (CRUD quyền), `RolePermissionService` (CRUD phân quyền, search, import, export, print)
+- **Controller**: `permission.controller.PermissionDashboardController` (phụ thuộc `role.service.RoleService` cho dropdown vai trò)
+- **Templates**: `permissions/index.html`, `form-assignment.html`, `print.html`, `definitions-index.html`, `definitions-form.html`
+- **Sidebar**: Mục "Permissions" (icon key), active menu `permissions`
+
+---
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -3598,7 +3642,7 @@ Module **schedule_overrides** dùng để quản lý các thay đổi áp dụng
 - [x] Quản lý khung giờ (Time Slot Management)
 - [x] Quản lý lịch học (Schedule Management)
 - [x] Quản lý thay đổi lịch - Dạy bù / Đổi phòng (Schedule Overrides)
-- [ ] Quản lý phân quyền chi tiết (Permission Management)
+- [x] Quản lý phân quyền chi tiết (Permission Management)
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
 - [ ] Audit Log

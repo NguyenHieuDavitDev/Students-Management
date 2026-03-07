@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Phân quyền',
+        'Gán quyền cho vai trò',
+        'Quản lý phân quyền (gán quyền cụ thể cho từng vai trò)',
+        'permissions',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div th:if="${success}" class="alert alert-success">
+        <i class="fa-solid fa-circle-check me-1"></i>
+        <span th:text="${success}"></span>
+    </div>
+    <div th:if="${error}" class="alert alert-danger">
+        <i class="fa-solid fa-triangle-exclamation me-1"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between mb-3 flex-wrap gap-2 align-items-center">
+                <form class="d-flex gap-2" method="get" th:action="@{/admin/permissions}">
+                    <input class="form-control" name="keyword" placeholder="Tìm theo vai trò, mã quyền, tên quyền..."
+                           th:value="${keyword}" style="min-width: 260px;">
+                    <button class="btn btn-outline-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i> Tìm
+                    </button>
+                </form>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a class="btn btn-outline-info btn-sm" th:href="@{/admin/permissions/definitions}">
+                        <i class="fa-solid fa-list"></i> Định nghĩa quyền
+                    </a>
+                    <form class="d-flex gap-2" th:action="@{/admin/permissions/import}" method="post" enctype="multipart/form-data">
+                        <input type="file" name="file" class="form-control form-control-sm" accept=".xlsx,.xls" required>
+                        <button class="btn btn-outline-success btn-sm" type="submit">
+                            <i class="fa-solid fa-file-import"></i> Import
+                        </button>
+                    </form>
+                    <a class="btn btn-outline-success" th:href="@{/admin/permissions/export}">
+                        <i class="fa-solid fa-file-excel"></i> Export
+                    </a>
+                    <a class="btn btn-outline-secondary" th:href="@{/admin/permissions/print}" target="_blank">
+                        <i class="fa-solid fa-print"></i> In
+                    </a>
+                    <a class="btn btn-primary" th:href="@{/admin/permissions/new}">
+                        <i class="fa-solid fa-plus"></i> Gán quyền
+                    </a>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle table-sm">
+                    <thead>
+                    <tr>
+                        <th>Vai trò</th>
+                        <th>Mã quyền</th>
+                        <th>Tên quyền</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="a : ${assignments.content}">
+                        <td th:text="${a.roleName()}"></td>
+                        <td th:text="${a.permissionCode()}"></td>
+                        <td th:text="${a.permissionName()}"></td>
+                        <td class="text-end">
+                            <form method="post" th:action="@{/admin/permissions/{id}/delete(id=${a.id})}" style="display:inline;"
+                                  onsubmit="return confirm('Bạn có chắc muốn bỏ gán quyền này?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="fa-solid fa-trash"></i> Bỏ gán
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${assignments.content.isEmpty()}">
+                        <td colspan="4" class="text-center text-muted">
+                            <i class="fa-solid fa-box-open"></i> Chưa có phân quyền nào. Thêm quyền tại <a th:href="@{/admin/permissions/definitions}">Định nghĩa quyền</a>, sau đó gán cho vai trò.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <nav th:if="${assignments.totalPages > 1}" class="mt-3">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${assignments.first} ? 'disabled' : ''">
+                        <a class="page-link" th:href="@{/admin/permissions(page=${assignments.number - 1}, keyword=${keyword})}">Trước</a>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(0, assignments.totalPages - 1)}" th:classappend="${i == assignments.number} ? 'active' : ''">
+                        <a class="page-link" th:text="${i + 1}" th:href="@{/admin/permissions(page=${i}, keyword=${keyword})}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${assignments.last} ? 'disabled' : ''">
+                        <a class="page-link" th:href="@{/admin/permissions(page=${assignments.number + 1}, keyword=${keyword})}">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

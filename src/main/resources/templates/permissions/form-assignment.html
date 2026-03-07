@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Gán quyền cho vai trò',
+        'Gán quyền cho vai trò',
+        'Chọn vai trò và quyền để gán',
+        'permissions',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-danger" th:if="${globalError}" th:text="${globalError}"></div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post" th:action="@{/admin/permissions}" th:object="${request}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Vai trò <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{roleId}">
+                            <option value="">-- Chọn vai trò --</option>
+                            <option th:each="r : ${roles}" th:value="${r.id}" th:text="${r.name}"></option>
+                        </select>
+                        <small class="text-danger" th:errors="*{roleId}"></small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Quyền <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{permissionId}">
+                            <option value="">-- Chọn quyền --</option>
+                            <option th:each="p : ${permissions}" th:value="${p.id}" th:text="${p.code + ' - ' + p.name}"></option>
+                        </select>
+                        <small class="text-danger" th:errors="*{permissionId}"></small>
+                    </div>
+                </div>
+                <hr>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-save"></i> Gán quyền
+                    </button>
+                    <a class="btn btn-outline-secondary" th:href="@{/admin/permissions}">
+                        <i class="fa-solid fa-arrow-left"></i> Quay lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

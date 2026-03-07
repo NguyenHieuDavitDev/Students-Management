@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa quyền':'Thêm quyền'),
+        (${mode}=='edit'?'Chỉnh sửa quyền':'Thêm quyền'),
+        'Định nghĩa quyền',
+        'permissions',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-danger" th:if="${globalError}" th:text="${globalError}"></div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post"
+                  th:action="${mode}=='edit' ? @{/admin/permissions/definitions/{id}(id=${permissionId})} : @{/admin/permissions/definitions}"
+                  th:object="${permissionRequest}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Mã quyền <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" th:field="*{code}" placeholder="VD: USER_CREATE" maxlength="80">
+                        <small class="text-danger" th:errors="*{code}"></small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tên quyền <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" th:field="*{name}" placeholder="VD: Tạo người dùng" maxlength="150">
+                        <small class="text-danger" th:errors="*{name}"></small>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Mô tả</label>
+                        <input type="text" class="form-control" th:field="*{description}" placeholder="Tối đa 255 ký tự" maxlength="255">
+                        <small class="text-danger" th:errors="*{description}"></small>
+                    </div>
+                </div>
+                <hr>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-save"></i>
+                        <span th:text="${mode}=='edit' ? 'Cập nhật' : 'Thêm mới'"></span>
+                    </button>
+                    <a class="btn btn-outline-secondary" th:href="@{/admin/permissions/definitions}">
+                        <i class="fa-solid fa-arrow-left"></i> Quay lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
