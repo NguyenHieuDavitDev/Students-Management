@@ -1,7 +1,12 @@
 package com.example.stduents_management.user.service;
 
+import com.example.stduents_management.lecturer.entity.Lecturer;
+import com.example.stduents_management.lecturer.repository.LecturerRepository;
 import com.example.stduents_management.role.entity.Role;
 import com.example.stduents_management.role.repository.RoleRepository;
+import com.example.stduents_management.student.entity.Student;
+import com.example.stduents_management.student.repository.StudentRepository;
+import com.example.stduents_management.user.dto.RegisterRequest;
 import com.example.stduents_management.user.dto.UserRequest;
 import com.example.stduents_management.user.dto.UserResponse;
 import com.example.stduents_management.user.entity.User;
@@ -24,6 +29,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final StudentRepository studentRepository;
+    private final LecturerRepository lecturerRepository;
     private final PasswordEncoder passwordEncoder;
 
     /* ================= SEARCH ================= */
@@ -65,6 +72,7 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEnabled(request.isEnabled());
         user.setRoles(loadRoles(request.getRoleIds()));
+        setStudentAndLecturer(user, request);
 
         userRepository.save(user);
         return toResponse(user);
@@ -93,7 +101,36 @@ public class UserService {
         }
 
         user.setRoles(loadRoles(request.getRoleIds()));
+        setStudentAndLecturer(user, request);
         return toResponse(user);
+    }
+
+    /**
+     * Đăng ký tài khoản sinh viên (chỉ gán role STUDENT).
+     */
+    @Transactional
+    public void registerStudent(RegisterRequest request) {
+        if (userRepository.existsByUsername(request.getUsername().trim())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Tên đăng nhập đã tồn tại");
+        }
+        if (userRepository.existsByEmail(request.getEmail().trim())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã được sử dụng");
+        }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống");
+        }
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Xác nhận mật khẩu không khớp");
+        }
+        Role studentRole = roleRepository.findByNameIgnoreCase("STUDENT")
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Vai trò STUDENT chưa được cấu hình"));
+        User user = new User();
+        user.setUsername(request.getUsername().trim());
+        user.setEmail(request.getEmail().trim());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setEnabled(true);
+        user.setRoles(Set.of(studentRole));
+        userRepository.save(user);
     }
 
     /* ================= DELETE ================= */
@@ -121,6 +158,15 @@ public class UserService {
                 .collect(Collectors.toSet());
     }
 
+    private void setStudentAndLecturer(User user, UserRequest request) {
+        user.setStudent(request.getStudentId() != null
+                ? studentRepository.findById(request.getStudentId()).orElse(null)
+                : null);
+        user.setLecturer(request.getLecturerId() != null
+                ? lecturerRepository.findById(request.getLecturerId()).orElse(null)
+                : null);
+    }
+
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getId(),
@@ -129,7 +175,9 @@ public class UserService {
                 user.isEnabled(),
                 user.getRoles().stream()
                         .map(Role::getName)
-                        .collect(Collectors.toSet())
+                        .collect(Collectors.toSet()),
+                user.getStudent() != null ? user.getStudent().getStudentId() : null,
+                user.getLecturer() != null ? user.getLecturer().getLecturerId() : null
         );
     }
 }

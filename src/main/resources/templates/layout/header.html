@@ -12,7 +12,24 @@
                     </ol>
                 </nav>
             </div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <!-- Profile: avatar, tên, vai trò -->
+                <div th:if="${userProfile != null}" class="d-flex align-items-center gap-2 pe-3 border-end">
+                    <th:block th:if="${userProfile.avatar != null and !userProfile.avatar.isEmpty()}">
+                        <img th:src="${userProfile.avatar}" alt="Avatar" class="rounded-circle"
+                             style="width: 36px; height: 36px; object-fit: cover;">
+                    </th:block>
+                    <th:block th:if="${userProfile.avatar == null or userProfile.avatar.isEmpty()}">
+                        <div class="rounded-circle bg-primary bg-opacity-25 text-primary d-flex align-items-center justify-content-center"
+                             style="width: 36px; height: 36px; font-size: 1rem;">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                    </th:block>
+                    <div>
+                        <div class="fw-semibold small" th:text="${userProfile.displayName}">Tên</div>
+                        <div class="text-muted small" th:text="${userProfile.roleLabel}">Vai trò</div>
+                    </div>
+                </div>
                 <button id="sidebarToggle" type="button" class="sidebar-toggle-btn btn btn-default">
                     <i class="fa-solid fa-bars"></i>
                 </button>

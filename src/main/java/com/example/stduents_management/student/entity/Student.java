@@ -1,6 +1,7 @@
 package com.example.stduents_management.student.entity;
 
 import com.example.stduents_management.classroom.entity.ClassEntity;
+import com.example.stduents_management.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -67,4 +68,8 @@ public class Student {
             columnDefinition = "uniqueidentifier"
     )
     private ClassEntity clazz;
+
+    /** Liên kết 1-1: User (1) -------- (1) Student. Bên sở hữu là User (users.student_id). */
+    @OneToOne(mappedBy = "student", fetch = FetchType.LAZY)
+    private User user;
 }

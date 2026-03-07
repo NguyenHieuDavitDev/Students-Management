@@ -26,4 +26,9 @@ public class UserRequest {
     private boolean enabled = true;
 
     private Set<UUID> roleIds;
+
+    /** ID sinh viên gắn với tài khoản (1-1). Null = không gắn. */
+    private UUID studentId;
+    /** ID giảng viên gắn với tài khoản (1-1). Null = không gắn. */
+    private UUID lecturerId;
 }

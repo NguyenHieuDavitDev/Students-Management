@@ -19,9 +19,18 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByEmailAndIdNot(String email, UUID id);
 
     Optional<User> findByUsername(String username);
+    Optional<User> findByEmail(String email);
 
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.username = :username")
     Optional<User> findByUsernameWithRoles(@Param("username") String username);
+
+    /** Load user với roles, student, lecturer để hiển thị profile. */
+    @Query("SELECT u FROM User u " +
+            "LEFT JOIN FETCH u.roles " +
+            "LEFT JOIN FETCH u.student " +
+            "LEFT JOIN FETCH u.lecturer " +
+            "WHERE u.username = :username")
+    Optional<User> findByUsernameWithProfile(@Param("username") String username);
 
     Page<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(
             String username,

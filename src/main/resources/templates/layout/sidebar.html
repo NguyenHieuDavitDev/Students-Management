@@ -6,6 +6,25 @@
         <span class="brand-image"><i class="fa-solid fa-graduation-cap text-white"></i></span>
         <span class="brand-text">Students Management</span>
     </a>
+    <!-- Profile trong sidebar -->
+    <div th:if="${userProfile != null}" class="px-3 py-2 border-bottom border-secondary">
+        <div class="d-flex align-items-center gap-2">
+            <th:block th:if="${userProfile.avatar != null and !userProfile.avatar.isEmpty()}">
+                <img th:src="${userProfile.avatar}" alt="Avatar" class="rounded-circle"
+                     style="width: 32px; height: 32px; object-fit: cover;">
+            </th:block>
+            <th:block th:if="${userProfile.avatar == null or userProfile.avatar.isEmpty()}">
+                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white"
+                     style="width: 32px; height: 32px; font-size: 0.875rem;">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+            </th:block>
+            <div class="flex-grow-1 min-w-0">
+                <div class="text-white text-truncate small fw-semibold" th:text="${userProfile.displayName}">Tên</div>
+                <div class="text-white-50 text-truncate" style="font-size: 0.7rem;" th:text="${userProfile.roleLabel}">Vai trò</div>
+            </div>
+        </div>
+    </div>
     <nav class="sidebar">
         <ul class="nav nav-pills nav-sidebar flex-column">
             <li class="nav-header">Hệ thống</li>
@@ -15,19 +34,19 @@
                     <span>Overview</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
                 <a class="nav-link" th:href="@{/admin/roles}" th:classappend="${activeMenu}=='roles' ? 'active' : ''">
                     <i class="fa-solid fa-shield-halved"></i>
                     <span>Roles</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
                 <a class="nav-link" th:href="@{/admin/users}" th:classappend="${activeMenu}=='users' ? 'active' : ''">
                     <i class="fa-solid fa-users"></i>
                     <span>Users</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
                 <a class="nav-link" th:href="@{/admin/permissions}" th:classappend="${activeMenu}=='permissions' ? 'active' : ''">
                     <i class="fa-solid fa-key"></i>
                     <span>Permissions</span>

@@ -14,4 +14,6 @@ public class UserResponse {
     private String email;
     private boolean enabled;
     private Set<String> roles;
+    private UUID studentId;   // null nếu không gắn sinh viên
+    private UUID lecturerId;  // null nếu không gắn giảng viên
 }

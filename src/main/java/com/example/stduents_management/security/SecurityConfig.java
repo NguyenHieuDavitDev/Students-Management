@@ -31,6 +31,12 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/login", "/error", "/css/**", "/js/**", "/webjars/**").permitAll()
+                        .requestMatchers("/register", "/register/**").permitAll()
+                        .requestMatchers("/forgot-password", "/forgot-password/**").permitAll()
+                        .requestMatchers("/reset-password", "/reset-password/**").permitAll()
+                        .requestMatchers("/admin/roles", "/admin/roles/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/users", "/admin/users/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/permissions", "/admin/permissions/**").hasRole("ADMIN")
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "MANAGER", "LECTURER")
                         .anyRequest().authenticated()
                 )
@@ -58,6 +64,7 @@ public class SecurityConfig {
     }
 
     private static final Set<String> DASHBOARD_ROLES = Set.of("ROLE_ADMIN", "ROLE_MANAGER", "ROLE_LECTURER");
+    private static final String ROLE_STUDENT = "ROLE_STUDENT";
 
     @Bean
     public AuthenticationSuccessHandler loginSuccessHandler() {
@@ -66,8 +73,11 @@ public class SecurityConfig {
                     .map(GrantedAuthority::getAuthority)
                     .collect(Collectors.toSet());
             boolean canAccessDashboard = authorities.stream().anyMatch(DASHBOARD_ROLES::contains);
+            boolean isStudent = authorities.contains(ROLE_STUDENT);
             if (canAccessDashboard) {
                 response.sendRedirect(request.getContextPath() + "/admin");
+            } else if (isStudent) {
+                response.sendRedirect(request.getContextPath() + "/");
             } else {
                 response.sendRedirect(request.getContextPath() + "/login?denied");
             }

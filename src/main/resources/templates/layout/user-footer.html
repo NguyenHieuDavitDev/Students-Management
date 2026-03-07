@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="userFooter">
+    <footer class="bg-dark text-white-50 py-4 mt-auto">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start">
+                    <span class="small">© 2025 Students Management. Hệ thống quản lý đào tạo.</span>
+                </div>
+                <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
+                    <span class="small" th:if="${userProfile != null}">
+                        Đăng nhập với: <span th:text="${userProfile.displayName}">User</span>
+                        (<span th:text="${userProfile.roleLabel}">Vai trò</span>)
+                    </span>
+                </div>
+            </div>
+        </div>
+    </footer>
+</div>
+</body>
+</html>

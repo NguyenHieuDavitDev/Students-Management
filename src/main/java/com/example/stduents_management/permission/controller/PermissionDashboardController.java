@@ -18,6 +18,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.UUID;
@@ -25,6 +26,7 @@ import java.util.UUID;
 @Controller
 @RequestMapping("/admin/permissions")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class PermissionDashboardController {
 
     private final RolePermissionService rolePermissionService;

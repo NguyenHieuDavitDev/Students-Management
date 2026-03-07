@@ -70,6 +70,27 @@
         .alert {
             border-radius: 8px;
         }
+        .login-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+        }
+        .login-links a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+        .login-links a:hover {
+            text-decoration: underline;
+        }
+        .login-links .divider {
+            color: #6c757d;
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body>
@@ -78,7 +99,7 @@
     <div class="login-header">
         <i class="fa-solid fa-graduation-cap"></i>
         <h1>Students Management</h1>
-        <p>Đăng nhập vào trang quản trị</p>
+        <p>Đăng nhập vào hệ thống</p>
     </div>
     <div class="login-body">
         <div th:if="${param.error}" class="alert alert-danger">
@@ -87,11 +108,15 @@
         </div>
         <div th:if="${param.denied}" class="alert alert-warning">
             <i class="fa-solid fa-lock me-2"></i>
-            Tài khoản của bạn không có quyền truy cập trang quản trị. Chỉ vai trò Admin, Manager, Lecturer mới được đăng nhập.
+            Tài khoản của bạn không có quyền truy cập. Vui lòng liên hệ quản trị viên.
         </div>
         <div th:if="${param.logout}" class="alert alert-info">
             <i class="fa-solid fa-right-from-bracket me-2"></i>
             Bạn đã đăng xuất.
+        </div>
+        <div th:if="${message}" class="alert alert-success">
+            <i class="fa-solid fa-check me-2"></i>
+            <span th:text="${message}"></span>
         </div>
 
         <form th:action="@{/login}" method="post">
@@ -100,20 +125,29 @@
                 <label class="form-label">Tên đăng nhập</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
-                    <input type="text" class="form-control" name="username" placeholder="admin1" required autofocus>
+                    <input type="text" class="form-control" name="username" placeholder="Tên đăng nhập" required autofocus>
                 </div>
             </div>
             <div class="mb-4">
                 <label class="form-label">Mật khẩu</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                    <input type="password" class="form-control" name="password" placeholder="••••••" required>
+                    <input type="password" class="form-control" name="password" placeholder="Mật khẩu" required>
                 </div>
             </div>
             <button type="submit" class="btn btn-primary btn-login w-100">
                 <i class="fa-solid fa-right-to-bracket me-2"></i> Đăng nhập
             </button>
         </form>
+
+        <div class="login-links">
+            <a th:href="@{/register}">
+                <i class="fa-solid fa-user-plus me-1"></i> Đăng ký tài khoản
+            </a>
+            <a th:href="@{/forgot-password}">
+                <i class="fa-solid fa-key me-1"></i> Quên mật khẩu?
+            </a>
+        </div>
     </div>
 </div>
 

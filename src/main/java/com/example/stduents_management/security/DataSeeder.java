@@ -28,20 +28,20 @@ public class DataSeeder implements ApplicationRunner {
     private static final String DEFAULT_ADMIN_PASSWORD = "123456";
     private static final String DEFAULT_ADMIN_EMAIL = "admin1@example.com";
     private static final String ROLE_ADMIN = "ADMIN";
+    private static final String ROLE_STUDENT = "STUDENT";
+    private static final String ROLE_LECTURER = "LECTURER";
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+        ensureRoleExists(ROLE_ADMIN, "Quản trị viên - được truy cập dashboard");
+        ensureRoleExists(ROLE_STUDENT, "Sinh viên - đăng nhập vào trang chủ");
+        ensureRoleExists(ROLE_LECTURER, "Giảng viên - được truy cập dashboard");
+
         if (userRepository.findByUsername(DEFAULT_ADMIN_USERNAME).isPresent()) {
             return;
         }
-        Role adminRole = roleRepository.findByNameIgnoreCase(ROLE_ADMIN)
-                .orElseGet(() -> {
-                    Role r = new Role();
-                    r.setName(ROLE_ADMIN);
-                    r.setDescription("Quản trị viên - được truy cập dashboard");
-                    return roleRepository.save(r);
-                });
+        Role adminRole = roleRepository.findByNameIgnoreCase(ROLE_ADMIN).orElseThrow();
         User admin = new User();
         admin.setUsername(DEFAULT_ADMIN_USERNAME);
         admin.setEmail(DEFAULT_ADMIN_EMAIL);
@@ -50,5 +50,15 @@ public class DataSeeder implements ApplicationRunner {
         admin.setRoles(Set.of(adminRole));
         userRepository.save(admin);
         log.info("Đã tạo tài khoản mặc định: {} / {}", DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD);
+    }
+
+    private void ensureRoleExists(String name, String description) {
+        if (roleRepository.findByNameIgnoreCase(name).isEmpty()) {
+            Role r = new Role();
+            r.setName(name);
+            r.setDescription(description);
+            roleRepository.save(r);
+            log.info("Đã tạo role: {}", name);
+        }
     }
 }

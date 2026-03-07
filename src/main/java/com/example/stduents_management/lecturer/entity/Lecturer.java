@@ -2,6 +2,7 @@ package com.example.stduents_management.lecturer.entity;
 
 import com.example.stduents_management.faculty.entity.Faculty;
 import com.example.stduents_management.position.entity.Position;
+import com.example.stduents_management.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -59,4 +60,8 @@ public class Lecturer {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "faculty_id", nullable = false)
     private Faculty faculty;
+
+    /** Liên kết 1-1: User (1) -------- (1) Lecturer. Bên sở hữu là User (users.lecturer_id). */
+    @OneToOne(mappedBy = "lecturer", fetch = FetchType.LAZY)
+    private User user;
 }

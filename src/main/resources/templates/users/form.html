@@ -77,6 +77,27 @@
                     </div>
     </div>
 
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Sinh viên (1-1)</label>
+                        <select class="form-select" th:field="*{studentId}">
+                            <option value="">-- Không gắn sinh viên --</option>
+                            <option th:each="s : ${students}" th:value="${s.studentId}"
+                                    th:text="${s.studentCode + ' - ' + s.fullName}">SV001 - Nguyễn Văn A</option>
+                        </select>
+                        <div class="text-muted small mt-1">Gắn tài khoản với một bản ghi sinh viên (tùy chọn).</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Giảng viên (1-1)</label>
+                        <select class="form-select" th:field="*{lecturerId}">
+                            <option value="">-- Không gắn giảng viên --</option>
+                            <option th:each="l : ${lecturers}" th:value="${l.lecturerId}"
+                                    th:text="${l.lecturerCode + ' - ' + l.fullName}">GV001 - Trần Thị B</option>
+                        </select>
+                        <div class="text-muted small mt-1">Gắn tài khoản với một bản ghi giảng viên (tùy chọn).</div>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" th:field="*{enabled}" id="enabled">

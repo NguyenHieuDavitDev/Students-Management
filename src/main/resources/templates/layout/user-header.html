@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Header trang chủ: có profile (avatar, tên, vai trò) + đăng xuất khi đã đăng nhập -->
+<div th:fragment="userHeader">
+    <header class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" th:href="@{/}">
+                <i class="fa-solid fa-graduation-cap me-2"></i>
+                <span>Students Management</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarUser"
+                    aria-controls="navbarUser" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarUser">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item" th:if="${userProfile != null}">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-2 text-light">
+                                <th:block th:if="${userProfile.avatar != null and !userProfile.avatar.isEmpty()}">
+                                    <img th:src="${userProfile.avatar}" alt="Avatar" class="rounded-circle"
+                                         style="width: 36px; height: 36px; object-fit: cover;">
+                                </th:block>
+                                <th:block th:if="${userProfile.avatar == null or userProfile.avatar.isEmpty()}">
+                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white"
+                                         style="width: 36px; height: 36px; font-size: 1rem;">
+                                        <i class="fa-solid fa-user"></i>
+                                    </div>
+                                </th:block>
+                                <div>
+                                    <span class="fw-semibold" th:text="${userProfile.displayName}">Tên</span>
+                                    <small class="d-block text-white-50" th:text="${userProfile.roleLabel}">Vai trò</small>
+                                </div>
+                            </div>
+                            <a th:if="${userProfile.canAccessDashboard}" href="/admin" class="btn btn-outline-light btn-sm">
+                                <i class="fa-solid fa-gauge-high me-1"></i>Dashboard
+                            </a>
+                            <form th:action="@{/logout}" method="post" class="d-inline">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="fa-solid fa-right-from-bracket me-1"></i>Đăng xuất
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                    <li class="nav-item" th:if="${userProfile == null}">
+                        <a class="btn btn-outline-light btn-sm" th:href="@{/login}">
+                            <i class="fa-solid fa-right-to-bracket me-1"></i>Đăng nhập
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </header>
+</div>
+</body>
+</html>
