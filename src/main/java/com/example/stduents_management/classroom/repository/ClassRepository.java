@@ -4,10 +4,16 @@ import com.example.stduents_management.classroom.entity.ClassEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface ClassRepository extends JpaRepository<ClassEntity, UUID> {
+
+    /** Số lớp theo năm học (để vẽ biểu đồ đường). */
+    @Query("SELECT c.academicYear, COUNT(c) FROM ClassEntity c GROUP BY c.academicYear ORDER BY c.academicYear")
+    List<Object[]> countClassesByAcademicYear();
 
     boolean existsByClassCodeIgnoreCaseAndAcademicYear(
             String classCode,

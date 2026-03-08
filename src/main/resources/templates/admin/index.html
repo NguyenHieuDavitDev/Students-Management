@@ -14,6 +14,43 @@
 </head>
 <body>
 <div th:fragment="content">
+    <!-- Thống kê biểu đồ -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+            <div class="card h-100 border-0">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="card-title mb-0"><i class="fa-solid fa-chart-column me-2"></i>Biểu đồ cột</h5>
+                    <small class="text-muted">Số lượng theo loại dữ liệu</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartBar" height="260"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100 border-0">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="card-title mb-0"><i class="fa-solid fa-chart-line me-2"></i>Biểu đồ đường</h5>
+                    <small class="text-muted">Số lớp theo năm học</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartLine" height="260"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100 border-0">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="card-title mb-0"><i class="fa-solid fa-chart-pie me-2"></i>Biểu đồ tròn</h5>
+                    <small class="text-muted">Sinh viên theo khoa</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartPie" height="260"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-3">
         <div class="col-md-4">
             <div class="card h-100 border-0">
@@ -212,10 +249,92 @@
             </div>
         </div>
 
-
-
-
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script th:inline="javascript">
+        (function() {
+            const barLabels = [(${barChartLabelsJson})];
+            const barData = [(${barChartDataJson})];
+            const lineLabels = [(${lineChartLabelsJson})];
+            const lineData = [(${lineChartDataJson})];
+            const pieLabels = [(${pieChartLabelsJson})];
+            const pieData = [(${pieChartDataJson})];
+
+            const colors = ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#0dcaf0', '#6f42c1'];
+            const colorsLight = ['#0d6efd99', '#19875499', '#ffc10799', '#dc354599', '#0dcaf099', '#6f42c199'];
+
+            if (document.getElementById('chartBar') && barLabels.length) {
+                new Chart(document.getElementById('chartBar'), {
+                    type: 'bar',
+                    data: {
+                        labels: barLabels,
+                        datasets: [{
+                            label: 'Số lượng',
+                            data: barData,
+                            backgroundColor: colorsLight,
+                            borderColor: colors,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                        }
+                    }
+                });
+            }
+
+            if (document.getElementById('chartLine') && lineLabels.length) {
+                new Chart(document.getElementById('chartLine'), {
+                    type: 'line',
+                    data: {
+                        labels: lineLabels,
+                        datasets: [{
+                            label: 'Số lớp',
+                            data: lineData,
+                            borderColor: '#0d6efd',
+                            backgroundColor: '#0d6efd22',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                        }
+                    }
+                });
+            }
+
+            if (document.getElementById('chartPie') && pieLabels.length) {
+                new Chart(document.getElementById('chartPie'), {
+                    type: 'pie',
+                    data: {
+                        labels: pieLabels,
+                        datasets: [{
+                            data: pieData,
+                            backgroundColor: colors.slice(0, Math.max(pieLabels.length, 1)),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+        })();
+    </script>
 </div>
 </body>
 </html>

@@ -134,6 +134,16 @@ Chức năng quản lý người dùng cho phép quản trị viên tạo, sửa
 - **Xoá**: Xoá người dùng khỏi hệ thống
 - **Phân Quyền**: Gán role cho người dùng
 - **Kích hoạt/Vô hiệu hóa**: Bật/tắt tài khoản người dùng
+- **Gán hồ sơ vào tài khoản**: Gắn hồ sơ giảng viên hoặc hồ sơ sinh viên vào tài khoản người dùng; một tài khoản có thể gắn với một giảng viên và/hoặc một sinh viên (quan hệ 1-1), để khi đăng nhập có ngữ cảnh và dữ liệu tương ứng (xem thông tin cá nhân, lịch, điểm,… theo hồ sơ đã gắn)
+
+#### Gán hồ sơ giảng viên / sinh viên vào tài khoản
+
+Hệ thống cho phép quản trị viên **gắn hồ sơ nghiệp vụ** (giảng viên, sinh viên) vào một tài khoản người dùng cụ thể:
+
+- **Hồ sơ sinh viên (Student)**: Trong form tạo/sửa người dùng, có thể chọn một sinh viên từ danh sách để gắn với tài khoản. Mỗi sinh viên tối đa gắn với một tài khoản (`student_id` trên bảng `users`, quan hệ 1-1).
+- **Hồ sơ giảng viên (Lecturer)**: Tương tự, có thể chọn một giảng viên để gắn với tài khoản. Mỗi giảng viên tối đa gắn với một tài khoản (`lecturer_id` trên bảng `users`, quan hệ 1-1).
+- **Mục đích**: Khi người dùng đăng nhập, hệ thống xác định được họ đang đại diện cho giảng viên hay sinh viên nào (nếu đã gắn), từ đó hiển thị đúng thông tin cá nhân, lịch dạy/học, điểm, v.v. theo hồ sơ đó.
+- **Thao tác**: Gán/bỏ gán thực hiện tại màn hình quản lý người dùng (Thêm mới / Chỉnh sửa), qua các trường chọn **Sinh viên** và **Giảng viên** (dropdown, có thể để trống nếu tài khoản không gắn với hồ sơ nào).
 
 #### Endpoint API:
 
@@ -170,6 +180,14 @@ public class User {
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "user_roles")
     private Set<Role> roles;            // Danh sách role gán cho user
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id", unique = true)
+    private Student student;           // Hồ sơ sinh viên gắn với tài khoản (tùy chọn)
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lecturer_id", unique = true)
+    private Lecturer lecturer;         // Hồ sơ giảng viên gắn với tài khoản (tùy chọn)
 }
 ```
 
@@ -182,7 +200,9 @@ public class User {
   "email": "john@example.com",
   "password": "securePassword123",
   "enabled": true,
-  "roleIds": ["uuid-role-1", "uuid-role-2"]
+  "roleIds": ["uuid-role-1", "uuid-role-2"],
+  "studentId": "uuid-student-optional",
+  "lecturerId": "uuid-lecturer-optional"
 }
 ```
 
@@ -224,6 +244,7 @@ Class `UserService` cung cấp các phương thức:
 - **Xác Thực Mật Khẩu**: Mật khẩu phải có ít nhất 6 ký tự (sẽ được mã hóa sau này)
 - **Trạng Thái Tài Khoản**: Hỗ trợ kích hoạt/vô hiệu hóa tài khoản
 - **Phân Quyền**: Gán nhiều role cho một người dùng
+- **Gán hồ sơ**: Tài khoản có thể gắn với tối đa một hồ sơ sinh viên và một hồ sơ giảng viên (quan hệ 1-1) để định danh ngữ cảnh khi đăng nhập
 
 #### Controller:
 
@@ -3612,6 +3633,48 @@ Module **permissions** dùng để gán quyền cụ thể cho từng vai trò (
 
 ---
 
+### 21. Quản Lý Khóa Phòng (Room Block Times)
+
+Module **room_block_times** (Khóa phòng) dùng để quản lý các khung thời gian phòng bị khóa (bảo trì, sự kiện, thi, v.v.), tránh xếp lịch trùng.
+
+#### Bảng / Entity:
+
+- **room_block_times**: `block_id` (UUID, PK), `room_id` (FK → rooms), `block_type` (MAINTENANCE / EVENT / EXAM / OTHER), `day_of_week` (2–8), `time_slot_id` (FK → time_slots), `start_week`, `end_week`, `start_date`, `end_date`, `reason` (NVARCHAR 255), `status` (ACTIVE / CANCELLED), `created_at`, `updated_at`
+
+#### Tính năng:
+
+- **CRUD**: Thêm, sửa, xóa, xem chi tiết bản ghi khóa phòng
+- **Tìm kiếm gần đúng**: Theo mã/tên phòng, lý do, mã khung giờ
+- **Phân trang**: Danh sách có phân trang (mặc định 10/trang)
+- **Import Excel**: Nhập khóa phòng từ file (cột: Mã phòng, Loại khóa, Thứ, Mã ca, Tuần bắt đầu/kết thúc, Từ ngày/Đến ngày, Lý do, Trạng thái)
+- **Export Excel**: Xuất danh sách khóa phòng ra file `room-block-times.xlsx`
+- **Print**: In danh sách khóa phòng (định dạng A4, gọi in trình duyệt)
+
+#### URL Admin:
+
+| Chức năng | URL |
+|-----------|-----|
+| Danh sách khóa phòng | GET `/admin/room-block-times` |
+| Thêm mới | GET `/admin/room-block-times/new`, POST `/admin/room-block-times` |
+| Sửa | GET `/admin/room-block-times/{id}/edit`, POST `/admin/room-block-times/{id}` |
+| Xóa | POST `/admin/room-block-times/{id}/delete` |
+| In | GET `/admin/room-block-times/print` |
+| Import | POST `/admin/room-block-times/import` (file) |
+| Export | GET `/admin/room-block-times/export` |
+
+#### Cấu trúc code (module `roomblocktime`):
+
+- **Package**: `com.example.stduents_management.roomblocktime`
+- **Entity**: `roomblocktime.entity.RoomBlockTime`, `BlockType`, `BlockStatus`
+- **DTO**: `RoomBlockTimeRequest`, `RoomBlockTimeResponse`
+- **Repository**: `RoomBlockTimeRepository` (searchByKeyword với Pageable)
+- **Service**: `RoomBlockTimeService` (CRUD, search, getForPrint, importExcel, exportExcel)
+- **Controller**: `RoomBlockTimeDashboardController` (Thymeleaf tại `/admin/room-block-times`)
+- **Templates**: `room-block-times/index.html`, `form.html`, `print.html`
+- **Sidebar**: Mục "Khóa phòng" (icon lock), active menu `room-block-times`
+
+---
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -3643,6 +3706,8 @@ Module **permissions** dùng để gán quyền cụ thể cho từng vai trò (
 - [x] Quản lý lịch học (Schedule Management)
 - [x] Quản lý thay đổi lịch - Dạy bù / Đổi phòng (Schedule Overrides)
 - [x] Quản lý phân quyền chi tiết (Permission Management)
+- [x] Quản lý khóa phòng (Room Block Times)
+- [x] Gán hồ sơ giảng viên / sinh viên vào tài khoản người dùng
 - [ ] Xác thực người dùng (Authentication)
 - [ ] Mã hóa mật khẩu (Password Encryption)
 - [ ] Audit Log
@@ -3652,4 +3717,4 @@ Module **permissions** dùng để gán quyền cụ thể cho từng vai trò (
 
 
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 03/03/2026 – Bổ sung mô tả Lớp học phần, Đăng ký học phần, cấu trúc dự án và hướng dẫn sử dụng
+**Cập nhật lần cuối**: 08/03/2026 – Bổ sung mô tả Quản lý Khóa phòng; bổ sung tính năng gán hồ sơ giảng viên/sinh viên vào tài khoản (User Management)

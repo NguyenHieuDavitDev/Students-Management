@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In danh sách khóa phòng</title>
+    <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: "Segoe UI", Arial, sans-serif; font-size: 13px; color: #000; }
+        .header { text-align: center; margin-bottom: 16px; }
+        .header h2 { margin: 0; font-size: 20px; text-transform: uppercase; }
+        .header .sub { font-size: 12px; margin-top: 4px; }
+        .info { margin-bottom: 10px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #000; padding: 6px 8px; }
+        th { background: #f2f2f2; text-align: center; font-weight: 600; }
+        td { vertical-align: middle; }
+        .text-center { text-align: center; }
+        .footer { margin-top: 20px; display: flex; justify-content: space-between; font-size: 12px; }
+        .signature { text-align: center; width: 200px; }
+        .signature p { margin: 0; }
+    </style>
+</head>
+<body onload="window.print()">
+<div class="header">
+    <h2>DANH SÁCH KHÓA PHÒNG</h2>
+    <div class="sub">
+        Ngày in: <span th:text="${#dates.format(#dates.createNow(), 'dd/MM/yyyy')}"></span>
+    </div>
+</div>
+<div class="info">
+    Tổng số bản ghi: <strong th:text="${items.size()}"></strong>
+</div>
+<table>
+    <thead>
+    <tr>
+        <th style="width:40px">STT</th>
+        <th style="width:80px">Phòng</th>
+        <th style="width:90px">Loại khóa</th>
+        <th style="width:50px">Thứ</th>
+        <th style="width:80px">Khung giờ</th>
+        <th style="width:80px">Tuần</th>
+        <th>Từ ngày - Đến ngày</th>
+        <th>Lý do</th>
+        <th style="width:80px">Trạng thái</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="b, i : ${items}">
+        <td class="text-center" th:text="${i.index + 1}"></td>
+        <td th:text="${b.roomCode}"></td>
+        <td th:text="${b.blockType}"></td>
+        <td class="text-center" th:text="${b.dayOfWeek} ?: '-'"></td>
+        <td th:text="${b.timeSlotCode} ?: '-'"></td>
+        <td class="text-center">
+            <span th:if="${b.startWeek != null or b.endWeek != null}"
+                  th:text="${(b.startWeek != null ? b.startWeek : '') + '-' + (b.endWeek != null ? b.endWeek : '')}">-</span>
+            <span th:if="${b.startWeek == null and b.endWeek == null}">-</span>
+        </td>
+        <td>
+            <span th:if="${b.startDate != null}" th:text="${#temporals.format(b.startDate, 'dd/MM/yyyy')}"></span>
+            <span th:if="${b.startDate != null and b.endDate != null}"> → </span>
+            <span th:if="${b.endDate != null}" th:text="${#temporals.format(b.endDate, 'dd/MM/yyyy')}"></span>
+            <span th:if="${b.startDate == null and b.endDate == null}">-</span>
+        </td>
+        <td th:text="${b.reason} ?: '-'"></td>
+        <td class="text-center" th:text="${b.status}"></td>
+    </tr>
+    <tr th:if="${items.isEmpty()}">
+        <td colspan="9" class="text-center">Không có dữ liệu khóa phòng</td>
+    </tr>
+    </tbody>
+</table>
+<div class="footer">
+    <div></div>
+    <div class="signature">
+        <p><strong>Người lập danh sách</strong></p>
+        <p style="margin-top: 40px;">(Ký, ghi rõ họ tên)</p>
+    </div>
+</div>
+</body>
+</html>

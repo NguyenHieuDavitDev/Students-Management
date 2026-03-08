@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa khóa phòng':'Thêm khóa phòng'),
+        (${mode}=='edit'?'Chỉnh sửa khóa phòng':'Thêm khóa phòng'),
+        'Form khóa phòng',
+        'room-block-times',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+    <div class="alert alert-danger" th:if="${globalError}" th:text="${globalError}"></div>
+
+    <form method="post"
+          th:action="${mode}=='edit'
+            ? @{/admin/room-block-times/{id}(id=${blockId})}
+            : @{/admin/room-block-times}"
+          th:object="${roomBlockTimeRequest}">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label>Phòng bị khóa <span class="text-danger">*</span></label>
+                <select class="form-select" th:field="*{roomId}">
+                    <option value="">-- Chọn phòng --</option>
+                    <option th:each="r : ${rooms}" th:value="${r.roomId}"
+                            th:text="${r.roomCode + ' - ' + r.roomName}"></option>
+                </select>
+                <small class="text-danger" th:errors="*{roomId}"></small>
+            </div>
+            <div class="col-md-6">
+                <label>Loại khóa <span class="text-danger">*</span></label>
+                <select class="form-select" th:field="*{blockType}">
+                    <option th:each="bt : ${blockTypes}" th:value="${bt}" th:text="${bt}"></option>
+                </select>
+                <small class="text-danger" th:errors="*{blockType}"></small>
+            </div>
+            <div class="col-md-4">
+                <label>Thứ trong tuần (2–8)</label>
+                <input type="number" min="2" max="8" class="form-control" th:field="*{dayOfWeek}" placeholder="2=Thứ 2, 8=CN">
+                <small class="text-danger" th:errors="*{dayOfWeek}"></small>
+            </div>
+            <div class="col-md-4">
+                <label>Khung giờ</label>
+                <select class="form-select" th:field="*{timeSlotId}">
+                    <option value="">-- Không chọn --</option>
+                    <option th:each="t : ${timeSlots}" th:value="${t.id}"
+                            th:text="${t.slotCode + ' (' + #temporals.format(t.startTime, 'HH:mm') + '-' + #temporals.format(t.endTime, 'HH:mm') + ')'}"></option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label>Trạng thái <span class="text-danger">*</span></label>
+                <select class="form-select" th:field="*{status}">
+                    <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}"></option>
+                </select>
+                <small class="text-danger" th:errors="*{status}"></small>
+            </div>
+            <div class="col-md-6">
+                <label>Tuần bắt đầu</label>
+                <input type="number" class="form-control" th:field="*{startWeek}" placeholder="Số tuần">
+                <small class="text-danger" th:errors="*{startWeek}"></small>
+            </div>
+            <div class="col-md-6">
+                <label>Tuần kết thúc</label>
+                <input type="number" class="form-control" th:field="*{endWeek}" placeholder="Số tuần">
+                <small class="text-danger" th:errors="*{endWeek}"></small>
+            </div>
+            <div class="col-md-6">
+                <label>Từ ngày</label>
+                <input type="date" class="form-control" th:field="*{startDate}">
+            </div>
+            <div class="col-md-6">
+                <label>Đến ngày</label>
+                <input type="date" class="form-control" th:field="*{endDate}">
+            </div>
+            <div class="col-12">
+                <label>Lý do</label>
+                <input type="text" class="form-control" th:field="*{reason}" maxlength="255" placeholder="Tối đa 255 ký tự">
+                <small class="text-danger" th:errors="*{reason}"></small>
+            </div>
+        </div>
+        <div class="mt-3">
+            <button class="btn btn-primary">Lưu</button>
+            <a class="btn btn-secondary" th:href="@{/admin/room-block-times}">Huỷ</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

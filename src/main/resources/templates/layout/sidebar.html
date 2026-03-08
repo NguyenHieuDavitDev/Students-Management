@@ -141,6 +141,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/room-block-times}" th:classappend="${activeMenu}=='room-block-times' ? 'active' : ''">
+                    <i class="fa-solid fa-lock"></i>
+                    <span>Khóa phòng</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/semesters}" th:classappend="${activeMenu}=='semesters' ? 'active' : ''">
                     <i class="fa-solid fa-calendar-days"></i>
                     <span>Semesters</span>
