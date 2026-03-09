@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In danh sách thành phần điểm</title>
+    <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: "Segoe UI", Arial, sans-serif; font-size: 13px; color: #000; }
+        .header { text-align: center; margin-bottom: 16px; }
+        .header h2 { margin: 0; font-size: 20px; text-transform: uppercase; }
+        .header .sub { font-size: 12px; margin-top: 4px; }
+        .info { margin-bottom: 10px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #000; padding: 6px 8px; }
+        th { background: #f2f2f2; text-align: center; font-weight: 600; }
+        td { vertical-align: middle; }
+        .text-center { text-align: center; }
+        .footer { margin-top: 20px; display: flex; justify-content: space-between; font-size: 12px; }
+        .signature { text-align: center; width: 200px; }
+        .signature p { margin: 0; }
+    </style>
+</head>
+<body onload="window.print()">
+<div class="header">
+    <h2>DANH SÁCH THÀNH PHẦN ĐIỂM</h2>
+    <div class="sub">
+        Ngày in: <span th:text="${#dates.format(#dates.createNow(), 'dd/MM/yyyy')}"></span>
+    </div>
+</div>
+<div class="info">
+    Tổng số bản ghi: <strong th:text="${items.size()}"></strong>
+</div>
+<table>
+    <thead>
+    <tr>
+        <th style="width:40px">STT</th>
+        <th style="width:120px">Mã lớp HP</th>
+        <th>Học phần</th>
+        <th>Tên thành phần điểm</th>
+        <th style="width:90px">Trọng số (%)</th>
+        <th style="width:90px">Điểm tối đa</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="g, i : ${items}">
+        <td class="text-center" th:text="${i.index + 1}"></td>
+        <td th:text="${g.classCode}"></td>
+        <td th:text="${g.courseCode + ' - ' + (g.courseName != null ? g.courseName : '')}"></td>
+        <td th:text="${g.componentName}"></td>
+        <td class="text-center" th:text="${g.weight != null ? g.weight : '-'}"></td>
+        <td class="text-center" th:text="${g.maxScore != null ? g.maxScore : '-'}"></td>
+    </tr>
+    <tr th:if="${items.isEmpty()}">
+        <td colspan="6" class="text-center">Không có dữ liệu thành phần điểm</td>
+    </tr>
+    </tbody>
+</table>
+<div class="footer">
+    <div></div>
+    <div class="signature">
+        <p><strong>Người lập danh sách</strong></p>
+        <p style="margin-top: 40px;">(Ký, ghi rõ họ tên)</p>
+    </div>
+</div>
+</body>
+</html>

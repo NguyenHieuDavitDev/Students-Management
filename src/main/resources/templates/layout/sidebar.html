@@ -27,7 +27,9 @@
     </div>
     <nav class="sidebar">
         <ul class="nav nav-pills nav-sidebar flex-column">
-            <li class="nav-header">Hệ thống</li>
+
+            <!-- I. NHÓM QUẢN LÝ NGƯỜI DÙNG – PHÂN QUYỀN -->
+            <li class="nav-header">Quản lý người dùng – Phân quyền</li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin}" th:classappend="${activeMenu}=='overview' ? 'active' : ''">
                     <i class="fa-solid fa-gauge-high"></i>
@@ -53,7 +55,8 @@
                 </a>
             </li>
 
-            <li class="nav-header">Đào tạo</li>
+            <!-- II. NHÓM QUẢN LÝ SINH VIÊN -->
+            <li class="nav-header">Quản lý sinh viên</li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/faculties}" th:classappend="${activeMenu}=='faculties' ? 'active' : ''">
                     <i class="fa-solid fa-building-columns"></i>
@@ -90,6 +93,9 @@
                     <span>Students</span>
                 </a>
             </li>
+
+            <!-- III. NHÓM QUẢN LÝ GIẢNG VIÊN – NHÂN SỰ -->
+            <li class="nav-header">Giảng viên – Nhân sự</li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/lecturers}" th:classappend="${activeMenu}=='lecturers' ? 'active' : ''">
                     <i class="fa-solid fa-chalkboard-teacher"></i>
@@ -102,6 +108,9 @@
                     <span>Positions</span>
                 </a>
             </li>
+
+            <!-- IV. NHÓM QUẢN LÝ CHƯƠNG TRÌNH – MÔN HỌC -->
+            <li class="nav-header">Chương trình – Môn học</li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/training-programs}" th:classappend="${activeMenu}=='training-programs' ? 'active' : ''">
                     <i class="fa-solid fa-book-open"></i>
@@ -121,7 +130,32 @@
                 </a>
             </li>
 
-            <li class="nav-header">Cơ sở vật chất</li>
+            <!-- V. NHÓM QUẢN LÝ HỌC KỲ – LỚP HỌC PHẦN -->
+            <li class="nav-header"> Học kỳ – Lớp học phần</li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/semesters}" th:classappend="${activeMenu}=='semesters' ? 'active' : ''">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>Semesters</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/class-sections}" th:classappend="${activeMenu}=='class-sections' ? 'active' : ''">
+                    <i class="fa-solid fa-chalkboard"></i>
+                    <span>Class Sections</span>
+                </a>
+            </li>
+
+            <!-- VI. NHÓM ĐĂNG KÝ HỌC PHẦN -->
+            <li class="nav-header">Đăng ký học phần</li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/course-registrations}" th:classappend="${activeMenu}=='course-registrations' ? 'active' : ''">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span>Course Registrations</span>
+                </a>
+            </li>
+
+            <!-- VII. NHÓM QUẢN LÝ LỊCH HỌC – PHÒNG HỌC -->
+            <li class="nav-header">Lịch học – Phòng học</li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/buildings}" th:classappend="${activeMenu}=='buildings' ? 'active' : ''">
                     <i class="fa-solid fa-building"></i>
@@ -147,12 +181,6 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" th:href="@{/admin/semesters}" th:classappend="${activeMenu}=='semesters' ? 'active' : ''">
-                    <i class="fa-solid fa-calendar-days"></i>
-                    <span>Semesters</span>
-                </a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/time-slots}" th:classappend="${activeMenu}=='time-slots' ? 'active' : ''">
                     <i class="fa-solid fa-clock"></i>
                     <span>Time Slots</span>
@@ -171,18 +199,6 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" th:href="@{/admin/class-sections}" th:classappend="${activeMenu}=='class-sections' ? 'active' : ''">
-                    <i class="fa-solid fa-chalkboard"></i>
-                    <span>Class Sections</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" th:href="@{/admin/course-registrations}" th:classappend="${activeMenu}=='course-registrations' ? 'active' : ''">
-                    <i class="fa-solid fa-clipboard-list"></i>
-                    <span>Course Registrations</span>
-                </a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/lecturer-course-classes}" th:classappend="${activeMenu}=='lecturer-course-classes' ? 'active' : ''">
                     <i class="fa-solid fa-user-tie"></i>
                     <span>Lecturer Course Classes</span>
@@ -192,6 +208,15 @@
                 <a class="nav-link" th:href="@{/admin/equipments}" th:classappend="${activeMenu}=='equipments' ? 'active' : ''">
                     <i class="fa-solid fa-laptop"></i>
                     <span>Equipments</span>
+                </a>
+            </li>
+
+            <!-- VIII. NHÓM ĐIỂM – ĐÁNH GIÁ HỌC TẬP -->
+            <li class="nav-header">Điểm – Đánh giá học tập</li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/grade-components}" th:classappend="${activeMenu}=='grade-components' ? 'active' : ''">
+                    <i class="fa-solid fa-percent"></i>
+                    <span>Thành phần điểm</span>
                 </a>
             </li>
         </ul>
