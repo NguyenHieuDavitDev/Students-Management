@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Điểm sinh viên',
+        'Danh sách điểm sinh viên',
+        'Quản lý và nhập điểm chi tiết theo thành phần điểm',
+        'student-grades',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+    <style>
+        .student-grades-card { border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+        .student-grades-card .card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border-radius: 8px 8px 0 0; padding: 14px 20px; font-weight: 600; }
+        .student-grades-table { font-size: 0.9rem; }
+        .student-grades-table thead th { background: #f8f9fa; font-weight: 600; color: #495057; border-bottom: 2px solid #dee2e6; padding: 12px 10px; }
+        .student-grades-table tbody tr:hover { background-color: #f8f9fa; }
+        .student-grades-table .score-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-weight: 600; min-width: 48px; text-align: center; }
+        .student-grades-table .score-good { background: #d4edda; color: #155724; }
+        .student-grades-table .score-medium { background: #fff3cd; color: #856404; }
+        .student-grades-table .score-low { background: #f8d7da; color: #721c24; }
+        .filter-section { background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+        .import-section { background: #e7f3ff; border: 1px dashed #0d6efd; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+        .btn-action-group .btn { margin-left: 4px; }
+        .pagination .page-link { border-radius: 6px !important; margin: 0 2px; }
+        .empty-state { padding: 60px 20px; color: #6c757d; }
+        .empty-state i { font-size: 3rem; opacity: 0.5; }
+    </style>
+
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fa-solid fa-circle-check me-2"></i><span th:text="${success}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="card student-grades-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fa-solid fa-filter me-2"></i>Bộ lọc & Tìm kiếm</span>
+        </div>
+        <div class="card-body">
+            <form method="get" th:action="@{/admin/student-grades}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Lớp học phần</label>
+                        <select name="courseClassId" class="form-select form-select-sm">
+                            <option value="">-- Tất cả lớp học phần --</option>
+                            <option th:each="cs : ${classSections}" th:value="${cs.id}"
+                                    th:text="${cs.classCode + ' - ' + cs.className}"
+                                    th:selected="${courseClassId != null and courseClassId == cs.id}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Tìm kiếm</label>
+                        <input class="form-control form-control-sm" name="keyword"
+                               placeholder="MSSV, tên SV, lớp, thành phần điểm..."
+                               th:value="${keyword}">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <input type="hidden" name="size" th:value="${size}">
+                        <button class="btn btn-primary btn-sm w-100">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i>Tìm
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="import-section">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-file-excel text-success"></i>
+                <span class="fw-semibold">Import Excel</span>
+            </div>
+            <form method="post" enctype="multipart/form-data" th:action="@{/admin/student-grades/import}" class="d-flex gap-2 flex-grow-1 flex-wrap">
+                <input type="file" name="file" class="form-control form-control-sm" accept=".xlsx,.xls" required style="max-width: 280px;">
+                <button class="btn btn-outline-primary btn-sm">
+                    <i class="fa-solid fa-upload me-1"></i>Import
+                </button>
+            </form>
+            <a class="btn btn-outline-secondary btn-sm" th:href="@{/admin/student-grades/template}">
+                <i class="fa-solid fa-download me-1"></i>Tải mẫu
+            </a>
+        </div>
+        <small class="text-muted d-block mt-2">Cột: Mã SV, Mã lớp HP, Tên thành phần điểm, Điểm, Mã GV (tùy chọn)</small>
+    </div>
+
+    <div class="card student-grades-card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="fa-solid fa-clipboard-list me-2"></i>Danh sách điểm</span>
+            <div class="btn-action-group d-flex gap-2">
+                <a class="btn btn-light btn-sm" th:href="@{/admin/student-grades/export(courseClassId=${courseClassId})}">
+                    <i class="fa-solid fa-file-export me-1"></i>Export
+                </a>
+                <a class="btn btn-light btn-sm" th:href="@{/admin/student-grades/print(courseClassId=${courseClassId})}" target="_blank">
+                    <i class="fa-solid fa-print me-1"></i>In
+                </a>
+                <a class="btn btn-light btn-sm" th:href="@{/admin/student-grades/new}">
+                    <i class="fa-solid fa-plus me-1"></i>Nhập điểm
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover student-grades-table mb-0">
+                    <thead>
+                    <tr>
+                        <th style="width:90px">MSSV</th>
+                        <th>Họ tên sinh viên</th>
+                        <th>Lớp học phần</th>
+                        <th>Thành phần điểm</th>
+                        <th class="text-center" style="width:80px">Điểm</th>
+                        <th>GV nhập điểm</th>
+                        <th style="width:130px">Thời gian</th>
+                        <th class="text-end" style="width:140px">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="g : ${items.content}">
+                        <td><span class="fw-medium" th:text="${g.studentCode}"></span></td>
+                        <td th:text="${g.studentName}"></td>
+                        <td>
+                            <span th:text="${g.classCode}"></span>
+                            <span class="text-muted small" th:if="${g.courseName}" th:text="' (' + ${g.courseName} + ')'"></span>
+                        </td>
+                        <td th:text="${g.componentName}"></td>
+                        <td class="text-center">
+                            <span th:if="${g.score != null}"
+                                  th:classappend="${g.score >= 8 ? 'score-badge score-good' : (g.score >= 5 ? 'score-badge score-medium' : 'score-badge score-low')}"
+                                  th:text="${#numbers.formatDecimal(g.score, 1, 2)}"></span>
+                            <span th:if="${g.score == null}" class="text-muted">-</span>
+                        </td>
+                        <td th:text="${g.gradedByLecturerName ?: '-'}"></td>
+                        <td class="small" th:text="${g.gradedAt != null ? #temporals.format(g.gradedAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary" th:href="@{/admin/student-grades/{id}/edit(id=${g.id})}">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </a>
+                            <form method="post" th:action="@{/admin/student-grades/{id}/delete(id=${g.id})}"
+                                  style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa điểm này?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${items.content.isEmpty()}">
+                        <td colspan="8" class="empty-state">
+                            <i class="fa-solid fa-box-open d-block mb-2"></i>
+                            Chưa có dữ liệu điểm. Hãy nhập điểm hoặc import từ file Excel.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <nav th:if="${items.totalPages > 1}" class="p-3">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${items.first} ? ' disabled'">
+                        <a class="page-link" th:href="@{/admin/student-grades(page=${items.number - 1}, size=${size}, keyword=${keyword}, courseClassId=${courseClassId})}">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(0, items.totalPages - 1)}"
+                        th:classappend="${i == items.number} ? ' active'">
+                        <a class="page-link" th:text="${i + 1}"
+                           th:href="@{/admin/student-grades(page=${i}, size=${size}, keyword=${keyword}, courseClassId=${courseClassId})}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${items.last} ? ' disabled'">
+                        <a class="page-link" th:href="@{/admin/student-grades(page=${items.number + 1}, size=${size}, keyword=${keyword}, courseClassId=${courseClassId})}">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+</body>
+</html>

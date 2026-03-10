@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Cập nhật điểm':'Nhập điểm'),
+        (${mode}=='edit'?'Cập nhật điểm':'Nhập điểm'),
+        'Form nhập điểm sinh viên',
+        'student-grades',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+    <style>
+        .grade-form-card { border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+        .grade-form-card .card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border-radius: 8px 8px 0 0; padding: 14px 20px; font-weight: 600; }
+        .grade-form-card .form-label { font-weight: 500; color: #495057; }
+        .grade-form-card .form-control:focus, .grade-form-card .form-select:focus { border-color: #667eea; box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25); }
+        .form-step-hint { font-size: 0.8rem; color: #6c757d; margin-top: 4px; }
+    </style>
+
+    <div th:if="${globalError}" class="alert alert-danger">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${globalError}"></span>
+    </div>
+
+    <div class="card grade-form-card">
+        <div class="card-header">
+            <i class="fa-solid fa-pen-to-square me-2"></i>
+            <span th:text="${mode}=='edit' ? 'Cập nhật điểm' : 'Nhập điểm mới'"></span>
+        </div>
+        <div class="card-body">
+            <form method="post" id="gradeForm"
+                  th:action="${mode}=='edit'
+                    ? @{/admin/student-grades/{id}(id=${gradeId})}
+                    : @{/admin/student-grades}"
+                  th:object="${studentGradeRequest}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Lớp học phần <span class="text-danger">*</span></label>
+                        <select class="form-select" id="courseClassId" th:field="*{courseClassId}" required
+                                th:disabled="${mode}=='edit'">
+                            <option value="">-- Chọn lớp học phần --</option>
+                            <option th:each="cs : ${classSections}" th:value="${cs.id}"
+                                    th:text="${cs.classCode + ' - ' + cs.className + (cs.course != null ? ' (' + cs.course.courseCode + ')' : '')}"></option>
+                        </select>
+                        <div class="form-step-hint">Bước 1: Chọn lớp trước</div>
+                        <small class="text-danger" th:errors="*{courseClassId}"></small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Sinh viên <span class="text-danger">*</span></label>
+                        <select class="form-select" id="studentId" th:field="*{studentId}" required
+                                th:disabled="${mode}=='edit'">
+                            <th:block th:if="${editModeStudents != null}">
+                                <option value="">-- Chọn sinh viên --</option>
+                                <option th:each="cr : ${editModeStudents}" th:value="${cr.student.studentId}"
+                                        th:text="${cr.student.studentCode + ' - ' + cr.student.fullName}"></option>
+                            </th:block>
+                            <th:block th:unless="${editModeStudents != null}">
+                                <option value="">-- Chọn lớp học phần trước --</option>
+                            </th:block>
+                        </select>
+                        <div class="form-step-hint">Chỉ hiển thị SV đã đăng ký lớp</div>
+                        <small class="text-danger" th:errors="*{studentId}"></small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Thành phần điểm <span class="text-danger">*</span></label>
+                        <select class="form-select" id="gradeComponentId" th:field="*{gradeComponentId}" required
+                                th:disabled="${mode}=='edit'">
+                            <th:block th:if="${editModeGradeComponents != null}">
+                                <option value="">-- Chọn thành phần điểm --</option>
+                                <option th:each="gc : ${editModeGradeComponents}" th:value="${gc.id}"
+                                        th:text="${gc.componentName + (gc.maxScore != null ? ' (tối đa: ' + gc.maxScore + ')' : '')}"></option>
+                            </th:block>
+                            <th:block th:unless="${editModeGradeComponents != null}">
+                                <option value="">-- Chọn lớp học phần trước --</option>
+                            </th:block>
+                        </select>
+                        <div class="form-step-hint">Chỉ hiển thị thành phần thuộc lớp</div>
+                        <small class="text-danger" th:errors="*{gradeComponentId}"></small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Điểm đạt được</label>
+                        <input type="number" step="0.01" min="0" max="100" class="form-control" th:field="*{score}"
+                               placeholder="Ví dụ: 8.5">
+                        <small class="text-danger" th:errors="*{score}"></small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Giảng viên nhập điểm <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{gradedByLecturerId}" required>
+                            <option value="">-- Chọn giảng viên --</option>
+                            <option th:each="lec : ${lecturers}" th:value="${lec.lecturerId}"
+                                    th:text="${lec.lecturerCode + ' - ' + lec.fullName}"></option>
+                        </select>
+                        <div class="form-step-hint">Tự đăng nhập GV thì tự gán</div>
+                    </div>
+                </div>
+                <hr class="my-4">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fa-solid fa-save me-1"></i>Lưu
+                    </button>
+                    <a class="btn btn-outline-secondary" th:href="@{/admin/student-grades}">
+                        <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            const courseClassSelect = document.getElementById('courseClassId');
+            const studentSelect = document.getElementById('studentId');
+            const gradeComponentSelect = document.getElementById('gradeComponentId');
+            const baseUrl = /*[[@{/admin/student-grades}]]*/ '/admin/student-grades';
+
+            function loadStudentsAndComponents(classId) {
+                if (!classId) {
+                    studentSelect.innerHTML = '<option value="">-- Chọn lớp học phần trước --</option>';
+                    gradeComponentSelect.innerHTML = '<option value="">-- Chọn lớp học phần trước --</option>';
+                    return;
+                }
+                studentSelect.innerHTML = '<option value="">-- Đang tải... --</option>';
+                gradeComponentSelect.innerHTML = '<option value="">-- Đang tải... --</option>';
+                Promise.all([
+                    fetch(baseUrl + '/api/students-by-class?courseClassId=' + classId).then(r => r.json()),
+                    fetch(baseUrl + '/api/grade-components-by-class?courseClassId=' + classId).then(r => r.json())
+                ]).then(([students, components]) => {
+                    studentSelect.innerHTML = '<option value="">-- Chọn sinh viên --</option>';
+                    students.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.studentId;
+                        opt.textContent = s.studentCode + ' - ' + s.fullName;
+                        studentSelect.appendChild(opt);
+                    });
+                    gradeComponentSelect.innerHTML = '<option value="">-- Chọn thành phần điểm --</option>';
+                    components.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.componentName + (c.maxScore ? ' (tối đa: ' + c.maxScore + ')' : '');
+                        gradeComponentSelect.appendChild(opt);
+                    });
+                }).catch(() => {
+                    studentSelect.innerHTML = '<option value="">-- Lỗi tải dữ liệu --</option>';
+                    gradeComponentSelect.innerHTML = '<option value="">-- Lỗi tải dữ liệu --</option>';
+                });
+            }
+
+            if (courseClassSelect && !courseClassSelect.disabled) {
+                courseClassSelect.addEventListener('change', function() {
+                    loadStudentsAndComponents(this.value);
+                });
+            }
+        });
+    </script>
+</div>
+</body>
+</html>

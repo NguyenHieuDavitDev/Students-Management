@@ -47,6 +47,140 @@ Chức năng quản lý role cho phép quản trị viên tạo, sửa, xoá và
 - **FacultyController**: Quản lý API endpoints (CRUD, Import/Export)
 - **FacultyDashboardController**: Quản lý views HTML cho giao diện web (bao gồm Print)
 
+### 5. Quản lý điểm sinh viên (Student Grades)
+
+Module **Điểm sinh viên** cho phép giảng viên và quản trị viên quản lý điểm chi tiết của sinh viên theo từng **lớp học phần** và **thành phần điểm** (chuyên cần, giữa kỳ, cuối kỳ, bài tập,…).
+
+#### 5.1. Mô hình dữ liệu
+
+- Bảng `student_grades` lưu từng bản ghi điểm chi tiết với các cột:
+  - `id` (UUID): khóa chính.
+  - `student_id` (UUID): tham chiếu `students.student_id`.
+  - `course_class_id`: tham chiếu `class_sections.id` (lớp học phần).
+  - `grade_component_id` (UUID): tham chiếu `grade_components.id` (thành phần điểm).
+  - `score` (DECIMAL(4,2)): điểm đạt được.
+  - `graded_by` (UUID): tham chiếu `lecturers.lecturer_id` – giảng viên nhập điểm.
+  - `graded_at` (DATETIME): thời gian nhập điểm.
+  - `updated_at` (DATETIME): thời gian cập nhật gần nhất.
+
+Ràng buộc:
+
+- Mỗi cặp `(student_id, course_class_id, grade_component_id)` là **duy nhất** ⇒ một sinh viên chỉ có **một bản ghi điểm** cho một thành phần điểm của một lớp học phần.
+- `grade_component` phải thuộc đúng `class_section`.
+- Sinh viên phải đăng ký lớp học phần (`course_registrations`) trước khi được nhập điểm.
+
+#### 5.2. Nghiệp vụ nhập điểm (đúng vai trò giảng viên)
+
+Khi giảng viên nhập hoặc cập nhật điểm:
+
+- Hệ thống lấy user hiện tại từ `SecurityContextHolder`, sau đó tìm `User` tương ứng và ánh xạ sang entity `Lecturer` (qua `users.lecturer_id`).
+- Kiểm tra giảng viên này có được **phân công** lớp học phần hay không bằng bảng `lecturer_course_classes`:
+  - Nếu **không được phân công** lớp đó ⇒ trả về HTTP 403 `FORBIDDEN` với thông báo:  
+    *"Bạn không được phân công giảng dạy lớp học phần này nên không thể nhập điểm"*
+  - Nếu **được phân công** ⇒ cho phép nhập/chỉnh sửa điểm.
+- Khi nhập điểm thành công:
+  - Gán `graded_by = lecturer hiện tại`.
+  - Set `graded_at` nếu là lần nhập đầu.
+  - Luôn cập nhật `updated_at` mỗi lần sửa điểm.
+- Chỉ cho **chỉnh sửa điểm** (field `score`) trên bản ghi đã có, không cho đổi `student`, `classSection`, `gradeComponent`.
+
+#### 5.3. API Endpoints
+
+`StudentGradeController` (REST, prefix `/api/student-grades`):
+
+| Method | URL                               | Mô tả                                                             |
+|--------|-----------------------------------|-------------------------------------------------------------------|
+| GET    | `/api/student-grades`            | Tìm kiếm gần đúng theo SV, lớp, môn, học kỳ, thành phần, GV (có phân trang) |
+| GET    | `/api/student-grades/{id}`       | Xem chi tiết một bản ghi điểm                                     |
+| POST   | `/api/student-grades`            | Tạo bản ghi điểm mới (áp nghiệp vụ giảng viên đang đăng nhập)    |
+| PUT    | `/api/student-grades/{id}`       | Cập nhật điểm (chỉ field `score`)                                |
+| DELETE | `/api/student-grades/{id}`       | Xóa bản ghi điểm                                                  |
+| GET    | `/api/student-grades/print`      | Lấy danh sách đầy đủ để in                                        |
+| POST   | `/api/student-grades/import`     | Import điểm từ file Excel                                         |
+| GET    | `/api/student-grades/export`     | Export toàn bộ điểm ra file Excel                                 |
+
+#### 5.4. Giao diện quản trị (Dashboard)
+
+`StudentGradeDashboardController` (prefix `/admin/student-grades`) dùng cho giao diện web (Thymeleaf):
+
+- `GET /admin/student-grades`:
+  - Màn hình **danh sách điểm sinh viên**.
+  - Tìm kiếm gần đúng theo mã/tên sinh viên, lớp học phần, môn học, học kỳ, thành phần điểm, giảng viên.
+  - Có phân trang, hiển thị các cột:
+    - Thông tin sinh viên (mã, họ tên).
+    - Lớp học phần, môn học, học kỳ.
+    - Thành phần điểm, trọng số, điểm tối đa, điểm đạt được.
+    - Giảng viên chấm, thời gian chấm.
+  - Các nút thao tác:
+    - **Nhập điểm mới** (`/admin/student-grades/new`).
+    - **Import Excel**.
+    - **Export Excel**.
+    - **In** (mở trang in).
+
+- `GET /admin/student-grades/new`:
+  - Form nhập điểm mới cho sinh viên:
+    - Chọn **Lớp học phần** (sau đó danh sách sinh viên và thành phần điểm được load theo lớp).
+    - Chọn **Sinh viên** (chỉ hiển thị sinh viên đã đăng ký lớp học phần).
+    - Chọn **Thành phần điểm** (chỉ hiển thị thành phần thuộc lớp đã chọn).
+    - Nhập **Điểm** (0–100, bước 0.01).
+    - Chọn **Giảng viên nhập điểm** (bắt buộc): Nếu đăng nhập là giảng viên thì tự động gán; Admin chọn từ dropdown.
+  - Khi submit, backend:
+    - Kiểm tra sinh viên đã đăng ký lớp học phần.
+    - Kiểm tra thành phần điểm thuộc đúng lớp học phần.
+    - Kiểm tra giảng viên hiện tại có được phân công dạy lớp này.
+    - Lưu bản ghi điểm với `graded_by`, `graded_at`, `updated_at`.
+
+- `GET /admin/student-grades/{id}/edit`:
+  - Form chỉnh sửa điểm đã có:
+    - Cho phép sửa **Điểm** và **Giảng viên nhập điểm**.
+    - Hiển thị lại các lựa chọn sinh viên, lớp, thành phần (readonly).
+  - Mọi lần cập nhật đều ghi nhận giảng viên và thời gian cập nhật.
+
+- `POST /admin/student-grades/{id}/delete`:
+  - Xóa một bản ghi điểm (có xác nhận).
+
+- `GET /admin/student-grades/print`:
+  - Trang in `student-grades/print.html`:
+    - Bảng khổ A4, hiển thị:
+      - STT, mã SV, họ tên.
+      - Lớp học phần, môn học, học kỳ.
+      - Thành phần điểm, trọng số, điểm tối đa, điểm.
+      - Mã GV, tên GV.
+    - Tự động gọi `window.print()` khi mở.
+
+- `POST /admin/student-grades/import`:
+  - Nhập điểm từ Excel, mỗi dòng gồm:
+    - Mã sinh viên, mã lớp học phần, tên thành phần điểm, điểm.
+  - Kiểm tra đầy đủ ràng buộc như khi nhập tay; nếu bản ghi đã tồn tại thì cập nhật điểm, nếu chưa có thì tạo mới.
+
+- `GET /admin/student-grades/export`:
+  - Xuất toàn bộ điểm ra file Excel với đầy đủ thông tin cho thống kê/backup.
+
+#### 5.5. Mục menu trong Sidebar
+
+Trong sidebar (`templates/layout/sidebar.html`), module được đặt trong nhóm **“Điểm – Đánh giá học tập”**:
+
+- **Thành phần điểm** (`/admin/grade-components`)
+- **Điểm sinh viên** (`/admin/student-grades`) – biểu tượng `fa-clipboard-check`
+
+Khi truy cập các trang thuộc `/admin/student-grades`, tham số `activeMenu` được set là `'student-grades'` để đánh dấu menu đang hoạt động.
+
+#### 5.6. Chi tiết triển khai (Implementation)
+
+**Entity & Repository:**
+- `StudentGrade` entity: bảng `student_grades` với ràng buộc duy nhất `(student_id, course_class_id, grade_component_id)`.
+- `StudentGradeRepository`: tìm kiếm theo keyword, lọc theo lớp học phần.
+
+**Service:**
+- Kiểm tra sinh viên đã đăng ký lớp học phần (`course_registrations`).
+- Kiểm tra thành phần điểm thuộc đúng lớp học phần.
+- Kiểm tra điểm không vượt quá `max_score` của thành phần.
+- Gán `graded_by` (giảng viên nhập điểm): lấy từ form hoặc từ user đăng nhập nếu là giảng viên.
+
+**Form nhập điểm:**
+- Dropdown **Giảng viên nhập điểm** (bắt buộc): Admin chọn giảng viên; nếu đăng nhập là giảng viên thì tự động điền.
+- API nội bộ: `/admin/student-grades/api/students-by-class`, `/admin/student-grades/api/grade-components-by-class` để load dữ liệu động theo lớp học phần.
+
 
 #### Các tính năng chi tiết:
 
@@ -3751,6 +3885,7 @@ Module **grade_components** (Thành phần điểm) định nghĩa các thành p
 - [x] Quản lý khóa phòng (Room Block Times)
 - [x] Gán hồ sơ giảng viên / sinh viên vào tài khoản người dùng
 - [x] Quản lý thành phần điểm (Grade Components)
+- [x] Quản lý điểm sinh viên (Student Grades)
 - [x] Xác thực người dùng (Authentication)
 - [x] Mã hóa mật khẩu (Password Encryption)
 - [ ] Audit Log
@@ -3760,4 +3895,4 @@ Module **grade_components** (Thành phần điểm) định nghĩa các thành p
 
 
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 08/03/2026 – Bổ sung module Quản lý Thành phần điểm (grade_components): CRUD, tìm kiếm, phân trang, Import/Export/Print
+**Cập nhật lần cuối**: 10/03/2026 – Bổ sung module Quản lý điểm sinh viên (student_grades): CRUD, nhập điểm theo thành phần, chọn giảng viên nhập điểm, tìm kiếm, phân trang, in ấn

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -23,6 +24,21 @@ import java.util.stream.Collectors;
 public class CurrentUserProfileService {
 
     private final UserRepository userRepository;
+
+    /**
+     * Trả về ID giảng viên đang đăng nhập (nếu user là lecturer), hoặc empty.
+     */
+    @Transactional(readOnly = true)
+    public Optional<UUID> getCurrentLecturerId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return Optional.empty();
+        }
+        String username = auth.getName();
+        return userRepository.findByUsernameWithProfile(username)
+                .filter(u -> u.getLecturer() != null)
+                .map(u -> u.getLecturer().getLecturerId());
+    }
 
     /**
      * Trả về profile của user đang đăng nhập, hoặc empty nếu chưa đăng nhập.

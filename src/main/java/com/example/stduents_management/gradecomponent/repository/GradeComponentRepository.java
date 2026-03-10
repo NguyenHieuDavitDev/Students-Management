@@ -7,9 +7,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface GradeComponentRepository extends JpaRepository<GradeComponent, UUID> {
+
+    List<GradeComponent> findByClassSection_IdOrderByComponentName(Long classSectionId);
+
+    Optional<GradeComponent> findByClassSection_IdAndComponentNameIgnoreCase(Long classSectionId, String componentName);
 
     @Query("""
         SELECT g FROM GradeComponent g

@@ -7,11 +7,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface CourseRegistrationRepository extends JpaRepository<CourseRegistration, Long> {
 
     boolean existsByStudent_StudentIdAndClassSection_Id(UUID studentId, Long classSectionId);
+
+    List<CourseRegistration> findByClassSection_IdOrderByStudent_FullName(Long classSectionId);
 
     long countByClassSection_Id(Long classSectionId);
 
