@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Thang điểm',
+        'Quản lý Thang điểm',
+        'Cấu hình bảng quy đổi điểm số → Hệ 10 / Hệ 4 / Điểm chữ',
+        'grade-scales',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+<style>
+.gs-card { border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.gs-header {
+    background: linear-gradient(135deg, #0f766e 0%, #10b981 100%);
+    color: #fff; border-radius: 12px 12px 0 0;
+    padding: 14px 20px; font-weight: 600; font-size: 1rem;
+}
+.gs-table thead th { background: #f1faf7; color: #064e3b; font-weight: 600;
+    border-bottom: 2px solid #d1fae5; padding: 10px 12px; white-space: nowrap; }
+.gs-table tbody tr { transition: background .12s; }
+.gs-table tbody tr:hover { background: #f0fdf4; }
+.gs-table td { vertical-align: middle; padding: 10px 12px; }
+.letter-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 50%;
+    font-weight: 800; font-size: .9rem;
+}
+.letter-A { background: #d1fae5; color: #065f46; }
+.letter-B { background: #dbeafe; color: #1e40af; }
+.letter-C { background: #fef9c3; color: #854d0e; }
+.letter-D { background: #ffedd5; color: #9a3412; }
+.letter-F { background: #fce7f3; color: #9d174d; }
+.gpa-pill {
+    display: inline-block; padding: 3px 14px; border-radius: 20px;
+    font-weight: 700; font-size: .82rem; background: #ede9fe; color: #5b21b6;
+}
+.score10-pill {
+    display: inline-block; padding: 3px 14px; border-radius: 20px;
+    font-weight: 700; font-size: .82rem; background: #dcfce7; color: #166534;
+}
+/* Workflow banner */
+.wf-banner { background: linear-gradient(135deg,#1e40af,#3b82f6); border-radius: 12px; color:#fff; }
+.wf-step { background: rgba(255,255,255,.12); border-radius:10px; padding:12px 14px; flex:1; min-width:130px; }
+.wf-step .num { font-size:1.5rem; font-weight:900; opacity:.5; line-height:1; }
+.wf-step .title { font-weight:700; font-size:.85rem; }
+.wf-step .desc { font-size:.74rem; opacity:.85; }
+/* Mini scale */
+.mini-scale { display:flex; flex-wrap:wrap; gap:8px; }
+.mini-item { border-radius:10px; border:1px solid #e5e7eb; padding:10px 14px; text-align:center; min-width:90px; background:#fff; }
+.mini-item .mini-range { font-size:.73rem; color:#6b7280; }
+.mini-item .mini-gpa { font-size:.78rem; font-weight:700; color:#7c3aed; }
+.mini-item .mini-desc { font-size:.7rem; color:#9ca3af; }
+</style>
+
+<!-- Alerts -->
+<div th:if="${success}" class="alert alert-success alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-circle-check me-2"></i><span th:text="${success}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<div th:if="${error}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<!-- ══ Banner: Quy trình 4 bước ═══════════════════════════════════════ -->
+<div class="wf-banner p-4 mb-4">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <i class="fa-solid fa-diagram-project fa-lg"></i>
+        <h5 class="mb-0 fw-bold">Quy trình tính điểm tổng kết</h5>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <div class="wf-step">
+            <div class="num">1</div>
+            <div class="title">grade_components</div>
+            <div class="desc">Admin tạo thành phần điểm + trọng số cho lớp HP</div>
+        </div>
+        <div class="wf-step">
+            <div class="num">2</div>
+            <div class="title">student_grades</div>
+            <div class="desc">Giảng viên nhập điểm từng thành phần</div>
+        </div>
+        <div class="wf-step">
+            <div class="num">3</div>
+            <div class="title">Tính tổng kết</div>
+            <div class="desc"><code style="font-size:.73rem;background:rgba(255,255,255,.15);padding:1px 5px;border-radius:3px;">TK = ∑(điểm × trọng_số)</code></div>
+        </div>
+        <div class="wf-step">
+            <div class="num">4</div>
+            <div class="title">grade_scales ← đây</div>
+            <div class="desc">Tra bảng → Điểm chữ, GPA, Xếp loại</div>
+        </div>
+    </div>
+    <div class="mt-3">
+        <a th:href="@{/admin/grade-scales/transcript}" class="btn btn-light fw-semibold">
+            <i class="fa-solid fa-table-list me-2"></i>Xem Bảng điểm tổng kết theo lớp
+        </a>
+    </div>
+</div>
+
+<!-- ══ Bảng thang điểm ════════════════════════════════════════════════ -->
+<div class="card gs-card">
+    <div class="gs-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="fa-solid fa-star-half-stroke me-2"></i>Bảng thang điểm (grade_scales)</span>
+        <div class="d-flex gap-2">
+            <a class="btn btn-light btn-sm" th:href="@{/admin/grade-scales/print}" target="_blank">
+                <i class="fa-solid fa-print me-1"></i>In
+            </a>
+            <a class="btn btn-light btn-sm fw-semibold" th:href="@{/admin/grade-scales/new}">
+                <i class="fa-solid fa-plus me-1"></i>Thêm mới
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <form class="d-flex gap-2 mb-3" method="get" th:action="@{/admin/grade-scales}">
+            <input class="form-control form-control-sm" name="keyword"
+                   placeholder="Tìm theo điểm chữ, xếp loại..."
+                   th:value="${keyword}" style="max-width:260px;">
+            <input type="hidden" name="size" th:value="${size}">
+            <button class="btn btn-outline-success btn-sm">
+                <i class="fa-solid fa-magnifying-glass me-1"></i>Tìm
+            </button>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table gs-table mb-0">
+                <thead>
+                <tr>
+                    <th class="text-center" style="width:60px">Điểm chữ</th>
+                    <th class="text-center" style="width:160px">Khoảng điểm (Hệ 10)</th>
+                    <th class="text-center" style="width:100px">GPA (Hệ 4)</th>
+                    <th>Xếp loại</th>
+                    <th class="text-end" style="width:110px">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="g : ${items.content}">
+                    <td class="text-center">
+                        <span th:classappend="'letter-badge letter-' + ${g.letterGrade.charAt(0)}"
+                              th:text="${g.letterGrade}"></span>
+                    </td>
+                    <td class="text-center">
+                        <span class="score10-pill">
+                            <span th:text="${#numbers.formatDecimal(g.minScore, 1, 2)}"></span>
+                            &nbsp;–&nbsp;
+                            <span th:text="${#numbers.formatDecimal(g.maxScore, 1, 2)}"></span>
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <span class="gpa-pill" th:text="${#numbers.formatDecimal(g.gradePoint, 1, 2)}"></span>
+                    </td>
+                    <td class="text-secondary" th:text="${g.description ?: '—'}"></td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/admin/grade-scales/{id}/edit(id=${g.id})}" title="Chỉnh sửa">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                        <form method="post" th:action="@{/admin/grade-scales/{id}/delete(id=${g.id})}"
+                              style="display:inline;"
+                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${items.content.isEmpty()}">
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-table-list fa-2x d-block mb-2 opacity-40"></i>
+                        Chưa có thang điểm.
+                        <a th:href="@{/admin/grade-scales/new}">Thêm ngay</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <nav th:if="${items.totalPages > 1}" class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                <li class="page-item" th:classappend="${items.first} ? ' disabled'">
+                    <a class="page-link" th:href="@{/admin/grade-scales(page=${items.number - 1}, size=${size}, keyword=${keyword})}">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </a>
+                </li>
+                <li th:each="i : ${#numbers.sequence(0, items.totalPages - 1)}"
+                    class="page-item" th:classappend="${i == items.number} ? ' active'">
+                    <a class="page-link" th:text="${i + 1}"
+                       th:href="@{/admin/grade-scales(page=${i}, size=${size}, keyword=${keyword})}"></a>
+                </li>
+                <li class="page-item" th:classappend="${items.last} ? ' disabled'">
+                    <a class="page-link" th:href="@{/admin/grade-scales(page=${items.number + 1}, size=${size}, keyword=${keyword})}">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- ══ Bảng mini quy đổi nhanh ════════════════════════════════════════ -->
+<div class="card gs-card mt-4" th:if="${!allItems.isEmpty()}">
+    <div class="gs-header">
+        <i class="fa-solid fa-table me-2"></i>Tóm tắt bảng quy đổi điểm
+    </div>
+    <div class="card-body">
+        <div class="mini-scale">
+            <div th:each="g : ${allItems}" class="mini-item">
+                <div th:classappend="'letter-badge letter-' + ${g.letterGrade.charAt(0)}"
+                     th:text="${g.letterGrade}"
+                     style="margin: 0 auto 6px; display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%"></div>
+                <div class="mini-range">
+                    <span th:text="${#numbers.formatDecimal(g.minScore, 1, 1)}"></span>–<span th:text="${#numbers.formatDecimal(g.maxScore, 1, 1)}"></span>
+                </div>
+                <div class="mini-gpa" th:text="${'GPA ' + #numbers.formatDecimal(g.gradePoint, 1, 2)}"></div>
+                <div class="mini-desc" th:if="${g.description}" th:text="${g.description}"></div>
+            </div>
+        </div>
+    </div>
+</div>
+</div><!-- /content -->
+</body>
+</html>

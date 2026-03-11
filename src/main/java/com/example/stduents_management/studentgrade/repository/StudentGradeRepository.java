@@ -7,10 +7,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface StudentGradeRepository extends JpaRepository<StudentGrade, UUID> {
+
+    /** Tất cả điểm của một sinh viên trong một lớp học phần (dùng tính tổng kết). */
+    List<StudentGrade> findAllByStudent_StudentIdAndCourseClass_Id(UUID studentId, Long courseClassId);
+
+    /** Tất cả điểm của mọi sinh viên trong một lớp (batch load cho class transcript). */
+    List<StudentGrade> findAllByCourseClass_Id(Long courseClassId);
 
     Optional<StudentGrade> findByStudent_StudentIdAndCourseClass_IdAndGradeComponent_Id(
             UUID studentId, Long courseClassId, UUID gradeComponentId);

@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit' ? 'Chỉnh sửa thang điểm' : 'Thêm thang điểm'),
+        (${mode}=='edit' ? 'Chỉnh sửa thang điểm' : 'Thêm thang điểm mới'),
+        'Cấu hình bảng quy đổi điểm → Hệ 10 / Hệ 4 / Điểm chữ',
+        'grade-scales',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+<style>
+/* ── Layout ─────────────────────────────────── */
+.gs-wrap { max-width: 900px; margin: 0 auto; }
+/* ── Form card ───────────────────────────────── */
+.gs-form-card { border: none; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.09); }
+.gs-form-card .card-header {
+    background: linear-gradient(135deg, #0f766e 0%, #10b981 100%);
+    color: #fff; border-radius: 12px 12px 0 0; padding: 14px 22px; font-weight: 600;
+}
+.form-label { font-weight: 600; font-size: .88rem; color: #374151; }
+.form-control, .form-select {
+    border: 1.5px solid #d1d5db; border-radius: 8px; transition: border-color .2s, box-shadow .2s;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.18); outline: none;
+}
+.form-control.is-invalid { border-color: #ef4444; }
+/* ── Live preview ────────────────────────────── */
+.preview-card {
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 20px;
+}
+.letter-circle {
+    width: 64px; height: 64px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; font-weight: 800; flex-shrink: 0;
+    background: #d1fae5; color: #065f46; transition: background .2s, color .2s;
+}
+.preview-label { font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; opacity: .6; font-weight: 600; }
+.preview-val { font-size: 1.1rem; font-weight: 700; }
+/* ── Bảng hiện tại ───────────────────────────── */
+.existing-card { border: 1px solid #e5e7eb; border-radius: 10px; }
+.existing-card .card-header { background: #f9fafb; font-size: .85rem; font-weight: 600; color: #374151; border-radius: 10px 10px 0 0; }
+.scale-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 5px 10px; background: #fff; font-size: .8rem;
+}
+.chip-letter {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .78rem; font-weight: 800;
+}
+.letter-A { background: #d1fae5; color: #065f46; }
+.letter-B { background: #dbeafe; color: #1e40af; }
+.letter-C { background: #fef9c3; color: #854d0e; }
+.letter-D { background: #ffedd5; color: #9a3412; }
+.letter-F { background: #fce7f3; color: #9d174d; }
+</style>
+
+<div class="gs-wrap">
+    <!-- Alert lỗi -->
+    <div th:if="${globalError}" class="alert alert-danger alert-dismissible fade show shadow-sm mb-3">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i>
+        <span th:text="${globalError}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="row g-4">
+        <!-- ── Cột trái: Form nhập liệu ─────────────────────────────── -->
+        <div class="col-lg-8">
+            <div class="card gs-form-card">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-star-half-stroke"></i>
+                    <span th:text="${mode == 'edit'} ? 'Chỉnh sửa thang điểm' : 'Thêm thang điểm mới'"></span>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post"
+                          th:action="${mode == 'edit'}
+                            ? @{/admin/grade-scales/{id}(id=${scaleId})}
+                            : @{/admin/grade-scales}"
+                          th:object="${gradeScaleRequest}">
+
+                        <!-- Khoảng điểm -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-arrow-down-1-9 me-1 text-success"></i>
+                                    Điểm tối thiểu (Hệ 10) <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" step="0.01" min="0" max="10"
+                                       class="form-control" th:field="*{minScore}"
+                                       th:classappend="${#fields.hasErrors('minScore')} ? ' is-invalid'"
+                                       placeholder="Ví dụ: 8.50" id="minScore"
+                                       oninput="updatePreview()">
+                                <div class="invalid-feedback" th:errors="*{minScore}"></div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-arrow-up-1-9 me-1 text-success"></i>
+                                    Điểm tối đa (Hệ 10) <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" step="0.01" min="0" max="10"
+                                       class="form-control" th:field="*{maxScore}"
+                                       th:classappend="${#fields.hasErrors('maxScore')} ? ' is-invalid'"
+                                       placeholder="Ví dụ: 10.00" id="maxScore"
+                                       oninput="updatePreview()">
+                                <div class="invalid-feedback" th:errors="*{maxScore}"></div>
+                            </div>
+                        </div>
+
+                        <!-- Điểm chữ & GPA -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-4">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-font me-1 text-primary"></i>
+                                    Điểm chữ <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control text-uppercase fw-bold" maxlength="2"
+                                       th:field="*{letterGrade}"
+                                       th:classappend="${#fields.hasErrors('letterGrade')} ? ' is-invalid'"
+                                       placeholder="A, B+, C..." id="letterGrade"
+                                       oninput="this.value=this.value.toUpperCase();updatePreview()">
+                                <div class="invalid-feedback" th:errors="*{letterGrade}"></div>
+                                <small class="text-muted">Tối đa 2 ký tự, ví dụ: A, B+, C, D+</small>
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-graduation-cap me-1 text-purple" style="color:#7c3aed"></i>
+                                    Điểm GPA (Hệ 4) <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" step="0.01" min="0" max="4"
+                                       class="form-control" th:field="*{gradePoint}"
+                                       th:classappend="${#fields.hasErrors('gradePoint')} ? ' is-invalid'"
+                                       placeholder="0.00 – 4.00" id="gradePoint"
+                                       oninput="updatePreview()">
+                                <div class="invalid-feedback" th:errors="*{gradePoint}"></div>
+                            </div>
+                            <div class="col-sm-4">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-tags me-1 text-warning"></i>
+                                    Xếp loại
+                                </label>
+                                <input type="text" class="form-control" maxlength="100"
+                                       th:field="*{description}"
+                                       th:classappend="${#fields.hasErrors('description')} ? ' is-invalid'"
+                                       placeholder="Xuất sắc, Giỏi, Khá…" id="description"
+                                       oninput="updatePreview()">
+                                <div class="invalid-feedback" th:errors="*{description}"></div>
+                            </div>
+                        </div>
+
+                        <!-- Live preview -->
+                        <div class="preview-card mb-4">
+                            <p class="text-muted small mb-2">
+                                <i class="fa-solid fa-eye me-1"></i>Xem trước thang điểm
+                            </p>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="letter-circle" id="previewLetter">–</div>
+                                <div class="flex-grow-1">
+                                    <div class="row g-2">
+                                        <div class="col-auto">
+                                            <div class="preview-label">Khoảng điểm (Hệ 10)</div>
+                                            <div class="preview-val text-success" id="previewRange">–</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="preview-label">GPA (Hệ 4)</div>
+                                            <div class="preview-val" style="color:#7c3aed" id="previewGpa">–</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="preview-label">Xếp loại</div>
+                                            <div class="preview-val text-secondary" id="previewDesc">–</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success px-4 fw-semibold" type="submit">
+                                <i class="fa-solid fa-save me-2"></i>
+                                <span th:text="${mode == 'edit'} ? 'Cập nhật' : 'Thêm mới'"></span>
+                            </button>
+                            <a class="btn btn-outline-secondary" th:href="@{/admin/grade-scales}">
+                                <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Cột phải: Bảng thang điểm hiện tại ───────────────────── -->
+        <div class="col-lg-4">
+            <div class="card existing-card" th:if="${allItems != null and !allItems.isEmpty()}">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-list-ol text-success me-1"></i>
+                    Thang điểm hiện tại
+                </div>
+                <div class="card-body p-3">
+                    <div class="d-flex flex-column gap-2">
+                        <div th:each="g : ${allItems}" class="scale-chip">
+                            <span th:classappend="'chip-letter letter-' + ${g.letterGrade.charAt(0)}"
+                                  th:text="${g.letterGrade}"></span>
+                            <span class="text-secondary" style="font-size:.78rem;">
+                                <span th:text="${#numbers.formatDecimal(g.minScore, 1, 1)}"></span>–<span th:text="${#numbers.formatDecimal(g.maxScore, 1, 1)}"></span>
+                            </span>
+                            <span class="text-muted ms-auto" style="font-size:.75rem; color:#7c3aed!important; font-weight:700;"
+                                  th:text="${#numbers.formatDecimal(g.gradePoint, 1, 2)}"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gợi ý mức thang điểm chuẩn -->
+            <div class="card mt-3" style="border:1px solid #bfdbfe; border-radius:10px; background:#eff6ff;">
+                <div class="card-body p-3">
+                    <p class="fw-semibold text-primary mb-2" style="font-size:.85rem;">
+                        <i class="fa-solid fa-lightbulb me-1"></i>Thang điểm chuẩn tham khảo
+                    </p>
+                    <table class="table table-sm mb-0" style="font-size:.78rem;">
+                        <thead><tr><th>Điểm 10</th><th>Chữ</th><th>GPA</th><th>Loại</th></tr></thead>
+                        <tbody>
+                            <tr><td>8.5 – 10</td><td class="fw-bold">A</td><td>4.0</td><td>Xuất sắc</td></tr>
+                            <tr><td>8.0 – 8.4</td><td class="fw-bold">B+</td><td>3.5</td><td>Giỏi</td></tr>
+                            <tr><td>7.0 – 7.9</td><td class="fw-bold">B</td><td>3.0</td><td>Khá</td></tr>
+                            <tr><td>6.5 – 6.9</td><td class="fw-bold">C+</td><td>2.5</td><td>TB Khá</td></tr>
+                            <tr><td>5.5 – 6.4</td><td class="fw-bold">C</td><td>2.0</td><td>Trung bình</td></tr>
+                            <tr><td>5.0 – 5.4</td><td class="fw-bold">D+</td><td>1.5</td><td>TB Yếu</td></tr>
+                            <tr><td>4.0 – 4.9</td><td class="fw-bold">D</td><td>1.0</td><td>Yếu</td></tr>
+                            <tr><td>0.0 – 3.9</td><td class="fw-bold text-danger">F</td><td>0.0</td><td>Kém</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updatePreview() {
+        const min    = document.getElementById('minScore').value;
+        const max    = document.getElementById('maxScore').value;
+        const letter = document.getElementById('letterGrade').value.trim();
+        const gpa    = document.getElementById('gradePoint').value;
+        const desc   = document.getElementById('description').value.trim();
+
+        const elLetter = document.getElementById('previewLetter');
+        elLetter.textContent = letter || '–';
+
+        // Màu badge theo chữ cái đầu
+        const first = letter.charAt(0).toUpperCase();
+        const colorMap = {
+            'A': ['#d1fae5','#065f46'],
+            'B': ['#dbeafe','#1e40af'],
+            'C': ['#fef9c3','#854d0e'],
+            'D': ['#ffedd5','#9a3412'],
+            'F': ['#fce7f3','#9d174d']
+        };
+        const [bg, fg] = colorMap[first] || ['#f3f4f6','#374151'];
+        elLetter.style.background = bg;
+        elLetter.style.color = fg;
+
+        document.getElementById('previewRange').textContent = (min || '–') + ' – ' + (max || '–');
+        document.getElementById('previewGpa').textContent   = gpa  || '–';
+        document.getElementById('previewDesc').textContent  = desc || '–';
+    }
+
+    // Khởi tạo khi trang tải
+    document.addEventListener('DOMContentLoaded', updatePreview);
+</script>
+</div>
+</body>
+</html>

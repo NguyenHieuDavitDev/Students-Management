@@ -225,6 +225,18 @@
                     <span>Điểm sinh viên</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/grade-scales/transcript}" th:classappend="${activeMenu}=='grade-scales' ? 'active' : ''">
+                    <i class="fa-solid fa-table-list"></i>
+                    <span>Bảng điểm tổng kết</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/grade-scales}" th:classappend="${activeMenu}=='grade-scales' ? 'active' : ''">
+                    <i class="fa-solid fa-star-half-stroke"></i>
+                    <span>Thang điểm</span>
+                </a>
+            </li>
         </ul>
     </nav>
 </aside>
