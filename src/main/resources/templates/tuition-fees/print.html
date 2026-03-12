@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In bảng học phí</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', serif; font-size: 12pt; color: #000; background: #fff; }
+
+        .page { max-width: 960px; margin: 0 auto; padding: 20mm 15mm; }
+
+        .school-header { text-align: center; margin-bottom: 6mm; }
+        .school-name { font-size: 11pt; font-weight: bold; text-transform: uppercase; }
+        .dept-name { font-size: 10pt; }
+        .doc-title { font-size: 16pt; font-weight: bold; text-transform: uppercase; margin: 8mm 0 2mm; }
+        .doc-subtitle { font-size: 11pt; margin-bottom: 6mm; font-style: italic; }
+        .doc-date { font-size: 10pt; color: #555; margin-bottom: 8mm; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 4mm; font-size: 11pt; }
+        thead th {
+            background: #1d4ed8; color: #fff;
+            border: 1px solid #1e40af;
+            padding: 7px 10px; text-align: left; font-weight: bold;
+        }
+        tbody td { border: 1px solid #d1d5db; padding: 6px 10px; vertical-align: middle; }
+        tbody tr:nth-child(even) { background: #f0f7ff; }
+
+        .status-active   { color: #166534; font-weight: bold; }
+        .status-inactive { color: #991b1b; font-weight: bold; }
+
+        .fee-cell { text-align: right; font-weight: bold; font-family: monospace; }
+
+        .summary { margin-top: 6mm; font-size: 10pt; color: #555; border-top: 1px solid #e5e7eb; padding-top: 4mm; }
+
+        .signatures { display: flex; justify-content: space-between; margin-top: 16mm; font-size: 11pt; }
+        .sig-box { text-align: center; width: 220px; }
+        .sig-title { font-weight: bold; }
+        .sig-line { margin-top: 18mm; border-top: 1px solid #000; padding-top: 4px; font-style: italic; font-size: 10pt; }
+
+        @media print {
+            body { font-size: 11pt; }
+            .no-print { display: none !important; }
+            .page { padding: 10mm; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <!-- Print Button (hidden on print) -->
+    <div class="no-print" style="text-align:right; margin-bottom:10px;">
+        <button onclick="window.print()"
+                style="background:#1d4ed8;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;">
+            🖨️ In ngay
+        </button>
+        <button onclick="window.close()"
+                style="background:#6b7280;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;margin-left:8px;">
+            Đóng
+        </button>
+    </div>
+
+    <!-- Header -->
+    <div class="school-header">
+        <div class="school-name">TRƯỜNG ĐẠI HỌC [TÊN TRƯỜNG]</div>
+        <div class="dept-name">Phòng Kế hoạch – Tài chính</div>
+        <div class="doc-title">Bảng cấu hình học phí</div>
+        <div class="doc-subtitle">Theo chương trình đào tạo</div>
+        <div class="doc-date">
+            Ngày in: <span th:text="${#temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}"></span>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <table>
+        <thead>
+        <tr>
+            <th style="width:40px">STT</th>
+            <th>Mã CTĐT</th>
+            <th>Tên chương trình đào tạo</th>
+            <th>Ngành</th>
+            <th style="text-align:right">Học phí / Tín chỉ (VNĐ)</th>
+            <th style="text-align:center">Ngày áp dụng</th>
+            <th style="text-align:center">Trạng thái</th>
+            <th>Ghi chú</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="tf, stat : ${items}">
+            <td style="text-align:center" th:text="${stat.count}"></td>
+            <td th:text="${tf.programCode}"></td>
+            <td th:text="${tf.programName}"></td>
+            <td th:text="${tf.majorName ?: '—'}"></td>
+            <td class="fee-cell"
+                th:text="${#numbers.formatInteger(tf.feePerCredit, 1, 'COMMA')} + ' ₫'"></td>
+            <td style="text-align:center"
+                th:text="${#temporals.format(tf.effectiveDate, 'dd/MM/yyyy')}"></td>
+            <td style="text-align:center">
+                <span th:if="${tf.status.name() == 'ACTIVE'}" class="status-active">Đang áp dụng</span>
+                <span th:if="${tf.status.name() == 'INACTIVE'}" class="status-inactive">Ngừng áp dụng</span>
+            </td>
+            <td th:text="${tf.note ?: '—'}" style="font-size:10pt; color:#555;"></td>
+        </tr>
+        <tr th:if="${items.isEmpty()}">
+            <td colspan="8" style="text-align:center;padding:20px;color:#888;">
+                Không có dữ liệu
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Summary -->
+    <div class="summary">
+        <span>Tổng số mức học phí: <strong th:text="${items.size()}"></strong></span>
+        &nbsp;|&nbsp;
+        <span>Đang áp dụng:
+            <strong th:text="${activeCount}" style="color:#166534"></strong>
+        </span>
+        &nbsp;|&nbsp;
+        <span>Ngừng áp dụng:
+            <strong th:text="${inactiveCount}" style="color:#991b1b"></strong>
+        </span>
+    </div>
+
+    <!-- Signatures -->
+    <div class="signatures">
+        <div class="sig-box">
+            <div class="sig-title">Người lập</div>
+            <div class="sig-line">(Ký, ghi rõ họ tên)</div>
+        </div>
+        <div class="sig-box">
+            <div class="sig-title">Trưởng Phòng TC–KT</div>
+            <div class="sig-line">(Ký, ghi rõ họ tên)</div>
+        </div>
+        <div class="sig-box">
+            <div class="sig-title">Hiệu trưởng</div>
+            <div class="sig-line">(Ký, đóng dấu)</div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

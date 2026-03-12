@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Học phí',
+        'Quản lý Học phí',
+        'Cấu hình mức học phí theo chương trình đào tạo',
+        'tuition-fees',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+<style>
+.tf-card  { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.tf-header {
+    background: linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);
+    color:#fff; border-radius:12px 12px 0 0;
+    padding:14px 20px; font-weight:600; font-size:1rem;
+}
+.tf-table thead th {
+    background:#eff6ff; color:#1e3a8a; font-weight:600;
+    border-bottom:2px solid #bfdbfe; padding:10px 12px; white-space:nowrap;
+}
+.tf-table tbody tr { transition:background .12s; }
+.tf-table tbody tr:hover { background:#f0f7ff; }
+.tf-table td { vertical-align:middle; padding:10px 12px; }
+
+.fee-badge {
+    display:inline-block; padding:4px 12px; border-radius:20px;
+    font-weight:700; font-size:.85rem;
+    background:#dbeafe; color:#1e40af; letter-spacing:.02em;
+}
+.status-active   { background:#dcfce7; color:#166534; border-radius:20px; padding:3px 12px; font-size:.8rem; font-weight:600; }
+.status-inactive { background:#fee2e2; color:#991b1b; border-radius:20px; padding:3px 12px; font-size:.8rem; font-weight:600; }
+
+.summary-card { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+.summary-card .card-body { padding:16px 20px; }
+.summary-icon { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; }
+</style>
+
+<!-- Flash Messages -->
+<div th:if="${success}" class="alert alert-success alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-circle-check me-2"></i><span th:text="${success}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<div th:if="${error}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<!-- ══ Summary Stats ══════════════════════════════════════════════════════════ -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="summary-card card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="summary-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Tổng số mức học phí</div>
+                    <div class="fw-bold fs-5" th:text="${items.totalElements}">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="summary-card card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="summary-icon bg-success bg-opacity-10 text-success">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Đang áp dụng</div>
+                    <div class="fw-bold fs-5 text-success" th:text="${activeCount}">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="summary-card card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="summary-icon bg-danger bg-opacity-10 text-danger">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Ngừng áp dụng</div>
+                    <div class="fw-bold fs-5 text-danger" th:text="${inactiveCount}">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="summary-card card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="summary-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fa-solid fa-page-break"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Trang hiện tại</div>
+                    <div class="fw-bold fs-5" th:text="${items.number + 1} + '/' + ${items.totalPages == 0 ? 1 : items.totalPages}">1</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ Main Card ══════════════════════════════════════════════════════════════ -->
+<div class="card tf-card">
+    <div class="tf-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="fa-solid fa-coins me-2"></i>Bảng cấu hình học phí (tuition_fees)</span>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-light btn-sm" th:href="@{/admin/tuition-fees/print}" target="_blank">
+                <i class="fa-solid fa-print me-1"></i>In
+            </a>
+            <a class="btn btn-light btn-sm" th:href="@{/admin/tuition-fees/export}">
+                <i class="fa-solid fa-file-excel me-1"></i>Export Excel
+            </a>
+            <button class="btn btn-light btn-sm" type="button"
+                    data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="fa-solid fa-file-import me-1"></i>Import Excel
+            </button>
+            <a class="btn btn-warning btn-sm fw-semibold text-white" th:href="@{/admin/tuition-fees/new}">
+                <i class="fa-solid fa-plus me-1"></i>Thêm mức học phí
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <!-- Search / Filter -->
+        <form class="row g-2 mb-3" method="get" th:action="@{/admin/tuition-fees}">
+            <div class="col-12 col-md-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                    </span>
+                    <input class="form-control border-start-0" name="keyword"
+                           placeholder="Tìm theo tên / mã chương trình, ghi chú..."
+                           th:value="${keyword}" autocomplete="off">
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <select class="form-select form-select-sm" name="status">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option th:each="s : ${statuses}"
+                            th:value="${s.name()}"
+                            th:text="${s.label}"
+                            th:selected="${s.name() == statusFilter}"></option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select class="form-select form-select-sm" name="size">
+                    <option th:each="n : ${#numbers.sequence(10,50,10)}"
+                            th:value="${n}" th:text="${n} + ' / trang'"
+                            th:selected="${n == size}"></option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary btn-sm px-3">
+                    <i class="fa-solid fa-filter me-1"></i>Lọc
+                </button>
+                <a class="btn btn-outline-secondary btn-sm ms-1" th:href="@{/admin/tuition-fees}">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+            </div>
+        </form>
+
+        <!-- Table -->
+        <div class="table-responsive">
+            <table class="table tf-table mb-0">
+                <thead>
+                <tr>
+                    <th style="width:46px">#</th>
+                    <th>Chương trình đào tạo</th>
+                    <th>Ngành</th>
+                    <th class="text-end">Học phí / tín chỉ (VNĐ)</th>
+                    <th class="text-center">Ngày áp dụng</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th>Ghi chú</th>
+                    <th class="text-end" style="width:130px">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="tf, stat : ${items.content}">
+                    <td class="text-muted small" th:text="${items.number * size + stat.count}"></td>
+                    <td>
+                        <div class="fw-semibold" th:text="${tf.programName}"></div>
+                        <div class="small text-muted" th:text="${tf.programCode}"></div>
+                    </td>
+                    <td class="text-secondary small" th:text="${tf.majorName ?: '—'}"></td>
+                    <td class="text-end">
+                        <span class="fee-badge"
+                              th:text="${#numbers.formatInteger(tf.feePerCredit, 1, 'COMMA')} + ' ₫'"></span>
+                    </td>
+                    <td class="text-center small"
+                        th:text="${#temporals.format(tf.effectiveDate, 'dd/MM/yyyy')}"></td>
+                    <td class="text-center">
+                        <span th:if="${tf.status.name() == 'ACTIVE'}" class="status-active">
+                            <i class="fa-solid fa-circle-check me-1"></i>Đang áp dụng
+                        </span>
+                        <span th:if="${tf.status.name() == 'INACTIVE'}" class="status-inactive">
+                            <i class="fa-solid fa-circle-xmark me-1"></i>Ngừng áp dụng
+                        </span>
+                    </td>
+                    <td class="text-secondary small" th:text="${tf.note ?: '—'}"></td>
+                    <td class="text-end">
+                        <!-- Toggle status -->
+                        <form method="post"
+                              th:action="@{/admin/tuition-fees/{id}/toggle-status(id=${tf.id})}"
+                              style="display:inline;">
+                            <button type="submit"
+                                    th:title="${tf.status.name() == 'ACTIVE' ? 'Ngừng áp dụng' : 'Kích hoạt'}"
+                                    th:class="${tf.status.name() == 'ACTIVE'
+                                        ? 'btn btn-sm btn-outline-warning'
+                                        : 'btn btn-sm btn-outline-success'}">
+                                <i th:class="${tf.status.name() == 'ACTIVE'
+                                    ? 'fa-solid fa-toggle-on'
+                                    : 'fa-solid fa-toggle-off'}"></i>
+                            </button>
+                        </form>
+                        <!-- Edit -->
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/admin/tuition-fees/{id}/edit(id=${tf.id})}" title="Chỉnh sửa">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                        <!-- Delete -->
+                        <form method="post"
+                              th:action="@{/admin/tuition-fees/{id}/delete(id=${tf.id})}"
+                              style="display:inline;"
+                              onsubmit="return confirm('Bạn có chắc muốn xóa mức học phí này?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${items.content.isEmpty()}">
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-coins fa-2x d-block mb-2 opacity-40"></i>
+                        Chưa có mức học phí nào.
+                        <a th:href="@{/admin/tuition-fees/new}">Thêm ngay</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+            <small class="text-muted">
+                Hiển thị
+                <strong th:text="${items.numberOfElements}">0</strong>
+                /
+                <strong th:text="${items.totalElements}">0</strong>
+                mức học phí
+            </small>
+            <nav th:if="${items.totalPages > 1}">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${items.first} ? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/tuition-fees(page=${items.number - 1}, size=${size}, keyword=${keyword}, status=${statusFilter})}">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    <li th:each="i : ${#numbers.sequence(0, items.totalPages - 1)}"
+                        class="page-item" th:classappend="${i == items.number} ? ' active'">
+                        <a class="page-link" th:text="${i + 1}"
+                           th:href="@{/admin/tuition-fees(page=${i}, size=${size}, keyword=${keyword}, status=${statusFilter})}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${items.last} ? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/tuition-fees(page=${items.number + 1}, size=${size}, keyword=${keyword}, status=${statusFilter})}">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- ══ Info Card ══════════════════════════════════════════════════════════════ -->
+<div class="card tf-card mt-4">
+    <div class="tf-header"><i class="fa-solid fa-circle-info me-2"></i>Hướng dẫn nghiệp vụ</div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="d-flex gap-2 align-items-start">
+                    <span class="badge bg-primary rounded-pill mt-1" style="min-width:24px">1</span>
+                    <div>
+                        <div class="fw-semibold small">Cấu hình mức học phí</div>
+                        <div class="text-muted" style="font-size:.8rem">Tạo mức học phí cho từng chương trình đào tạo (ví dụ: CNTT – 450.000 VNĐ/tín chỉ).</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex gap-2 align-items-start">
+                    <span class="badge bg-primary rounded-pill mt-1" style="min-width:24px">2</span>
+                    <div>
+                        <div class="fw-semibold small">Quản lý lịch sử</div>
+                        <div class="text-muted" style="font-size:.8rem">Mỗi chương trình có thể có nhiều mức học phí theo thời gian. Chỉ một mức được ACTIVE tại một thời điểm.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex gap-2 align-items-start">
+                    <span class="badge bg-primary rounded-pill mt-1" style="min-width:24px">3</span>
+                    <div>
+                        <div class="fw-semibold small">Áp dụng cho tính tiền</div>
+                        <div class="text-muted" style="font-size:.8rem">Hệ thống tra cứu mức ACTIVE theo chương trình để tính học phí dựa trên số tín chỉ đăng ký.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ Import Modal ═══════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-file-import me-2 text-primary"></i>Import học phí từ Excel
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" th:action="@{/admin/tuition-fees/import}"
+                  enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="alert alert-info small py-2">
+                        <i class="fa-solid fa-circle-info me-1"></i>
+                        File Excel cần có cấu trúc: <strong>Hàng 1</strong> = tiêu đề,
+                        <strong>Hàng 2</strong> = header, dữ liệu từ hàng 3.
+                        Các cột theo thứ tự: <em>Mã CTĐT, Tên CTĐT, Ngành, Học phí/TC, Ngày áp dụng (dd/MM/yyyy), Trạng thái, Ghi chú</em>.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Chọn file Excel (.xlsx)</label>
+                        <input type="file" class="form-control" name="file"
+                               accept=".xlsx" required>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <a th:href="@{/admin/tuition-fees/export}" class="btn btn-outline-success btn-sm">
+                            <i class="fa-solid fa-download me-1"></i>Tải file mẫu (export hiện tại)
+                        </a>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-upload me-1"></i>Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+</div><!-- /content -->
+</body>
+</html>

@@ -211,7 +211,16 @@
                 </a>
             </li>
 
-            <!-- VIII. NHÓM ĐIỂM – ĐÁNH GIÁ HỌC TẬP -->
+            <!-- VIII. NHÓM HỌC PHÍ -->
+            <li class="nav-header">Học phí</li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/tuition-fees}" th:classappend="${activeMenu}=='tuition-fees' ? 'active' : ''">
+                    <i class="fa-solid fa-coins"></i>
+                    <span>Cấu hình học phí</span>
+                </a>
+            </li>
+
+            <!-- IX. NHÓM ĐIỂM – ĐÁNH GIÁ HỌC TẬP -->
             <li class="nav-header">Điểm – Đánh giá học tập</li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/grade-components}" th:classappend="${activeMenu}=='grade-components' ? 'active' : ''">

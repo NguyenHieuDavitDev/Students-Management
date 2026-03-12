@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        ${mode == 'create' ? 'Thêm mức học phí' : 'Chỉnh sửa học phí'},
+        ${mode == 'create' ? 'Thêm mức học phí mới' : 'Chỉnh sửa mức học phí'},
+        'Cấu hình học phí theo chương trình đào tạo',
+        'tuition-fees',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+<style>
+.tf-form-card { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.tf-form-header {
+    background: linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);
+    color:#fff; border-radius:12px 12px 0 0;
+    padding:14px 20px; font-weight:600; font-size:1rem;
+}
+.field-label { font-weight:600; font-size:.85rem; color:#374151; margin-bottom:4px; }
+.required-star { color:#ef4444; }
+.fee-preview {
+    background:linear-gradient(135deg,#eff6ff,#dbeafe);
+    border:1px solid #bfdbfe; border-radius:10px;
+    padding:14px 18px;
+}
+</style>
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a th:href="@{/admin/tuition-fees}">Học phí</a></li>
+        <li class="breadcrumb-item active" th:text="${mode == 'create' ? 'Thêm mới' : 'Chỉnh sửa'}"></li>
+    </ol>
+</nav>
+
+<!-- Global Error -->
+<div th:if="${globalError}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${globalError}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<div class="row g-4">
+    <!-- Form -->
+    <div class="col-lg-8">
+        <div class="card tf-form-card">
+            <div class="tf-form-header">
+                <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-2' : 'fa-solid fa-pen-to-square me-2'}"></i>
+                <span th:text="${mode == 'create' ? 'Thêm mức học phí' : 'Cập nhật mức học phí'}"></span>
+            </div>
+            <div class="card-body p-4">
+                <form th:action="${mode == 'create'
+                            ? '/admin/tuition-fees'
+                            : '/admin/tuition-fees/' + feeId}"
+                      method="post"
+                      th:object="${tuitionFeeRequest}"
+                      novalidate>
+
+                    <!-- Chương trình đào tạo -->
+                    <div class="mb-4">
+                        <label class="field-label">
+                            Chương trình đào tạo <span class="required-star">*</span>
+                        </label>
+                        <select class="form-select" th:field="*{programId}"
+                                th:classappend="${#fields.hasErrors('programId')} ? ' is-invalid'">
+                            <option value="">-- Chọn chương trình đào tạo --</option>
+                            <option th:each="p : ${programs}"
+                                    th:value="${p.programId}"
+                                    th:text="${p.programCode + ' – ' + p.programName}"></option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('programId')}"
+                             th:errors="*{programId}"></div>
+                        <div class="form-text text-muted small mt-1">
+                            <i class="fa-solid fa-circle-info me-1"></i>
+                            Chỉ hiển thị các chương trình đào tạo đang hoạt động.
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <!-- Học phí mỗi tín chỉ -->
+                        <div class="col-md-6">
+                            <label class="field-label">
+                                Học phí mỗi tín chỉ (VNĐ) <span class="required-star">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control"
+                                       th:field="*{feePerCredit}"
+                                       th:classappend="${#fields.hasErrors('feePerCredit')} ? ' is-invalid'"
+                                       placeholder="Ví dụ: 450000"
+                                       min="1000" max="99999999" step="1000"
+                                       id="feeInput">
+                                <span class="input-group-text">₫</span>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('feePerCredit')}"
+                                     th:errors="*{feePerCredit}"></div>
+                            </div>
+                            <div id="feeFormatted" class="form-text fw-semibold text-primary mt-1"></div>
+                        </div>
+
+                        <!-- Ngày bắt đầu áp dụng -->
+                        <div class="col-md-6">
+                            <label class="field-label">
+                                Ngày bắt đầu áp dụng <span class="required-star">*</span>
+                            </label>
+                            <input type="date" class="form-control"
+                                   th:field="*{effectiveDate}"
+                                   th:classappend="${#fields.hasErrors('effectiveDate')} ? ' is-invalid'">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('effectiveDate')}"
+                                 th:errors="*{effectiveDate}"></div>
+                        </div>
+                    </div>
+
+                    <!-- Trạng thái -->
+                    <div class="mb-4">
+                        <label class="field-label">
+                            Trạng thái <span class="required-star">*</span>
+                        </label>
+                        <div class="d-flex gap-3 flex-wrap">
+                            <div th:each="s : ${statuses}" class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio"
+                                       th:field="*{status}"
+                                       th:id="${'status_' + s.name()}"
+                                       th:value="${s.name()}">
+                                <label class="form-check-label"
+                                       th:for="${'status_' + s.name()}"
+                                       th:text="${s.label}"></label>
+                            </div>
+                        </div>
+                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('status')}"
+                             th:errors="*{status}"></div>
+                    </div>
+
+                    <!-- Tự động ngừng áp dụng mức cũ -->
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   th:field="*{autoDeactivatePrevious}"
+                                   id="autoDeactivate">
+                            <label class="form-check-label" for="autoDeactivate">
+                                Tự động ngừng áp dụng mức học phí <strong>ACTIVE</strong> trước đó
+                                của cùng chương trình (nếu có)
+                            </label>
+                        </div>
+                        <div class="form-text text-muted small mt-1">
+                            <i class="fa-solid fa-lightbulb me-1 text-warning"></i>
+                            Bật tùy chọn này khi thêm mức học phí mới cho kỳ học tới,
+                            hệ thống sẽ tự đặt mức cũ về "Ngừng áp dụng".
+                        </div>
+                    </div>
+
+                    <!-- Ghi chú -->
+                    <div class="mb-4">
+                        <label class="field-label">Ghi chú</label>
+                        <textarea class="form-control" rows="3"
+                                  th:field="*{note}"
+                                  th:classappend="${#fields.hasErrors('note')} ? ' is-invalid'"
+                                  placeholder="Ví dụ: Áp dụng từ năm học 2024–2025, theo Quyết định số 123/QĐ-ĐHXXX..."></textarea>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('note')}"
+                             th:errors="*{note}"></div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-flex gap-2 justify-content-end pt-2 border-top">
+                        <a th:href="@{/admin/tuition-fees}" class="btn btn-outline-secondary">
+                            <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-1' : 'fa-solid fa-floppy-disk me-1'}"></i>
+                            <span th:text="${mode == 'create' ? 'Thêm mức học phí' : 'Lưu thay đổi'}"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar info -->
+    <div class="col-lg-4">
+        <!-- Preview card -->
+        <div class="fee-preview mb-3">
+            <div class="small text-muted mb-1">
+                <i class="fa-solid fa-eye me-1"></i>Xem trước
+            </div>
+            <div class="fw-bold fs-5 text-primary" id="previewFee">—</div>
+            <div class="small text-muted">₫ / tín chỉ</div>
+            <div class="mt-2 small text-secondary" id="previewNote">
+                Nhập học phí để xem trước
+            </div>
+        </div>
+
+        <!-- Current fee (edit mode) -->
+        <div th:if="${mode == 'edit' and currentFee != null}" class="card border-0 shadow-sm mb-3">
+            <div class="card-body small">
+                <div class="fw-semibold text-muted mb-2">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i>Thông tin hiện tại
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Học phí:</span>
+                    <span class="fw-semibold"
+                          th:text="${#numbers.formatInteger(currentFee.feePerCredit, 1, 'COMMA')} + ' ₫'"></span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Ngày áp dụng:</span>
+                    <span th:text="${#temporals.format(currentFee.effectiveDate, 'dd/MM/yyyy')}"></span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Trạng thái:</span>
+                    <span th:text="${currentFee.statusLabel}"
+                          th:class="${currentFee.status.name() == 'ACTIVE' ? 'text-success fw-semibold' : 'text-danger fw-semibold'}"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help card -->
+        <div class="card border-0 bg-light">
+            <div class="card-body small">
+                <div class="fw-semibold mb-2"><i class="fa-solid fa-circle-info me-1 text-primary"></i>Lưu ý nghiệp vụ</div>
+                <ul class="mb-0 ps-3 text-muted" style="line-height:1.8">
+                    <li>Mỗi chương trình đào tạo chỉ nên có <strong>một</strong> mức học phí đang áp dụng (ACTIVE).</li>
+                    <li>Ngày áp dụng xác định từ khi nào mức học phí có hiệu lực.</li>
+                    <li>Dùng "Ngừng áp dụng" để lưu lịch sử mức học phí cũ.</li>
+                    <li>Học phí tính theo tín chỉ: <code>Tiền = Số tín chỉ × Học phí/TC</code>.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const feeInput    = document.getElementById('feeInput');
+    const previewFee  = document.getElementById('previewFee');
+    const previewNote = document.getElementById('previewNote');
+    const feeFormatted = document.getElementById('feeFormatted');
+
+    function formatVND(value) {
+        if (!value || isNaN(value)) return '—';
+        return new Intl.NumberFormat('vi-VN').format(value);
+    }
+
+    function updatePreview() {
+        const val = parseFloat(feeInput.value);
+        if (!isNaN(val) && val > 0) {
+            const formatted = formatVND(val);
+            previewFee.textContent = formatted;
+            feeFormatted.textContent = '≈ ' + formatted + ' ₫';
+            previewNote.textContent = 'Tổng 15 TC = ' + formatVND(val * 15) + ' ₫';
+        } else {
+            previewFee.textContent = '—';
+            feeFormatted.textContent = '';
+            previewNote.textContent = 'Nhập học phí để xem trước';
+        }
+    }
+
+    if (feeInput) {
+        feeInput.addEventListener('input', updatePreview);
+        updatePreview();
+    }
+})();
+</script>
+</div><!-- /content -->
+</body>
+</html>
