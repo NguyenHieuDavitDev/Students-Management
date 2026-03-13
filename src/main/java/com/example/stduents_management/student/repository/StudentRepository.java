@@ -30,4 +30,8 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
     );
 
     Optional<Student> findByStudentCodeIgnoreCase(String studentCode);
+
+    default Optional<Student> findByStudentCode(String studentCode) {
+        return findByStudentCodeIgnoreCase(studentCode);
+    }
 }

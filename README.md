@@ -182,7 +182,7 @@ Khi truy cập các trang thuộc `/admin/student-grades`, tham số `activeMenu
 - API nội bộ: `/admin/student-grades/api/students-by-class`, `/admin/student-grades/api/grade-components-by-class` để load dữ liệu động theo lớp học phần.
 
 
-#### Các tính năng chi tiết:
+#### 5.7. Các tính năng chi tiết:
 
 - **Danh sách Role**: Xem toàn bộ danh sách các role trong hệ thống
 - **Tìm kiếm**: Tìm kiếm role theo tên hoặc mô tả (hỗ trợ tìm kiếm gần đúng)
@@ -254,7 +254,240 @@ Class `RoleService` cung cấp các phương thức:
 - **RoleController**: Quản lý API endpoints
 - **RoleDashboardController**: Quản lý views HTML cho giao diện web
 
-### 2. Quản Lý Người Dùng (User Management)
+### 6. Quản lý cấu hình học phí (Tuition Fees)
+
+Module **tuition_fees** dùng để cấu hình **mức học phí chuẩn theo tín chỉ** cho từng chương trình đào tạo (CTĐT) theo từng giai đoạn áp dụng (ngày hiệu lực), phục vụ cho việc tính học phí sinh viên.
+
+#### 6.1. Mô hình dữ liệu
+
+- Bảng `tuition_fees`:
+  - `id` (UUID): khóa chính.
+  - `program_id` (UUID): tham chiếu `training_programs.program_id` – CTĐT áp dụng mức học phí này.
+  - `fee_per_credit` (DECIMAL, không phần thập phân): học phí mỗi tín chỉ (VNĐ).
+  - `effective_date` (DATE): ngày bắt đầu áp dụng mức học phí.
+  - `status` (ENUM `ACTIVE` / `INACTIVE`): trạng thái áp dụng.
+  - `note` (NVARCHAR 500): ghi chú (năm học, quyết định, ghi chú nội bộ,…).
+  - `created_at`, `updated_at` (DATETIME): thời điểm tạo và cập nhật.
+
+Ràng buộc & quy tắc:
+
+- Một CTĐT có thể có **nhiều** bản ghi học phí theo thời gian (lịch sử).
+- Tại một thời điểm, hệ thống chỉ nên có **tối đa 1 bản ghi ACTIVE** cho mỗi CTĐT:
+  - Service kiểm tra bằng `existsActiveForProgram(programId, excludeId)`.
+  - Có cờ `autoDeactivatePrevious` để tự động đặt bản ghi ACTIVE cũ về INACTIVE khi thêm/sửa.
+
+#### 6.2. Entity, DTO, Repository, Service
+
+- **Entity**: `tuitionfee.entity.TuitionFee`, `TuitionFeeStatus` (`ACTIVE`, `INACTIVE`).
+- **DTO**:
+  - `TuitionFeeRequest`: dùng cho form tạo/sửa (programId, feePerCredit, effectiveDate, status, note, autoDeactivatePrevious).
+  - `TuitionFeeResponse`: dùng cho list/print/export (mã/tên CTĐT, ngành, mức học phí, ngày áp dụng, trạng thái, ghi chú, thời gian tạo/cập nhật).
+- **Repository**: `TuitionFeeRepository`
+  - `search(keyword, status, pageable)`: tìm kiếm gần đúng theo tên/mã CTĐT, ghi chú, có lọc trạng thái và phân trang.
+  - `findAllOrdered()`: lấy toàn bộ bản ghi đã sắp xếp để phục vụ in ấn / export.
+  - `findActiveByProgram(programId)`: lấy mức học phí ACTIVE mới nhất cho một CTĐT.
+  - `existsActiveForProgram(programId, excludeId)`: kiểm tra xung đột ACTIVE khi thêm/sửa.
+  - `findByProgramId(programId)`: xem lịch sử học phí của một CTĐT.
+- **Service**: `TuitionFeeService`
+  - `search(keyword, status, page, size)`: trả về `Page<TuitionFeeResponse>`.
+  - `getById(id)`: xem chi tiết.
+  - `getAll()`: xuất toàn bộ dùng cho trang in.
+  - `create(request)`, `update(id, request)`, `delete(id)`: CRUD, kèm xử lý xung đột ACTIVE.
+  - `toggleStatus(id)`: bật/tắt trạng thái ACTIVE/INACTIVE với kiểm tra xung đột.
+  - `exportExcel(response)`: xuất danh sách cấu hình học phí ra file `tuition_fees.xlsx` (Apache POI), gồm các cột:
+    - Mã CTĐT, Tên CTĐT, Ngành, Học phí/tín chỉ, Ngày áp dụng, Trạng thái, Ghi chú.
+  - `importExcel(file)`: đọc file Excel với cấu trúc trên, ánh xạ theo:
+    - Mã CTĐT (`programCode`) → tìm `TrainingProgram`.
+    - Học phí/tín chỉ (chuỗi tiền) → parse `BigDecimal`.
+    - Ngày áp dụng: hỗ trợ `dd/MM/yyyy` hoặc `yyyy-MM-dd`.
+    - Trạng thái: chuỗi tiếng Việt (“Đang áp dụng” / “Ngừng áp dụng”) hoặc `ACTIVE` / `INACTIVE`.
+
+Trong import:
+
+- Bỏ qua dòng thiếu Mã CTĐT, Học phí hoặc Ngày áp dụng.
+- Bỏ qua dòng nếu không tìm thấy chương trình đào tạo tương ứng.
+- Bỏ qua dòng nếu dữ liệu tiền hoặc ngày không parse được.
+
+#### 6.3. Giao diện quản trị (Dashboard)
+
+`TuitionFeeDashboardController` (prefix `/admin/tuition-fees`) dùng cho giao diện web:
+
+- `GET /admin/tuition-fees`:
+  - Màn hình danh sách mức học phí, có:
+    - Bộ lọc keyword (mã/tên CTĐT, ghi chú) và trạng thái.
+    - Phân trang, hiển thị:
+      - CTĐT (mã + tên), ngành.
+      - Học phí/tín chỉ, ngày áp dụng, trạng thái, ghi chú.
+    - Thống kê: tổng số bản ghi, số lượng `ACTIVE`, `INACTIVE`.
+    - Nút thao tác:
+      - **Thêm mức học phí** (`/admin/tuition-fees/new`).
+      - **Import Excel**.
+      - **Export Excel**.
+      - **In** (`/admin/tuition-fees/print`).
+      - **Toggle trạng thái** (bật/tắt ACTIVE/INACTIVE).
+
+- `GET /admin/tuition-fees/new` / `POST /admin/tuition-fees`:
+  - Form thêm mới, chọn CTĐT, nhập học phí/tín chỉ, ngày áp dụng, trạng thái, ghi chú.
+  - Tùy chọn “Tự động ngừng áp dụng mức học phí ACTIVE trước đó”.
+
+- `GET /admin/tuition-fees/{id}/edit` / `POST /admin/tuition-fees/{id}`:
+  - Form chỉnh sửa, hiển thị thông tin hiện tại và cho phép cập nhật.
+
+- `POST /admin/tuition-fees/{id}/delete`:
+  - Xóa mức học phí (có thông báo lỗi nếu không tìm thấy).
+
+- `POST /admin/tuition-fees/{id}/toggle-status`:
+  - Chuyển ACTIVE ↔ INACTIVE, có kiểm tra không cho phép tồn tại đồng thời >1 ACTIVE cho cùng CTĐT.
+
+- `GET /admin/tuition-fees/print`:
+  - Trang in `tuition-fees/print.html` với bảng cấu hình học phí.
+
+- `GET /admin/tuition-fees/export`:
+  - Xuất file Excel `tuition_fees.xlsx`.
+
+- `POST /admin/tuition-fees/import`:
+  - Import dữ liệu cấu hình học phí từ Excel.
+
+---
+
+### 7. Quản lý học phí sinh viên (Student Tuition)
+
+Module **student_tuition** dùng để tổng hợp học phí phải thu của sinh viên theo từng **học kỳ**, dựa trên:
+
+- Tổng số tín chỉ sinh viên đã đăng ký.
+- Mức học phí theo tín chỉ từ cấu hình `tuition_fees`.
+- Số tiền thực tế sinh viên đã nộp.
+
+Từ đó hệ thống cho phép theo dõi **công nợ** ở mức chi tiết: từng sinh viên, từng học kỳ; hỗ trợ in ấn và xuất Excel cho phòng tài chính.
+
+#### 7.1. Mô hình dữ liệu
+
+- Bảng `student_tuition` với các cột chính:
+  - `id` (UUID): khóa chính.
+  - `student_id` (UUID): tham chiếu `students.student_id`.
+  - `semester_id` (BIGINT): tham chiếu `semesters.id`.
+  - `total_credits` (INT): tổng số tín chỉ sinh viên đã đăng ký trong học kỳ đó.
+  - `total_amount` (DECIMAL): tổng số tiền học phí phải nộp trong học kỳ.
+  - `amount_paid` (DECIMAL): tổng số tiền sinh viên đã nộp.
+  - `remaining_amount` (DECIMAL): số tiền còn thiếu, tính bằng `total_amount - amount_paid`.
+  - `status` (ENUM `UNPAID` / `PARTIAL` / `PAID`): trạng thái thanh toán.
+  - `created_at`, `updated_at` (DATETIME): ngày tạo và cập nhật.
+
+Ràng buộc:
+
+- Mỗi cặp `(student_id, semester_id)` là **duy nhất** → một sinh viên chỉ có **một bản ghi** học phí cho một học kỳ.
+- `remaining_amount` luôn được cập nhật lại trong `@PrePersist` / `@PreUpdate` dựa trên `total_amount` và `amount_paid`.
+
+#### 7.2. Nghiệp vụ tính học phí
+
+Ý tưởng chuẩn:
+
+- Sau khi sinh viên đăng ký học phần (course registration), hệ thống có thể:
+  - Tính **tổng số tín chỉ** đã đăng ký trong học kỳ.
+  - Lấy **mức học phí/tín chỉ** từ bảng `tuition_fees` đang ở trạng thái ACTIVE, tương ứng với chương trình đào tạo của sinh viên.
+  - Tính toán:  
+    `total_amount = total_credits × fee_per_credit`.
+  - Ghi kết quả vào `student_tuition` (tạo mới hoặc cập nhật).
+
+Module hiện tại tập trung vào việc **lưu trữ, hiển thị và cập nhật** các thông tin tổng hợp này; phần trigger tự động tính toán có thể được bổ sung riêng theo nghiệp vụ thực tế.
+
+#### 7.3. Trạng thái thanh toán
+
+- `UNPAID` (chưa đóng): `amount_paid == 0` hoặc `remaining_amount == total_amount`.
+- `PARTIAL` (đã đóng một phần): `amount_paid > 0` nhưng `remaining_amount > 0`.
+- `PAID` (đã đóng đủ): `remaining_amount <= 0`.
+
+Khi tạo/cập nhật:
+
+- Nếu người dùng **không chọn trạng thái**, service sẽ tự suy ra trạng thái phù hợp dựa trên `total_amount` và `amount_paid`.
+
+#### 7.4. API & Service
+
+- **Entity**: `studenttuition.entity.StudentTuition`, `StudentTuitionStatus`.
+- **DTO**:
+  - `StudentTuitionRequest`: nhận dữ liệu từ form (studentId, semesterId, totalCredits, totalAmount, amountPaid, status).
+  - `StudentTuitionResponse`: trả ra dữ liệu cho list/print/export (mã/tên SV, học kỳ, tổng tiền, đã đóng, còn thiếu, trạng thái, thời gian tạo/cập nhật).
+- **Repository**: `StudentTuitionRepository`
+  - `search(keyword, status, pageable)`: tìm kiếm gần đúng theo MSSV, họ tên, mã học kỳ, tên học kỳ, có lọc trạng thái và phân trang.
+  - `findAllOrdered()`: lấy toàn bộ dữ liệu đã sắp xếp (theo năm học, học kỳ, mã SV) phục vụ export/print.
+- **Service**: `StudentTuitionService`
+  - `search(keyword, status, page, size)`: trả về `Page<StudentTuitionResponse>`.
+  - `getById(id)`: xem chi tiết một bản ghi.
+  - `getAll()`: dùng cho trang in/Excel.
+  - `create(request)`, `update(id, request)`, `delete(id)`: CRUD.
+  - `exportExcel(response)`: xuất toàn bộ dữ liệu ra file `student-tuition.xlsx` (Apache POI).
+  - `importExcel(file)`: đọc file Excel, map theo:
+    - Mã sinh viên (`studentCode`).
+    - Mã học kỳ + Năm học (`semester.code`, `semester.academicYear`).
+    - Tổng tín chỉ, tổng tiền, đã đóng, trạng thái.
+
+Trong quá trình import:
+
+- Bỏ qua các dòng thiếu thông tin bắt buộc (mã SV, mã học kỳ, năm học).
+- Bỏ qua dòng nếu không tìm thấy sinh viên hoặc học kỳ tương ứng.
+- Bỏ qua dòng lỗi parse số hoặc tiền, không làm hỏng cả file.
+
+#### 7.5. Giao diện quản trị (Dashboard)
+
+`StudentTuitionDashboardController` (prefix `/admin/student-tuition`) dùng cho giao diện web (Thymeleaf):
+
+- `GET /admin/student-tuition`:
+  - Màn hình **danh sách học phí sinh viên**, với:
+    - Bộ lọc theo từ khóa (MSSV, họ tên, học kỳ) và trạng thái (`UNPAID`, `PARTIAL`, `PAID`).
+    - Phân trang, hiển thị:
+      - Thông tin sinh viên (mã, họ tên).
+      - Học kỳ (mã + tên).
+      - Tổng tín chỉ, tổng học phí, số tiền đã đóng, số tiền còn thiếu.
+      - Trạng thái thanh toán (badge màu).
+    - Thống kê nhanh: số bản ghi `Chưa đóng`, `Đã đóng một phần`, `Đã đóng đủ`.
+    - Các nút thao tác:
+      - **Thêm bản ghi** (`/admin/student-tuition/new`).
+      - **Import Excel**.
+      - **Export Excel**.
+      - **In**.
+
+- `GET /admin/student-tuition/new`:
+  - Form thêm mới:
+    - Chọn **Sinh viên** từ dropdown.
+    - Chọn **Học kỳ** từ dropdown.
+    - Nhập **Tổng tín chỉ**, **Tổng học phí**, **Số tiền đã đóng**.
+    - Chọn hoặc để trống **Trạng thái thanh toán** (hệ thống tự gợi ý & suy ra).
+  - Có khu vực **xem trước**: tổng tiền, đã đóng, còn thiếu, gợi ý trạng thái.
+
+- `GET /admin/student-tuition/{id}/edit`:
+  - Form chỉnh sửa bản ghi đã có:
+    - Cho phép cập nhật lại các số liệu và trạng thái.
+    - Hiển thị box thông tin hiện tại (dạng read-only) để người dùng dễ đối chiếu.
+
+- `POST /admin/student-tuition/{id}/delete`:
+  - Xóa bản ghi học phí, có confirm phía client.
+
+- `GET /admin/student-tuition/print`:
+  - Trang `student-tuition/print.html`:
+    - Định dạng in A4, hiển thị bảng:
+      - STT, MSSV, Họ tên, Học kỳ, Tổng tín chỉ, Tổng tiền, Đã đóng, Còn thiếu, Trạng thái.
+    - Có phần chữ ký (Người lập, Kế toán trưởng, Hiệu trưởng).
+    - Có nút **In ngay** và tự động in trên trình duyệt.
+
+- `POST /admin/student-tuition/import`:
+  - Import từ Excel, cấu trúc đề xuất:
+    - Mã sinh viên, Mã học kỳ, Năm học, Tổng tín chỉ, Tổng học phí, Đã đóng, Trạng thái.
+
+- `GET /admin/student-tuition/export`:
+  - Xuất toàn bộ dữ liệu học phí sinh viên ra file `student-tuition.xlsx` để thống kê/backup.
+
+#### 7.6. Sidebar & điều hướng
+
+Trong `templates/layout/sidebar.html`, module được đặt trong nhóm **“Học phí”**:
+
+- **Cấu hình học phí** (`/admin/tuition-fees`) – cấu hình mức học phí theo chương trình đào tạo.
+- **Học phí sinh viên** (`/admin/student-tuition`) – tổng hợp công nợ học phí theo sinh viên và học kỳ (icon `fa-receipt`).
+
+Khi truy cập các trang thuộc `/admin/student-tuition`, tham số `activeMenu` được set là `'student-tuition'` để đánh dấu menu đang hoạt động.
+
+---
+
+### 8. Quản Lý Người Dùng (User Management)
 
 Chức năng quản lý người dùng cho phép quản trị viên tạo, sửa, xoá và phân quyền cho người dùng trong hệ thống.
 

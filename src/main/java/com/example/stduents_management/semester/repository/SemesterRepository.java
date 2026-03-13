@@ -27,4 +27,11 @@ public interface SemesterRepository extends JpaRepository<Semester, Long> {
     Page<Semester> searchByCodeOrName(@Param("keyword") String keyword, Pageable pageable);
 
     List<Semester> findByStatus(SemesterStatus status);
+
+    default Optional<Semester> findByCodeAndAcademicYear(String code, String academicYear) {
+        return findAll().stream()
+                .filter(s -> s.getCode().equalsIgnoreCase(code)
+                        && s.getAcademicYear().equalsIgnoreCase(academicYear))
+                .findFirst();
+    }
 }

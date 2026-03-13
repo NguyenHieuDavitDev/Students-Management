@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In bảng học phí sinh viên</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', serif; font-size: 12pt; color: #000; background: #fff; }
+
+        .page { max-width: 1024px; margin: 0 auto; padding: 20mm 15mm; }
+
+        .school-header { text-align: center; margin-bottom: 6mm; }
+        .school-name { font-size: 11pt; font-weight: bold; text-transform: uppercase; }
+        .dept-name { font-size: 10pt; }
+        .doc-title { font-size: 16pt; font-weight: bold; text-transform: uppercase; margin: 8mm 0 2mm; }
+        .doc-subtitle { font-size: 11pt; margin-bottom: 6mm; font-style: italic; }
+        .doc-date { font-size: 10pt; color: #555; margin-bottom: 8mm; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 4mm; font-size: 11pt; }
+        thead th {
+            background: #16a34a; color: #fff;
+            border: 1px solid #166534;
+            padding: 7px 10px; text-align: left; font-weight: bold;
+        }
+        tbody td { border: 1px solid #d1d5db; padding: 6px 10px; vertical-align: middle; }
+        tbody tr:nth-child(even) { background: #ecfdf5; }
+
+        .status-unpaid   { color: #991b1b; font-weight: bold; }
+        .status-partial  { color: #92400e; font-weight: bold; }
+        .status-paid     { color: #166534; font-weight: bold; }
+
+        .money-cell { text-align: right; font-weight: bold; font-family: monospace; }
+
+        .summary { margin-top: 6mm; font-size: 10pt; color: #555; border-top: 1px solid #e5e7eb; padding-top: 4mm; }
+
+        .signatures { display: flex; justify-content: space-between; margin-top: 16mm; font-size: 11pt; }
+        .sig-box { text-align: center; width: 220px; }
+        .sig-title { font-weight: bold; }
+        .sig-line { margin-top: 18mm; border-top: 1px solid #000; padding-top: 4px; font-style: italic; font-size: 10pt; }
+
+        @media print {
+            body { font-size: 11pt; }
+            .no-print { display: none !important; }
+            .page { padding: 10mm; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <!-- Print Button (hidden on print) -->
+    <div class="no-print" style="text-align:right; margin-bottom:10px;">
+        <button onclick="window.print()"
+                style="background:#16a34a;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;">
+            🖨️ In ngay
+        </button>
+        <button onclick="window.close()"
+                style="background:#6b7280;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;margin-left:8px;">
+            Đóng
+        </button>
+    </div>
+
+    <!-- Header -->
+    <div class="school-header">
+        <div class="school-name">TRƯỜNG ĐẠI HỌC [TÊN TRƯỜNG]</div>
+        <div class="dept-name">Phòng Kế hoạch – Tài chính</div>
+        <div class="doc-title">Bảng học phí sinh viên theo học kỳ</div>
+        <div class="doc-subtitle">Tổng hợp số tín chỉ, số tiền phải đóng và tình trạng thanh toán</div>
+        <div class="doc-date">
+            Ngày in: <span th:text="${#temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}"></span>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <table>
+        <thead>
+        <tr>
+            <th style="width:40px">STT</th>
+            <th>Mã SV</th>
+            <th>Họ tên</th>
+            <th>Học kỳ</th>
+            <th style="text-align:center">Tổng TC</th>
+            <th style="text-align:right">Tổng học phí (VNĐ)</th>
+            <th style="text-align:right">Đã đóng (VNĐ)</th>
+            <th style="text-align:right">Còn thiếu (VNĐ)</th>
+            <th style="text-align:center">Trạng thái</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="st, stat : ${items}">
+            <td style="text-align:center" th:text="${stat.count}"></td>
+            <td th:text="${st.studentCode}"></td>
+            <td th:text="${st.studentName}"></td>
+            <td th:text="${st.semesterName + ' (' + st.semesterCode + ')'}"></td>
+            <td style="text-align:center" th:text="${st.totalCredits}"></td>
+            <td class="money-cell"
+                th:text="${#numbers.formatInteger(st.totalAmount, 1, 'COMMA')} + ' ₫'"></td>
+            <td class="money-cell"
+                th:text="${#numbers.formatInteger(st.amountPaid, 1, 'COMMA')} + ' ₫'"></td>
+            <td class="money-cell"
+                th:text="${#numbers.formatInteger(st.remainingAmount, 1, 'COMMA')} + ' ₫'"></td>
+            <td style="text-align:center">
+                <span th:if="${st.status.name() == 'UNPAID'}" class="status-unpaid">Chưa đóng</span>
+                <span th:if="${st.status.name() == 'PARTIAL'}" class="status-partial">Đã đóng một phần</span>
+                <span th:if="${st.status.name() == 'PAID'}" class="status-paid">Đã đóng đủ</span>
+            </td>
+        </tr>
+        <tr th:if="${items.isEmpty()}">
+            <td colspan="9" style="text-align:center;padding:20px;color:#888;">
+                Không có dữ liệu
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Summary -->
+    <div class="summary">
+        <span>Tổng số bản ghi: <strong th:text="${items.size()}"></strong></span>
+        &nbsp;|&nbsp;
+        <span>Chưa đóng:
+            <strong th:text="${unpaidCount}" style="color:#991b1b"></strong>
+        </span>
+        &nbsp;|&nbsp;
+        <span>Đã đóng một phần:
+            <strong th:text="${partialCount}" style="color:#92400e"></strong>
+        </span>
+        &nbsp;|&nbsp;
+        <span>Đã đóng đủ:
+            <strong th:text="${paidCount}" style="color:#166534"></strong>
+        </span>
+    </div>
+
+    <!-- Signatures -->
+    <div class="signatures">
+        <div class="sig-box">
+            <div class="sig-title">Người lập</div>
+            <div class="sig-line">(Ký, ghi rõ họ tên)</div>
+        </div>
+        <div class="sig-box">
+            <div class="sig-title">Kế toán trưởng</div>
+            <div class="sig-line">(Ký, ghi rõ họ tên)</div>
+        </div>
+        <div class="sig-box">
+            <div class="sig-title">Hiệu trưởng</div>
+            <div class="sig-line">(Ký, đóng dấu)</div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
+
