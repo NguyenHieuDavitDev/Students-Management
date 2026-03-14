@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In lịch sử thanh toán học phí</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', serif; font-size: 12pt; color: #000; background: #fff; }
+        .page { max-width: 1024px; margin: 0 auto; padding: 20mm 15mm; }
+        .school-header { text-align: center; margin-bottom: 6mm; }
+        .school-name { font-size: 11pt; font-weight: bold; text-transform: uppercase; }
+        .dept-name { font-size: 10pt; }
+        .doc-title { font-size: 16pt; font-weight: bold; text-transform: uppercase; margin: 8mm 0 2mm; }
+        .doc-subtitle { font-size: 11pt; margin-bottom: 6mm; font-style: italic; }
+        .doc-date { font-size: 10pt; color: #555; margin-bottom: 8mm; }
+        table { width: 100%; border-collapse: collapse; margin-top: 4mm; font-size: 11pt; }
+        thead th {
+            background: #ea580c; color: #fff;
+            border: 1px solid #c2410c;
+            padding: 7px 10px; text-align: left; font-weight: bold;
+        }
+        tbody td { border: 1px solid #d1d5db; padding: 6px 10px; vertical-align: middle; }
+        tbody tr:nth-child(even) { background: #fff7ed; }
+        .money-cell { text-align: right; font-weight: bold; font-family: monospace; }
+        .summary { margin-top: 6mm; font-size: 10pt; color: #555; border-top: 1px solid #e5e7eb; padding-top: 4mm; }
+        .no-print { margin-bottom: 10px; text-align: right; }
+        @media print { .no-print { display: none !important; } .page { padding: 10mm; } }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="no-print">
+        <button onclick="window.print()" style="background:#ea580c;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;">In ngay</button>
+        <button onclick="window.close()" style="background:#6b7280;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;margin-left:8px;">Đóng</button>
+    </div>
+
+    <div class="school-header">
+        <div class="school-name">TRƯỜNG ĐẠI HỌC [TÊN TRƯỜNG]</div>
+        <div class="dept-name">Phòng Kế hoạch – Tài chính</div>
+        <div class="doc-title">Lịch sử thanh toán học phí</div>
+        <div class="doc-subtitle">Ghi nhận từng lần thanh toán của sinh viên</div>
+        <div class="doc-date">Ngày in: <span th:text="${#temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}"></span></div>
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th style="width:40px">STT</th>
+            <th>Mã SV</th>
+            <th>Họ tên</th>
+            <th>Học kỳ</th>
+            <th style="text-align:right">Số tiền (VNĐ)</th>
+            <th>Phương thức</th>
+            <th>Mã GD</th>
+            <th style="text-align:center">Ngày thanh toán</th>
+            <th style="text-align:center">Trạng thái</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="p, stat : ${items}">
+            <td style="text-align:center" th:text="${stat.count}"></td>
+            <td th:text="${p.studentCode}"></td>
+            <td th:text="${p.studentName}"></td>
+            <td th:text="${p.semesterName + ' (' + p.semesterCode + ')'}"></td>
+            <td class="money-cell" th:text="${#numbers.formatInteger(p.amount, 1, 'COMMA')} + ' ₫'"></td>
+            <td th:text="${p.paymentMethodLabel}"></td>
+            <td th:text="${p.transactionCode ?: '—'}"></td>
+            <td style="text-align:center" th:text="${#temporals.format(p.paymentDate, 'dd/MM/yyyy HH:mm')}"></td>
+            <td style="text-align:center" th:text="${p.statusLabel}"></td>
+        </tr>
+        <tr th:if="${items.isEmpty()}">
+            <td colspan="9" style="text-align:center;padding:20px;color:#888;">Không có dữ liệu</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="summary">
+        Tổng số giao dịch: <strong th:text="${items.size()}"></strong>
+        &nbsp;|&nbsp; Đã hoàn thành: <strong th:text="${completedCount}" style="color:#166534"></strong>
+        &nbsp;|&nbsp; Chờ xử lý: <strong th:text="${pendingCount}" style="color:#92400e"></strong>
+        &nbsp;|&nbsp; Đã hủy: <strong th:text="${cancelledCount}" style="color:#991b1b"></strong>
+    </div>
+</div>
+</body>
+</html>

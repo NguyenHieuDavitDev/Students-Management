@@ -4,6 +4,7 @@ import com.example.stduents_management.semester.entity.Semester;
 import com.example.stduents_management.semester.repository.SemesterRepository;
 import com.example.stduents_management.student.entity.Student;
 import com.example.stduents_management.tuitionfee.entity.TuitionFee;
+import com.example.stduents_management.tuitionfee.entity.TuitionFeeStatus;
 import com.example.stduents_management.tuitionfee.repository.TuitionFeeRepository;
 import com.example.stduents_management.student.repository.StudentRepository;
 import com.example.stduents_management.studenttuition.dto.StudentTuitionRequest;
@@ -336,28 +337,34 @@ public class StudentTuitionService {
             return BigDecimal.ZERO;
         }
 
-        var clazz = student.getClazz();
-        if (clazz == null || clazz.getMajor() == null) {
+        BigDecimal feePerCredit = findActiveFeePerCreditForStudent(student);
+        if (feePerCredit == null) {
             return BigDecimal.ZERO;
         }
 
-        var major = clazz.getMajor();
+        return feePerCredit.multiply(BigDecimal.valueOf(totalCredits.longValue()));
+    }
 
-        // Tìm tất cả chương trình của ngành này, chọn chương trình đang ACTIVE nếu có
-        List<TuitionFee> allFees = tuitionFeeRepository.findAllOrdered();
-        TuitionFee activeFee = allFees.stream()
-                .filter(tf -> tf.getTrainingProgram() != null
+    /**
+     * Lấy học phí/tín chỉ đang áp dụng (ACTIVE) cho sinh viên dựa theo ngành (major) của lớp.
+     * Do `tuitionFeeRepository.findAllOrdered()` đã sắp theo `effectiveDate DESC`, phần tử đầu tiên
+     * trong nhóm ACTIVE sẽ là mức mới nhất.
+     */
+    public BigDecimal findActiveFeePerCreditForStudent(Student student) {
+        if (student == null || student.getClazz() == null || student.getClazz().getMajor() == null) {
+            return null;
+        }
+        var majorId = student.getClazz().getMajor().getMajorId();
+
+        return tuitionFeeRepository.findAllOrdered().stream()
+                .filter(tf -> tf.getStatus() == TuitionFeeStatus.ACTIVE
+                        && tf.getTrainingProgram() != null
                         && tf.getTrainingProgram().getMajor() != null
-                        && tf.getTrainingProgram().getMajor().getMajorId().equals(major.getMajorId())
-                        && tf.getStatus() == com.example.stduents_management.tuitionfee.entity.TuitionFeeStatus.ACTIVE)
+                        && tf.getTrainingProgram().getMajor().getMajorId().equals(majorId)
+                        && tf.getFeePerCredit() != null)
+                .map(TuitionFee::getFeePerCredit)
                 .findFirst()
                 .orElse(null);
-
-        if (activeFee == null || activeFee.getFeePerCredit() == null) {
-            return BigDecimal.ZERO;
-        }
-
-        return activeFee.getFeePerCredit().multiply(BigDecimal.valueOf(totalCredits.longValue()));
     }
 
     public StudentTuitionResponse toResponse(StudentTuition st) {

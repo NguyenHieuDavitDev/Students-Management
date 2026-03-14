@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        ${mode == 'create' ? 'Thêm giao dịch thanh toán' : 'Chỉnh sửa giao dịch'},
+        ${mode == 'create' ? 'Thêm giao dịch thanh toán' : 'Chỉnh sửa giao dịch thanh toán'},
+        'Lịch sử thanh toán học phí',
+        'payments',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+<style>
+.pm-form-card { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.pm-form-header {
+    background: linear-gradient(135deg,#ea580c 0%,#f97316 100%);
+    color:#fff; border-radius:12px 12px 0 0;
+    padding:14px 20px; font-weight:600; font-size:1rem;
+}
+.field-label { font-weight:600; font-size:.85rem; color:#374151; margin-bottom:4px; }
+.required-star { color:#ef4444; }
+</style>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a th:href="@{/admin/payments}">Lịch sử thanh toán</a></li>
+        <li class="breadcrumb-item active" th:text="${mode == 'create' ? 'Thêm mới' : 'Chỉnh sửa'}"></li>
+    </ol>
+</nav>
+
+<div th:if="${globalError}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${globalError}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card pm-form-card">
+            <div class="pm-form-header">
+                <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-2' : 'fa-solid fa-pen-to-square me-2'}"></i>
+                <span th:text="${mode == 'create' ? 'Thêm giao dịch thanh toán' : 'Cập nhật giao dịch'}"></span>
+            </div>
+            <div class="card-body p-4">
+                <form th:action="${mode == 'create' ? '/admin/payments' : '/admin/payments/' + paymentId}"
+                      method="post" th:object="${paymentRequest}" novalidate>
+
+                    <div class="mb-4">
+                        <label class="field-label">Học phí học kỳ (sinh viên + học kỳ) <span class="required-star">*</span></label>
+                        <select class="form-select" th:field="*{studentTuitionId}"
+                                th:classappend="${#fields.hasErrors('studentTuitionId')} ? ' is-invalid'">
+                            <option value="">-- Chọn sinh viên và học kỳ --</option>
+                            <option th:each="t : ${studentTuitions}"
+                                    th:value="${t.id()}"
+                                    th:text="${t.studentCode() + ' - ' + t.studentName() + ' | ' + t.semesterCode() + ' - ' + t.semesterName()}"></option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('studentTuitionId')}"
+                             th:errors="*{studentTuitionId}"></div>
+                        <div class="form-text small text-muted mt-1" id="tuitionHint">
+                            Chọn bản ghi học phí học kỳ để xem tổng phải thu và còn thiếu (tính từ cấu hình `tuition_fees`).
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="field-label">Số tiền (VNĐ) <span class="required-star">*</span></label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" th:field="*{amount}"
+                                       th:classappend="${#fields.hasErrors('amount')} ? ' is-invalid'"
+                                       min="1" step="1000">
+                                <span class="input-group-text">₫</span>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('amount')}"
+                                     th:errors="*{amount}"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="field-label">Phương thức thanh toán <span class="required-star">*</span></label>
+                            <select class="form-select" th:field="*{paymentMethod}"
+                                    th:classappend="${#fields.hasErrors('paymentMethod')} ? ' is-invalid'">
+                                <option value="">-- Chọn phương thức --</option>
+                                <option th:each="m : ${paymentMethods}" th:value="${m.name()}" th:text="${m.label}"></option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('paymentMethod')}"
+                                 th:errors="*{paymentMethod}"></div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="field-label">Mã giao dịch</label>
+                            <input type="text" class="form-control" th:field="*{transactionCode}"
+                                   placeholder="Ví dụ: TXN001, mã chuyển khoản...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="field-label">Ngày thanh toán <span class="required-star">*</span></label>
+                            <input type="datetime-local" class="form-control" th:field="*{paymentDate}"
+                                   th:classappend="${#fields.hasErrors('paymentDate')} ? ' is-invalid'">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('paymentDate')}"
+                                 th:errors="*{paymentDate}"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="field-label">Trạng thái <span class="required-star">*</span></label>
+                        <div class="d-flex gap-3 flex-wrap">
+                            <div th:each="s : ${statuses}" class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" th:field="*{status}"
+                                       th:id="${'status_' + s.name()}" th:value="${s.name()}">
+                                <label class="form-check-label" th:for="${'status_' + s.name()}" th:text="${s.label}"></label>
+                            </div>
+                        </div>
+                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('status')}"
+                             th:errors="*{status}"></div>
+                        <div class="form-text small text-muted mt-1">
+                            Giao dịch <strong>Đã hoàn thành</strong> sẽ cộng vào số tiền đã đóng của học phí học kỳ; khi đủ số tiền, trạng thái học phí chuyển sang "Đã đóng đủ".
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end pt-2 border-top">
+                        <a th:href="@{/admin/payments}" class="btn btn-outline-secondary">
+                            <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
+                        </a>
+                        <button type="submit" class="btn btn-warning px-4 text-dark">
+                            <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-1' : 'fa-solid fa-floppy-disk me-1'}"></i>
+                            <span th:text="${mode == 'create' ? 'Thêm giao dịch' : 'Lưu thay đổi'}"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div th:if="${mode == 'edit' and currentItem != null}" class="card border-0 shadow-sm mb-3 small">
+            <div class="card-body">
+                <div class="fw-semibold text-muted mb-2">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i>Thông tin hiện tại
+                </div>
+                <div class="mb-1"><span class="text-muted">Sinh viên:</span>
+                    <span class="fw-semibold" th:text="${currentItem.studentName}"></span>
+                    <span class="text-muted small" th:text="' (' + ${currentItem.studentCode} + ')'"></span>
+                </div>
+                <div class="mb-1"><span class="text-muted">Học kỳ:</span>
+                    <span th:text="${currentItem.semesterName}"></span>
+                </div>
+                <div class="mb-1"><span class="text-muted">Số tiền:</span>
+                    <span class="fw-semibold" th:text="${#numbers.formatInteger(currentItem.amount(), 1, 'COMMA')} + ' ₫'"></span>
+                </div>
+                <div class="mb-1"><span class="text-muted">Phương thức:</span>
+                    <span th:text="${currentItem.paymentMethodLabel}"></span>
+                </div>
+                <div class="mb-1"><span class="text-muted">Ngày:</span>
+                    <span th:text="${#temporals.format(currentItem.paymentDate(), 'dd/MM/yyyy HH:mm')}"></span>
+                </div>
+                <div><span class="text-muted">Trạng thái:</span>
+                    <span th:text="${currentItem.statusLabel}"></span>
+                </div>
+            </div>
+        </div>
+        <div class="card border-0 bg-light small">
+            <div class="card-body">
+                <div class="fw-semibold mb-2"><i class="fa-solid fa-circle-info me-1 text-warning"></i>Lưu ý</div>
+                <ul class="mb-0 ps-3 text-muted" style="line-height:1.8">
+                    <li>Mỗi lần thanh toán (chuyển khoản, tiền mặt, ví điện tử) ghi một giao dịch.</li>
+                    <li>Một sinh viên có thể thanh toán nhiều lần cho cùng một học kỳ.</li>
+                    <li>Sau khi đóng đủ, trạng thái học phí học kỳ tự chuyển sang <strong>Đã đóng đủ</strong>.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+(function () {
+    const baseUrl = /*[[@{/admin/payments}]]*/ '/admin/payments';
+    const tuitionSelect = document.querySelector('select[name="studentTuitionId"]');
+    const amountInput = document.querySelector('input[name="amount"]');
+    const hint = document.getElementById('tuitionHint');
+
+    function fmt(v) {
+        if (v === null || v === undefined || v === '') return '—';
+        const n = Number(v);
+        if (isNaN(n)) return String(v);
+        return new Intl.NumberFormat('vi-VN').format(n);
+    }
+
+    async function loadSummary() {
+        const id = tuitionSelect && tuitionSelect.value ? tuitionSelect.value : null;
+        if (!id) {
+            hint.textContent = 'Chọn bản ghi học phí học kỳ để xem tổng phải thu và còn thiếu (tính từ cấu hình tuition_fees).';
+            return;
+        }
+        try {
+            const resp = await fetch(baseUrl + '/api/tuition-summary?studentTuitionId=' + encodeURIComponent(id));
+            const data = await resp.json();
+            const feePerCredit = data.feePerCredit;
+            const totalCredits = data.totalCredits;
+            const totalAmount = data.totalAmount;
+            const amountPaid = data.amountPaid;
+            const remaining = data.remainingAmount;
+
+            const feeText = feePerCredit ? (fmt(feePerCredit) + ' ₫/TC') : '—';
+            hint.innerHTML =
+                    'Học phí/TC (ACTIVE): <strong>' + feeText + '</strong> | ' +
+                    'Tổng TC: <strong>' + (totalCredits ?? '—') + '</strong> | ' +
+                    'Phải thu: <strong>' + fmt(totalAmount) + ' ₫</strong> | ' +
+                    'Đã đóng: <strong>' + fmt(amountPaid) + ' ₫</strong> | ' +
+                    'Còn thiếu: <strong>' + fmt(remaining) + ' ₫</strong>';
+
+            // Nếu người dùng chưa nhập amount → tự gợi ý = còn thiếu
+            if (amountInput && (!amountInput.value || Number(amountInput.value) === 0) && remaining != null) {
+                const r = Number(remaining);
+                if (!isNaN(r) && r > 0) {
+                    amountInput.value = r;
+                }
+            }
+        } catch (e) {
+            hint.textContent = 'Không tải được tóm tắt học phí học kỳ.';
+        }
+    }
+
+    if (tuitionSelect) {
+        tuitionSelect.addEventListener('change', loadSummary);
+        loadSummary();
+    }
+})();
+</script>
+</div>
+</body>
+</html>
