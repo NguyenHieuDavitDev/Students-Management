@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -88,7 +90,7 @@ public class PaymentDashboardController {
         }
         try {
             paymentService.create(req);
-            redirect.addFlashAttribute("success", "Thêm giao dịch thanh toán thành công");
+            buildProgressFlashMessage(req.getStudentTuitionId(), redirect, "Thêm giao dịch thanh toán thành công. ");
         } catch (Exception e) {
             model.addAttribute("mode", "create");
             loadSelectData(model);
@@ -133,7 +135,7 @@ public class PaymentDashboardController {
         }
         try {
             paymentService.update(id, req);
-            redirect.addFlashAttribute("success", "Cập nhật giao dịch thanh toán thành công");
+            buildProgressFlashMessage(req.getStudentTuitionId(), redirect, "Cập nhật giao dịch thành công. ");
         } catch (Exception e) {
             model.addAttribute("mode", "edit");
             model.addAttribute("paymentId", id);
@@ -205,11 +207,19 @@ public class PaymentDashboardController {
             if (tuition != null) {
                 feePerCredit = studentTuitionService.findActiveFeePerCreditForStudent(tuition.getStudent());
             }
+            BigDecimal total = st.totalAmount() != null ? st.totalAmount() : BigDecimal.ZERO;
+            BigDecimal paid = st.amountPaid() != null ? st.amountPaid() : BigDecimal.ZERO;
+            int percent = total.compareTo(BigDecimal.ZERO) > 0
+                    ? paid.multiply(BigDecimal.valueOf(100)).divide(total, 1, RoundingMode.HALF_UP).intValue()
+                    : 0;
+            if (percent > 100) percent = 100;
+
             result.put("totalCredits", st.totalCredits());
-            result.put("totalAmount", st.totalAmount());
-            result.put("amountPaid", st.amountPaid());
+            result.put("totalAmount", total);
+            result.put("amountPaid", paid);
             result.put("remainingAmount", st.remainingAmount());
             result.put("feePerCredit", feePerCredit);
+            result.put("percent", percent);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             result.put("totalCredits", 0);
@@ -217,7 +227,36 @@ public class PaymentDashboardController {
             result.put("amountPaid", 0);
             result.put("remainingAmount", 0);
             result.put("feePerCredit", null);
+            result.put("percent", 0);
             return ResponseEntity.badRequest().body(result);
+        }
+    }
+
+    /**
+     * Sau khi nộp học phí, thông báo tiến độ theo % (đã đóng / tổng).
+     * Nếu đủ 100% thì thông báo "Đã đóng đủ học phí học kỳ (100%)".
+     */
+    private void buildProgressFlashMessage(UUID studentTuitionId, RedirectAttributes redirect, String prefix) {
+        try {
+            StudentTuitionResponse st = studentTuitionService.getById(studentTuitionId);
+            BigDecimal total = st.totalAmount() != null ? st.totalAmount() : BigDecimal.ZERO;
+            BigDecimal paid = st.amountPaid() != null ? st.amountPaid() : BigDecimal.ZERO;
+            int percent = total.compareTo(BigDecimal.ZERO) > 0
+                    ? paid.multiply(BigDecimal.valueOf(100)).divide(total, 1, RoundingMode.HALF_UP).intValue()
+                    : 0;
+            if (percent > 100) percent = 100;
+
+            String msg;
+            if (percent >= 100) {
+                msg = prefix + "Đã đóng đủ học phí học kỳ (100%).";
+            } else {
+                String paidStr = String.format("%,d", paid.longValue());
+                String totalStr = String.format("%,d", total.longValue());
+                msg = prefix + "Tiến độ: " + percent + "% (đã đóng " + paidStr + " / " + totalStr + " ₫).";
+            }
+            redirect.addFlashAttribute("success", msg);
+        } catch (Exception e) {
+            redirect.addFlashAttribute("success", prefix + "Giao dịch đã được ghi nhận.");
         }
     }
 

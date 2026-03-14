@@ -482,12 +482,96 @@ Trong `templates/layout/sidebar.html`, module được đặt trong nhóm **“H
 
 - **Cấu hình học phí** (`/admin/tuition-fees`) – cấu hình mức học phí theo chương trình đào tạo.
 - **Học phí sinh viên** (`/admin/student-tuition`) – tổng hợp công nợ học phí theo sinh viên và học kỳ (icon `fa-receipt`).
+- **Lịch sử thanh toán** (`/admin/payments`) – ghi nhận từng lần nộp học phí, tiến độ % (icon `fa-wallet`).
 
 Khi truy cập các trang thuộc `/admin/student-tuition`, tham số `activeMenu` được set là `'student-tuition'` để đánh dấu menu đang hoạt động.
 
 ---
 
-### 8. Quản Lý Người Dùng (User Management)
+### 8. Quản lý lịch sử thanh toán học phí (Payments)
+
+Module **payments** (bảng `payments`) dùng để **ghi lại từng lần thanh toán học phí** của sinh viên. Mỗi lần nộp tiền (chuyển khoản, tiền mặt, ví điện tử, thanh toán trực tuyến) được lưu một giao dịch; một sinh viên có thể nộp **nhiều lần** cho cùng một học kỳ. Nghiệp vụ gắn chặt với **học phí sinh viên** (`student_tuition`) và **cấu hình học phí** (`tuition_fees`): tổng phải thu lấy từ học phí học kỳ (có thể tính từ `tuition_fees` theo số tín chỉ); sau mỗi giao dịch **Đã hoàn thành**, hệ thống cập nhật lại `amount_paid` và trạng thái học phí (Chưa đóng / Đã đóng một phần / **Đã đóng đủ**).
+
+#### Mô tả tính năng
+
+| Tính năng | Mô tả |
+|-----------|--------|
+| **Ghi nhận thanh toán** | Thêm từng giao dịch nộp học phí: chọn học phí học kỳ (sinh viên + học kỳ), nhập số tiền, phương thức (Chuyển khoản / Tiền mặt / Ví điện tử / Thanh toán trực tuyến), mã giao dịch, ngày thanh toán và trạng thái (Chờ xử lý / Đã hoàn thành / Đã hủy). Chỉ giao dịch **Đã hoàn thành** mới được cộng vào tổng đã đóng của học kỳ đó. |
+| **Cập nhật & xóa giao dịch** | Sửa hoặc xóa giao dịch đã tạo; sau mỗi thao tác hệ thống tự tính lại tổng đã đóng và trạng thái học phí (Chưa đóng / Đã đóng một phần / Đã đóng đủ). |
+| **Tiến độ đóng học phí (%)** | Trên form thêm/sửa: khi chọn học phí học kỳ, hiển thị thanh tiến độ % (đã đóng / tổng phải thu). Khi nhập số tiền nộp, hiển thị dự kiến sau khi nộp (ví dụ: "Sau khi nộp lần này: 100% – Đã đóng đủ"). Sau khi lưu, thông báo tiến độ % hoặc "Đã đóng đủ học phí học kỳ (100%)." |
+| **Tìm kiếm & lọc** | Tìm kiếm gần đúng theo mã sinh viên, họ tên, mã giao dịch, mã/tên học kỳ; lọc theo trạng thái giao dịch (Đã hoàn thành, Chờ xử lý, Đã hủy). |
+| **Phân trang** | Danh sách giao dịch có phân trang (mặc định 20 bản ghi/trang), kèm thống kê nhanh theo trạng thái. |
+| **Import Excel** | Nhập hàng loạt lịch sử thanh toán từ file Excel (mã SV, mã học kỳ, năm học, số tiền, phương thức, mã giao dịch, ngày thanh toán, trạng thái). Sau import, hệ thống tự cập nhật tổng đã đóng và trạng thái học phí cho từng học kỳ. |
+| **Export Excel** | Xuất toàn bộ lịch sử thanh toán ra file `payments.xlsx` để báo cáo hoặc lưu trữ. |
+| **In danh sách** | Trang in định dạng A4 với bảng giao dịch (STT, sinh viên, học kỳ, số tiền, phương thức, mã GD, ngày, trạng thái), có phần chữ ký. |
+| **Tự động tính tổng học phí** | Nếu bản ghi học phí học kỳ chưa có tổng tiền (hoặc bằng 0), khi tạo/sửa thanh toán hệ thống tự lấy mức học phí/tín chỉ từ cấu hình học phí (ACTIVE theo ngành) và tính lại tổng phải thu theo số tín chỉ. |
+
+#### 8.1. Mô hình dữ liệu
+
+- Bảng `payments`:
+  - `id` (BIGINT, IDENTITY): ID giao dịch.
+  - `student_tuition_id` (UUID, FK → `student_tuition.id`): liên kết học phí học kỳ.
+  - `amount` (DECIMAL): số tiền thanh toán.
+  - `payment_method` (VARCHAR): phương thức thanh toán.
+  - `transaction_code` (VARCHAR, nullable): mã giao dịch (mã chuyển khoản, mã giao dịch ví…).
+  - `payment_date` (TIMESTAMP): ngày thanh toán.
+  - `status` (VARCHAR): trạng thái giao dịch.
+  - `created_at`, `updated_at`: thời điểm tạo và cập nhật.
+
+**Phương thức thanh toán** (`PaymentMethod`): `BANK_TRANSFER` (Chuyển khoản), `CASH` (Tiền mặt), `E_WALLET` (Ví điện tử), `ONLINE_PAYMENT` (Thanh toán trực tuyến).
+
+**Trạng thái giao dịch** (`PaymentStatus`): `PENDING` (Chờ xử lý), `COMPLETED` (Đã hoàn thành), `CANCELLED` (Đã hủy). Chỉ giao dịch **COMPLETED** mới được cộng vào `student_tuition.amount_paid`.
+
+#### 8.2. Nghiệp vụ liên quan tuition_fees và student_tuition
+
+- **Khi tạo/sửa thanh toán**: Nếu bản ghi học phí học kỳ (`student_tuition`) chưa có `total_amount` hoặc bằng 0, service tự **tính lại** từ cấu hình học phí (`tuition_fees`): lấy mức học phí/tín chỉ ACTIVE theo ngành của sinh viên, nhân với tổng tín chỉ.
+- **Sau mỗi thêm/sửa/xóa giao dịch**: Hệ thống **tính lại** tổng tiền đã đóng = tổng các payment có `status = COMPLETED`, cập nhật `student_tuition.amount_paid`, `remaining_amount`, và trạng thái (UNPAID / PARTIAL / PAID). Nếu `remaining_amount` âm (trả dư) thì được cap về 0.
+
+#### 8.3. Tính năng chính
+
+- **CRUD**: Thêm, xem, sửa, xóa giao dịch thanh toán.
+- **Tìm kiếm gần đúng**: Theo mã SV, họ tên, mã giao dịch, mã/tên học kỳ.
+- **Phân trang**: Danh sách có phân trang (mặc định 20/trang), lọc theo trạng thái (COMPLETED, PENDING, CANCELLED).
+- **Import Excel**: Nhập lịch sử thanh toán từ file (Mã SV, Mã học kỳ, Năm học, Số tiền, Phương thức, Mã GD, Ngày thanh toán, Trạng thái). Sau import tự cập nhật lại `student_tuition` cho các học kỳ có giao dịch mới.
+- **Export Excel**: Xuất toàn bộ lịch sử ra file `payments.xlsx`.
+- **Print**: Trang in danh sách giao dịch (định dạng A4).
+- **Tiến độ đóng học phí theo %**:
+  - Trên form thêm/sửa giao dịch: Khi chọn **Học phí học kỳ**, hiển thị **thanh tiến độ %** (đã đóng / tổng phải thu). Khi nhập số tiền nộp, hiển thị **dự kiến sau khi nộp** (ví dụ: "Sau khi nộp lần này: 100% – Đã đóng đủ").
+  - Sau khi ghi nhận thanh toán (thêm hoặc sửa): Flash message thông báo **tiến độ theo %** (ví dụ: "Tiến độ: 75% (đã đóng 3.300.000 / 4.400.000 ₫)"). Nếu đã đóng đủ: **"Đã đóng đủ học phí học kỳ (100%)."**
+
+#### 8.4. API & Service
+
+- **Entity**: `payment.entity.Payment`, `PaymentMethod`, `PaymentStatus`.
+- **DTO**: `PaymentRequest` (studentTuitionId, amount, paymentMethod, transactionCode, paymentDate, status), `PaymentResponse` (đầy đủ thông tin giao dịch + sinh viên, học kỳ).
+- **Repository**: `PaymentRepository`
+  - `search(keyword, status, pageable)`: tìm theo mã SV, họ tên, mã giao dịch, học kỳ.
+  - `findAllOrdered()`: dùng cho in/export.
+  - `findByStudentTuition_IdOrderByPaymentDateDesc(uuid)`: lấy danh sách giao dịch theo học phí học kỳ (để tính lại `amount_paid`).
+- **Service**: `PaymentService`
+  - `search`, `getById`, `getAll`, `create`, `update`, `delete`.
+  - `exportExcel(response)`, `importExcel(file)`.
+  - Nội bộ: `recalculateStudentTuition(uuid)` (cập nhật amount_paid, remaining, status của `student_tuition`), `ensureStudentTuitionTotalAmount(tuition)` (tự tính tổng học phí từ `tuition_fees` nếu chưa có).
+
+#### 8.5. Giao diện quản trị (Dashboard)
+
+`PaymentDashboardController` (prefix `/admin/payments`):
+
+- `GET /admin/payments`: Danh sách giao dịch, bộ lọc (keyword, trạng thái), phân trang, thống kê (Đã hoàn thành, Chờ xử lý, Đã hủy). Nút: Thêm giao dịch, Import, Export, In.
+- `GET /admin/payments/new`, `POST /admin/payments`: Form thêm giao dịch – chọn **Học phí học kỳ** (sinh viên + học kỳ), nhập số tiền, phương thức, mã giao dịch, ngày, trạng thái. Hiển thị **thanh tiến độ %** và dự kiến sau khi nộp.
+- `GET /admin/payments/{id}/edit`, `POST /admin/payments/{id}`: Form sửa giao dịch; sau lưu hiển thị thông báo tiến độ %.
+- `POST /admin/payments/{id}/delete`: Xóa giao dịch (có xác nhận); tự cập nhật lại học phí học kỳ.
+- `GET /admin/payments/print`: Trang in lịch sử thanh toán.
+- `GET /admin/payments/export`: Tải file `payments.xlsx`.
+- `POST /admin/payments/import`: Upload Excel.
+- **API nội bộ**: `GET /admin/payments/api/tuition-summary?studentTuitionId=...` – trả về `totalAmount`, `amountPaid`, `remainingAmount`, `feePerCredit`, `percent` (tiến độ %) để form vẽ thanh tiến độ và gợi ý số tiền nộp.
+
+#### 8.6. Sidebar
+
+Trong nhóm **“Học phí”**: mục **Lịch sử thanh toán** (`/admin/payments`, icon `fa-wallet`). `activeMenu = 'payments'` khi truy cập các trang thuộc `/admin/payments`.
+
+---
+
+### 9. Quản Lý Người Dùng (User Management)
 
 Chức năng quản lý người dùng cho phép quản trị viên tạo, sửa, xoá và phân quyền cho người dùng trong hệ thống.
 
