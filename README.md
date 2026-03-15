@@ -571,6 +571,50 @@ Trong nhóm **“Học phí”**: mục **Lịch sử thanh toán** (`/admin/pay
 
 ---
 
+### 8.1. Quản lý loại kỳ thi (Exam Types)
+
+Module **Loại kỳ thi** quản lý danh mục các loại kỳ thi của học phần trong hệ thống (ví dụ: Giữa kỳ, Cuối kỳ, Thi lại, Cải thiện). Một học phần có thể có nhiều loại kỳ thi khác nhau; bảng này chuẩn hóa danh mục để dễ quản lý và tái sử dụng trong các module điểm, đăng ký thi, lịch thi.
+
+#### 8.1.1. Bảng dữ liệu `exam_types`
+
+| Cột          | Kiểu dữ liệu   | Ý nghĩa                |
+|-------------|----------------|------------------------|
+| `id`        | UUID (uniqueidentifier) | Khóa chính, tự sinh |
+| `name`      | NVARCHAR(200)   | Tên loại kỳ thi (hỗ trợ tiếng Việt) |
+| `description` | NVARCHAR(MAX) | Mô tả (hỗ trợ tiếng Việt) |
+| `created_at` | TIMESTAMP     | Ngày tạo               |
+| `updated_at` | TIMESTAMP     | Ngày cập nhật          |
+
+- **NVARCHAR**: Dùng cho các cột chứa nội dung tiếng Việt (Unicode) để hiển thị và tìm kiếm đúng.
+- **UUID**: Khóa chính dạng UUID, thống nhất với các bảng khác trong hệ thống.
+
+#### 8.1.2. Tính năng
+
+- **CRUD**: Thêm, xem, sửa, xóa loại kỳ thi.
+- **Phân trang**: Danh sách có phân trang, tùy chọn 10 / 20 / 30 / 40 / 50 bản ghi mỗi trang.
+- **Tìm kiếm gần đúng**: Tìm theo **tên** và **mô tả** (không phân biệt hoa thường).
+- **Bộ lọc**: Lọc theo **từ ngày** và **đến ngày** (theo `created_at`).
+- **Import Excel**: Upload file `.xlsx`; dữ liệu từ hàng 3, cột 1 = Tên loại kỳ thi, cột 2 = Mô tả. Có thể tải file mẫu từ chức năng Export.
+- **Export Excel**: Xuất toàn bộ danh mục ra file `exam_types.xlsx` (ID, Tên, Mô tả, Ngày tạo).
+- **Print**: Trang in danh mục loại kỳ thi (có thể áp dụng đúng bộ lọc từ trang danh sách), định dạng in A4, có phần chữ ký.
+
+#### 8.1.3. Controller và giao diện
+
+- **ExamTypeDashboardController** (prefix `/admin/exam-types`):
+  - `GET /admin/exam-types`: Danh sách + ô tìm kiếm + bộ lọc từ/đến ngày + phân trang; nút In, Export, Import, Thêm loại kỳ thi.
+  - `GET /admin/exam-types/new`, `POST /admin/exam-types`: Form thêm mới (Tên, Mô tả).
+  - `GET /admin/exam-types/{id}/edit`, `POST /admin/exam-types/{id}`: Form sửa.
+  - `POST /admin/exam-types/{id}/delete`: Xóa (có xác nhận).
+  - `GET /admin/exam-types/print`: Trang in (query params: `keyword`, `fromDate`, `toDate`).
+  - `GET /admin/exam-types/export`: Tải file Excel.
+  - `POST /admin/exam-types/import`: Upload Excel (multipart, tham số `file`).
+
+#### 8.1.4. Sidebar
+
+Trong nhóm **"Điểm – Đánh giá học tập"**: mục **Loại kỳ thi** (`/admin/exam-types`, icon `fa-clipboard-list`). `activeMenu = 'exam-types'` khi truy cập các trang thuộc `/admin/exam-types`.
+
+---
+
 ### 9. Quản Lý Người Dùng (User Management)
 
 Chức năng quản lý người dùng cho phép quản trị viên tạo, sửa, xoá và phân quyền cho người dùng trong hệ thống.

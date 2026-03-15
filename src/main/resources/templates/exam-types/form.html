@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        ${mode == 'create' ? 'Thêm loại kỳ thi' : 'Chỉnh sửa loại kỳ thi'},
+        ${mode == 'create' ? 'Thêm loại kỳ thi mới' : 'Chỉnh sửa loại kỳ thi'},
+        'Danh mục các loại kỳ thi của học phần (giữa kỳ, cuối kỳ, thi lại, cải thiện...)',
+        'exam-types',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+<style>
+.et-form-card { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.et-form-header {
+    background: linear-gradient(135deg,#059669 0%,#10b981 100%);
+    color:#fff; border-radius:12px 12px 0 0;
+    padding:14px 20px; font-weight:600; font-size:1rem;
+}
+.field-label { font-weight:600; font-size:.85rem; color:#374151; margin-bottom:4px; }
+.required-star { color:#ef4444; }
+</style>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a th:href="@{/admin/exam-types}">Loại kỳ thi</a></li>
+        <li class="breadcrumb-item active" th:text="${mode == 'create' ? 'Thêm mới' : 'Chỉnh sửa'}"></li>
+    </ol>
+</nav>
+
+<div th:if="${globalError}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${globalError}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card et-form-card">
+            <div class="et-form-header">
+                <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-2' : 'fa-solid fa-pen-to-square me-2'}"></i>
+                <span th:text="${mode == 'create' ? 'Thêm loại kỳ thi' : 'Cập nhật loại kỳ thi'}"></span>
+            </div>
+            <div class="card-body p-4">
+                <form th:action="${mode == 'create'
+                            ? '/admin/exam-types'
+                            : '/admin/exam-types/' + examTypeId}"
+                      method="post"
+                      th:object="${examTypeRequest}"
+                      novalidate>
+
+                    <div class="mb-4">
+                        <label class="field-label">
+                            Tên loại kỳ thi <span class="required-star">*</span>
+                        </label>
+                        <input type="text" class="form-control"
+                               th:field="*{name}"
+                               th:classappend="${#fields.hasErrors('name')} ? ' is-invalid'"
+                               placeholder="Ví dụ: Giữa kỳ, Cuối kỳ, Thi lại, Cải thiện...">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}"
+                             th:errors="*{name}"></div>
+                        <div class="form-text text-muted small mt-1">
+                            Nên sử dụng các tên chuẩn: Giữa kỳ, Cuối kỳ, Thi lại, Cải thiện...
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="field-label">Mô tả</label>
+                        <textarea class="form-control" rows="4"
+                                  th:field="*{description}"
+                                  th:classappend="${#fields.hasErrors('description')} ? ' is-invalid'"
+                                  placeholder="Ví dụ: Kiểm tra giữa học phần; Thi kết thúc học phần; Thi lại do không đạt; Thi để cải thiện điểm..."></textarea>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}"
+                             th:errors="*{description}"></div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end pt-2 border-top">
+                        <a th:href="@{/admin/exam-types}" class="btn btn-outline-secondary">
+                            <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
+                        </a>
+                        <button type="submit" class="btn btn-success px-4">
+                            <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-1' : 'fa-solid fa-floppy-disk me-1'}"></i>
+                            <span th:text="${mode == 'create' ? 'Thêm loại kỳ thi' : 'Lưu thay đổi'}"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 bg-light mb-3">
+            <div class="card-body small">
+                <div class="fw-semibold mb-2">
+                    <i class="fa-solid fa-circle-info me-1 text-success"></i>Vai trò của bảng này
+                </div>
+                <p class="mb-1 text-muted">
+                    Bảng <strong>exam_types</strong> chuẩn hóa các loại kỳ thi của một học phần
+                    (Giữa kỳ, Cuối kỳ, Thi lại, Cải thiện...).
+                </p>
+                <ul class="mb-0 ps-3 text-muted" style="line-height:1.7">
+                    <li>Một học phần có thể gắn với nhiều loại kỳ thi khác nhau.</li>
+                    <li>Giúp các module điểm, đăng ký thi, lịch thi sử dụng chung danh mục.</li>
+                    <li>Dễ dàng mở rộng thêm các loại kỳ thi mới khi cần.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div th:if="${mode == 'edit' and currentItem != null}" class="card border-0 shadow-sm">
+            <div class="card-body small">
+                <div class="fw-semibold text-muted mb-2">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i>Thông tin hiện tại
+                </div>
+                <div class="mb-1">
+                    <span class="text-muted">Tên:</span>
+                    <span class="fw-semibold" th:text="${currentItem.name}"></span>
+                </div>
+                <div class="mb-1">
+                    <span class="text-muted">Ngày tạo:</span>
+                    <span th:text="${currentItem.createdAt != null ? #temporals.format(currentItem.createdAt, 'dd/MM/yyyy HH:mm') : '—'}"></span>
+                </div>
+                <div class="mb-0">
+                    <span class="text-muted">Mô tả:</span>
+                    <span th:text="${currentItem.description ?: '—'}"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+</body>
+</html>

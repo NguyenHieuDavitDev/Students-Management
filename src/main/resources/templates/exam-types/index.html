@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Loại kỳ thi',
+        'Quản lý loại kỳ thi học phần',
+        'Danh mục các loại kỳ thi: giữa kỳ, cuối kỳ, thi lại, cải thiện...',
+        'exam-types',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+<style>
+.et-card  { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.et-header {
+    background: linear-gradient(135deg,#059669 0%,#10b981 100%);
+    color:#fff; border-radius:12px 12px 0 0;
+    padding:14px 20px; font-weight:600; font-size:1rem;
+}
+.et-table thead th {
+    background:#ecfdf5; color:#065f46; font-weight:600;
+    border-bottom:2px solid #a7f3d0; padding:10px 12px; white-space:nowrap;
+}
+.et-table tbody tr:hover { background:#ecfdf5; }
+.et-table td { vertical-align:middle; padding:10px 12px; }
+.badge-pill {
+    display:inline-block; padding:4px 10px; border-radius:999px;
+    font-size:.8rem; background:#d1fae5; color:#047857;
+}
+.summary-card { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+.summary-card .card-body { padding:16px 20px; }
+.summary-icon { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; }
+</style>
+
+<div th:if="${success}" class="alert alert-success alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-circle-check me-2"></i><span th:text="${success}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<div th:if="${error}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="summary-card card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="summary-icon bg-success bg-opacity-10 text-success">
+                    <i class="fa-solid fa-list"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Tổng số loại kỳ thi</div>
+                    <div class="fw-bold fs-5" th:text="${items.totalElements}">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="summary-card card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="summary-icon bg-info bg-opacity-10 text-info">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Trang hiện tại</div>
+                    <div class="fw-bold fs-5" th:text="|${items.number + 1}/${items.totalPages == 0 ? 1 : items.totalPages}|">1/1</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card et-card">
+    <div class="et-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="fa-solid fa-clipboard-list me-2"></i>Danh mục loại kỳ thi học phần</span>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-light btn-sm" th:href="@{/admin/exam-types/print(keyword=${keyword}, fromDate=${fromDate}, toDate=${toDate})}" target="_blank">
+                <i class="fa-solid fa-print me-1"></i>In
+            </a>
+            <a class="btn btn-light btn-sm" th:href="@{/admin/exam-types/export}">
+                <i class="fa-solid fa-file-excel me-1"></i>Export Excel
+            </a>
+            <button class="btn btn-light btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="fa-solid fa-file-import me-1"></i>Import Excel
+            </button>
+            <a class="btn btn-success btn-sm fw-semibold text-white" th:href="@{/admin/exam-types/new}">
+                <i class="fa-solid fa-plus me-1"></i>Thêm loại kỳ thi
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <form class="row g-2 mb-3" method="get" th:action="@{/admin/exam-types}">
+            <div class="col-12 col-md-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                    </span>
+                    <input class="form-control border-start-0" name="keyword"
+                           placeholder="Tìm theo tên loại kỳ thi, mô tả..."
+                           th:value="${keyword}" autocomplete="off">
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <input type="date" class="form-control form-control-sm" name="fromDate"
+                       th:value="${fromDate}" placeholder="Từ ngày">
+            </div>
+            <div class="col-6 col-md-2">
+                <input type="date" class="form-control form-control-sm" name="toDate"
+                       th:value="${toDate}" placeholder="Đến ngày">
+            </div>
+            <div class="col-6 col-md-2">
+                <select class="form-select form-select-sm" name="size">
+                    <option th:each="n : ${#numbers.sequence(10,50,10)}"
+                            th:value="${n}" th:text="${n} + ' / trang'"
+                            th:selected="${n == size}"></option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-success btn-sm px-3">
+                    <i class="fa-solid fa-filter me-1"></i>Lọc
+                </button>
+                <a class="btn btn-outline-secondary btn-sm ms-1" th:href="@{/admin/exam-types}">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table et-table mb-0">
+                <thead>
+                <tr>
+                    <th style="width:46px">#</th>
+                    <th>Tên loại kỳ thi</th>
+                    <th>Mô tả</th>
+                    <th class="text-center">Ngày tạo</th>
+                    <th class="text-end" style="width:130px">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="e, stat : ${items.content}">
+                    <td class="text-muted small" th:text="${items.number * size + stat.count}"></td>
+                    <td>
+                        <div class="fw-semibold" th:text="${e.name}"></div>
+                        <span class="badge-pill small">Loại kỳ thi</span>
+                    </td>
+                    <td class="small text-secondary" th:text="${e.description ?: '—'}"></td>
+                    <td class="text-center small"
+                        th:text="${e.createdAt != null ? #temporals.format(e.createdAt, 'dd/MM/yyyy HH:mm') : '—'}"></td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/admin/exam-types/{id}/edit(id=${e.id})}" title="Chỉnh sửa">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                        <form method="post"
+                              th:action="@{/admin/exam-types/{id}/delete(id=${e.id})}"
+                              style="display:inline;"
+                              onsubmit="return confirm('Bạn có chắc muốn xóa loại kỳ thi này?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${items.content.isEmpty()}">
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-clipboard-list fa-2x d-block mb-2 opacity-40"></i>
+                        Chưa có loại kỳ thi nào.
+                        <a th:href="@{/admin/exam-types/new}">Thêm ngay</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+            <small class="text-muted">
+                Hiển thị <strong th:text="${items.numberOfElements}">0</strong> /
+                <strong th:text="${items.totalElements}">0</strong> loại kỳ thi
+            </small>
+            <nav th:if="${items.totalPages > 1}">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${items.first} ? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/exam-types(page=${items.number - 1}, size=${size}, keyword=${keyword}, fromDate=${fromDate}, toDate=${toDate})}">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    <li th:each="i : ${#numbers.sequence(0, items.totalPages - 1)}"
+                        class="page-item" th:classappend="${i == items.number} ? ' active'">
+                        <a class="page-link" th:text="${i + 1}"
+                           th:href="@{/admin/exam-types(page=${i}, size=${size}, keyword=${keyword}, fromDate=${fromDate}, toDate=${toDate})}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${items.last} ? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/exam-types(page=${items.number + 1}, size=${size}, keyword=${keyword}, fromDate=${fromDate}, toDate=${toDate})}">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-file-import me-2 text-success"></i>Import loại kỳ thi từ Excel
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" th:action="@{/admin/exam-types/import}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="alert alert-info small py-2">
+                        File Excel: hàng 1 = tiêu đề (tùy chọn), hàng 2 = header,
+                        dữ liệu từ hàng 3. Cột 1 = Tên loại kỳ thi, Cột 2 = Mô tả.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Chọn file Excel (.xlsx)</label>
+                        <input type="file" class="form-control" name="file" accept=".xlsx" required>
+                    </div>
+                    <a th:href="@{/admin/exam-types/export}" class="btn btn-outline-success btn-sm">
+                        <i class="fa-solid fa-download me-1"></i>Tải file mẫu (export hiện tại)
+                    </a>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fa-solid fa-upload me-1"></i>Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+</div>
+</body>
+</html>
