@@ -240,6 +240,12 @@
                     <span>Loại kỳ thi</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/exam-rooms}" th:classappend="${activeMenu}=='exam-rooms' ? 'active' : ''">
+                    <i class="fa-solid fa-door-open"></i>
+                    <span>Phân phòng thi</span>
+                </a>
+            </li>
             <li class="nav-header">Quản lý điểm - đánh giá học tập</li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/grade-components}" th:classappend="${activeMenu}=='grade-components' ? 'active' : ''">

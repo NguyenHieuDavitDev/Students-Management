@@ -611,7 +611,78 @@ Module **Loại kỳ thi** quản lý danh mục các loại kỳ thi của họ
 
 #### 8.1.4. Sidebar
 
-Trong nhóm **"Điểm – Đánh giá học tập"**: mục **Loại kỳ thi** (`/admin/exam-types`, icon `fa-clipboard-list`). `activeMenu = 'exam-types'` khi truy cập các trang thuộc `/admin/exam-types`.
+Trong nhóm **"Quản lý loại kỳ thi - khảo thí"**: mục **Loại kỳ thi** (`/admin/exam-types`, icon `fa-clipboard-list`). `activeMenu = 'exam-types'` khi truy cập các trang thuộc `/admin/exam-types`.
+
+---
+
+### 8.2. Phân phòng thi (Exam Rooms)
+
+Module **Phân phòng thi** quản lý danh sách **phòng học được sử dụng làm phòng thi**, dựa trên danh sách phòng (`rooms`) và toà nhà (`buildings`) đã có. Mỗi phòng học chỉ xuất hiện **một lần** trong bảng phân phòng thi.
+
+#### 8.2.1. Bảng dữ liệu `exam_rooms`
+
+| Cột            | Kiểu dữ liệu            | Ý nghĩa                                      |
+|----------------|-------------------------|----------------------------------------------|
+| `id`           | UUID (uniqueidentifier) | Khóa chính, tự sinh                          |
+| `room_id`      | BIGINT (FK → rooms.id)  | Khóa ngoại tới phòng học                     |
+| `exam_capacity`| INT, nullable           | Sức chứa khi thi (nếu null dùng capacity phòng) |
+| `description`  | NVARCHAR(MAX)           | Ghi chú phòng thi                            |
+| `created_at`   | TIMESTAMP               | Ngày tạo                                     |
+| `updated_at`   | TIMESTAMP               | Ngày cập nhật                                |
+
+- **Ràng buộc**: `room_id` là **unique** → mỗi phòng chỉ được phân làm phòng thi **tối đa một lần**.
+
+#### 8.2.2. Tính năng
+
+- **CRUD**: Thêm, xem, sửa, xóa phòng thi.
+- **Phân trang**: Danh sách có phân trang (10–50 phòng / trang).
+- **Tìm kiếm gần đúng**: Theo **mã phòng**, **tên phòng**, **tên toà nhà**, **mô tả**.
+- **Bộ lọc thời gian**: Lọc theo **từ ngày** / **đến ngày** (theo `created_at`).
+- **Import Excel**:
+  - File `.xlsx`, dữ liệu từ **hàng 3**.
+  - Cột 1 = **Mã phòng** (`room_code`), Cột 2 = Sức chứa thi (tùy chọn), Cột 3 = Mô tả.
+  - Bỏ qua dòng nếu:
+    - Không có mã phòng.
+    - Không tìm thấy phòng theo `room_code`.
+    - Phòng đã tồn tại trong `exam_rooms`.
+- **Export Excel**:
+  - Xuất file `exam_rooms.xlsx` gồm: ID, Mã phòng, Tên phòng, Toà nhà, Sức chứa thi, Sức chứa phòng, Mô tả, Ngày tạo.
+- **Print**:
+  - Trang in danh sách phòng thi (áp dụng được bộ lọc hiện tại), hiển thị: STT, Mã phòng, Tên phòng, Toà nhà, Sức chứa thi, Mô tả; có phần chữ ký.
+
+#### 8.2.3. Entity, Repository, Service, Controller
+
+- **Entity**: `examroom.entity.ExamRoom`
+  - Liên kết `ManyToOne` với `Room` (`room_id`).
+  - Sử dụng `NVARCHAR(MAX)` cho `description` để hỗ trợ tiếng Việt.
+- **Repository**: `ExamRoomRepository`
+  - `search(keyword, from, to, pageable)`: tìm kiếm gần đúng theo mã phòng / tên phòng / toà nhà / mô tả, lọc theo khoảng thời gian tạo.
+  - `findAllOrdered()`: lấy tất cả phòng thi đã sắp xếp theo mã phòng (dùng cho print/export).
+  - `existsByRoom_RoomId(roomId)` và `existsByRoom_RoomIdAndIdNot(roomId, excludeId)`: đảm bảo một phòng chỉ có một bản ghi phân phòng thi.
+- **Service**: `ExamRoomService`
+  - `search(keyword, fromDate, toDate, page, size)`: trả về `Page<ExamRoomResponse>`.
+  - `getById(id)`, `getAllFiltered(keyword, fromDate, toDate)`, `getAll()`.
+  - `getAllActiveRooms()`: lấy danh sách phòng đang hoạt động (`rooms.is_active = true`) cho form chọn.
+  - `create(request)`: kiểm tra phòng đã được phân hay chưa, kiểm tra tồn tại phòng, sau đó lưu `ExamRoom`.
+  - `update(id, request)`: kiểm tra trùng phòng thi với bản ghi khác, cập nhật lại phòng, sức chứa thi, mô tả.
+  - `delete(id)`: xóa bản ghi phòng thi (có kiểm tra tồn tại).
+  - `exportExcel(response)`: xuất `exam_rooms.xlsx`.
+  - `importExcel(file)`: đọc Excel theo cấu trúc mô tả ở trên.
+- **DTO**:
+  - `ExamRoomRequest`: `roomId`, `examCapacity`, `description`.
+  - `ExamRoomResponse`: `id`, `roomId`, `roomCode`, `roomName`, `buildingId`, `buildingName`, `examCapacity`, `roomCapacity`, `description`, `createdAt`, `updatedAt`.
+- **Controller**: `ExamRoomDashboardController` (prefix `/admin/exam-rooms`)
+  - `GET /admin/exam-rooms`: danh sách + tìm kiếm + lọc ngày + phân trang; nút In / Export / Import / Thêm phòng thi.
+  - `GET /admin/exam-rooms/new`, `POST /admin/exam-rooms`: form thêm mới.
+  - `GET /admin/exam-rooms/{id}/edit`, `POST /admin/exam-rooms/{id}`: form chỉnh sửa.
+  - `POST /admin/exam-rooms/{id}/delete`: xóa phòng thi (có xác nhận).
+  - `GET /admin/exam-rooms/print`: in danh sách (áp dụng bộ lọc).
+  - `GET /admin/exam-rooms/export`: export Excel.
+  - `POST /admin/exam-rooms/import`: import Excel.
+
+#### 8.2.4. Sidebar
+
+Trong nhóm **\"Quản lý loại kỳ thi - khảo thí\"**: mục **Phân phòng thi** (`/admin/exam-rooms`, icon `fa-door-open`). `activeMenu = 'exam-rooms'` khi truy cập các trang thuộc `/admin/exam-rooms`.
 
 ---
 
