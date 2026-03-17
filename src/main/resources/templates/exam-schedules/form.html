@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        ${mode == 'create' ? 'Thêm lịch thi' : 'Chỉnh sửa lịch thi'},
+        ${mode == 'create' ? 'Thêm lịch thi học phần' : 'Cập nhật lịch thi học phần'},
+        'Thiết lập lịch thi theo lớp học phần và loại kỳ thi',
+        'exam-schedules',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+<style>
+.es-form-card { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.es-form-header {
+    background: linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);
+    color:#fff; border-radius:12px 12px 0 0;
+    padding:14px 20px; font-weight:600; font-size:1rem;
+}
+.field-label { font-weight:600; font-size:.85rem; color:#374151; margin-bottom:4px; }
+.required-star { color:#ef4444; }
+</style>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a th:href="@{/admin/exam-schedules}">Lịch thi</a></li>
+        <li class="breadcrumb-item active" th:text="${mode == 'create' ? 'Thêm mới' : 'Chỉnh sửa'}"></li>
+    </ol>
+</nav>
+
+<div th:if="${globalError}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${globalError}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card es-form-card">
+            <div class="es-form-header">
+                <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-2' : 'fa-solid fa-pen-to-square me-2'}"></i>
+                <span th:text="${mode == 'create' ? 'Thêm lịch thi' : 'Cập nhật lịch thi'}"></span>
+            </div>
+            <div class="card-body p-4">
+                <form th:action="${mode == 'create' ? '/admin/exam-schedules' : '/admin/exam-schedules/' + examScheduleId}"
+                      method="post" th:object="${examScheduleRequest}" novalidate>
+
+                    <div class="mb-4">
+                        <label class="field-label">Lớp học phần <span class="required-star">*</span></label>
+                        <select class="form-select" th:field="*{classSectionId}"
+                                th:classappend="${#fields.hasErrors('classSectionId')} ? ' is-invalid'">
+                            <option value="">-- Chọn lớp học phần --</option>
+                            <option th:each="cs : ${classSections}" th:value="${cs.id}"
+                                    th:text="${cs.classCode + ' – ' + cs.courseCode + ' – ' + cs.courseName}"></option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('classSectionId')}" th:errors="*{classSectionId}"></div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="field-label">Loại kỳ thi <span class="required-star">*</span></label>
+                        <select class="form-select" th:field="*{examTypeId}"
+                                th:classappend="${#fields.hasErrors('examTypeId')} ? ' is-invalid'">
+                            <option value="">-- Chọn loại kỳ thi --</option>
+                            <option th:each="t : ${examTypes}" th:value="${t.id}"
+                                    th:text="${t.name}"></option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('examTypeId')}" th:errors="*{examTypeId}"></div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="field-label">Ngày thi <span class="required-star">*</span></label>
+                            <input type="date" class="form-control" th:field="*{examDate}"
+                                   th:classappend="${#fields.hasErrors('examDate')} ? ' is-invalid'">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('examDate')}" th:errors="*{examDate}"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="field-label">Giờ thi <span class="required-star">*</span></label>
+                            <input type="time" class="form-control" th:field="*{startTime}"
+                                   th:classappend="${#fields.hasErrors('startTime')} ? ' is-invalid'">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('startTime')}" th:errors="*{startTime}"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="field-label">Thời gian làm bài (phút) <span class="required-star">*</span></label>
+                            <input type="number" class="form-control" min="15" max="300" step="5"
+                                   th:field="*{durationMinutes}"
+                                   th:classappend="${#fields.hasErrors('durationMinutes')} ? ' is-invalid'">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('durationMinutes')}" th:errors="*{durationMinutes}"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="field-label">Ghi chú</label>
+                        <textarea class="form-control" rows="3" th:field="*{note}"
+                                  th:classappend="${#fields.hasErrors('note')} ? ' is-invalid'"
+                                  placeholder="Ví dụ: Thi tại phòng A101, mang theo thẻ SV..."></textarea>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('note')}" th:errors="*{note}"></div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end pt-2 border-top">
+                        <a th:href="@{/admin/exam-schedules}" class="btn btn-outline-secondary">
+                            <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-1' : 'fa-solid fa-floppy-disk me-1'}"></i>
+                            <span th:text="${mode == 'create' ? 'Thêm lịch thi' : 'Lưu thay đổi'}"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 bg-light mb-3">
+            <div class="card-body small">
+                <div class="fw-semibold mb-2"><i class="fa-solid fa-circle-info me-1 text-primary"></i>Gợi ý nghiệp vụ</div>
+                <ul class="mb-0 ps-3 text-muted" style="line-height:1.7">
+                    <li>Mỗi lớp học phần thường có tối thiểu 1 lịch thi (Giữa kỳ, Cuối kỳ...).</li>
+                    <li>Nên sắp xếp lịch thi tránh trùng giờ giữa các lớp có cùng sinh viên.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div th:if="${mode == 'edit' and currentItem != null}" class="card border-0 shadow-sm">
+            <div class="card-body small">
+                <div class="fw-semibold text-muted mb-2">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i>Thông tin hiện tại
+                </div>
+                <div class="mb-1"><span class="text-muted">Lớp học phần:</span> <span class="fw-semibold" th:text="${currentItem.classSectionCode}"></span></div>
+                <div class="mb-1"><span class="text-muted">Học phần:</span> <span th:text="${currentItem.courseName}"></span></div>
+                <div class="mb-1"><span class="text-muted">Học kỳ:</span> <span th:text="${currentItem.semesterName}"></span></div>
+                <div class="mb-1"><span class="text-muted">Loại kỳ thi:</span> <span th:text="${currentItem.examTypeName}"></span></div>
+                <div class="mb-1"><span class="text-muted">Ngày thi:</span> <span th:text="${#temporals.format(currentItem.examDate, 'dd/MM/yyyy')}"></span></div>
+                <div class="mb-0"><span class="text-muted">Giờ thi:</span> <span th:text="${#temporals.format(currentItem.startTime, 'HH:mm')} + ' (' + currentItem.durationMinutes + ' phút)' "></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+</body>
+</html>

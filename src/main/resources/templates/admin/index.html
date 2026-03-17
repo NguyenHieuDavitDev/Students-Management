@@ -51,17 +51,16 @@
         </div>
     </div>
 
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script th:inline="javascript">
         (function() {
-            const barLabels = [(${barChartLabelsJson})];
-            const barData = [(${barChartDataJson})];
-            const lineLabels = [(${lineChartLabelsJson})];
-            const lineData = [(${lineChartDataJson})];
-            const pieLabels = [(${pieChartLabelsJson})];
-            const pieData = [(${pieChartDataJson})];
+            // Dữ liệu JSON được server trả về dạng chuỗi, cần parse an toàn
+            const barLabels  = JSON.parse(/*[[${barChartLabelsJson}]]*/ '[]');
+            const barData    = JSON.parse(/*[[${barChartDataJson}]]*/ '[]');
+            const lineLabels = JSON.parse(/*[[${lineChartLabelsJson}]]*/ '[]');
+            const lineData   = JSON.parse(/*[[${lineChartDataJson}]]*/ '[]');
+            const pieLabels  = JSON.parse(/*[[${pieChartLabelsJson}]]*/ '[]');
+            const pieData    = JSON.parse(/*[[${pieChartDataJson}]]*/ '[]');
 
             const colors = ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#0dcaf0', '#6f42c1'];
             const colorsLight = ['#0d6efd99', '#19875499', '#ffc10799', '#dc354599', '#0dcaf099', '#6f42c199'];

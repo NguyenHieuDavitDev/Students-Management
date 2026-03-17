@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In lịch thi học phần</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', serif; font-size: 12pt; color: #000; background: #fff; }
+        .page { max-width: 960px; margin: 0 auto; padding: 20mm 15mm; }
+        .school-header { text-align: center; margin-bottom: 6mm; }
+        .school-name { font-size: 11pt; font-weight: bold; text-transform: uppercase; }
+        .dept-name { font-size: 10pt; }
+        .doc-title { font-size: 16pt; font-weight: bold; text-transform: uppercase; margin: 8mm 0 2mm; }
+        .doc-subtitle { font-size: 11pt; margin-bottom: 6mm; font-style: italic; }
+        .doc-date { font-size: 10pt; color: #555; margin-bottom: 8mm; }
+        table { width: 100%; border-collapse: collapse; margin-top: 4mm; font-size: 11pt; }
+        thead th {
+            background: #2563eb; color: #fff;
+            border: 1px solid #1d4ed8;
+            padding: 7px 10px; text-align: left; font-weight: bold;
+        }
+        tbody td { border: 1px solid #d1d5db; padding: 6px 10px; vertical-align: middle; }
+        tbody tr:nth-child(even) { background: #eff6ff; }
+        .summary { margin-top: 6mm; font-size: 10pt; color: #555; border-top: 1px solid #e5e7eb; padding-top: 4mm; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 16mm; font-size: 11pt; }
+        .sig-box { text-align: center; width: 220px; }
+        .sig-title { font-weight: bold; }
+        .sig-line { margin-top: 18mm; border-top: 1px solid #000; padding-top: 4px; font-style: italic; font-size: 10pt; }
+        @media print { .no-print { display: none !important; } .page { padding: 10mm; } }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <div class="no-print" style="text-align:right; margin-bottom:10px;">
+        <button onclick="window.print()" style="background:#2563eb;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;">In ngay</button>
+        <button onclick="window.close()" style="background:#6b7280;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;margin-left:8px;">Đóng</button>
+    </div>
+
+    <div class="school-header">
+        <div class="school-name">TRƯỜNG ĐẠI HỌC [TÊN TRƯỜNG]</div>
+        <div class="dept-name">Phòng Đào tạo / Khảo thí</div>
+        <div class="doc-title">LỊCH THI HỌC PHẦN</div>
+        <div class="doc-subtitle">Theo từng lớp học phần và loại kỳ thi</div>
+        <div class="doc-date">Ngày in: <span th:text="${#temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}"></span></div>
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th style="width:40px">STT</th>
+            <th>Mã LHP</th>
+            <th>Học phần</th>
+            <th>Học kỳ</th>
+            <th>Loại kỳ thi</th>
+            <th style="text-align:center">Ngày thi</th>
+            <th style="text-align:center">Giờ thi</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="e, stat : ${items}">
+            <td style="text-align:center" th:text="${stat.count}"></td>
+            <td th:text="${e.classSectionCode}"></td>
+            <td>
+                <span th:text="${e.courseName}"></span>
+                <span class="small text-muted" th:text="' (' + ${e.courseCode} + ')' "></span>
+            </td>
+            <td th:text="${e.semesterName}"></td>
+            <td th:text="${e.examTypeName}"></td>
+            <td style="text-align:center" th:text="${#temporals.format(e.examDate, 'dd/MM/yyyy')}"></td>
+            <td style="text-align:center" th:text="${#temporals.format(e.startTime, 'HH:mm')} + ' (' + e.durationMinutes + ' phút)' "></td>
+        </tr>
+        <tr th:if="${items.isEmpty()}">
+            <td colspan="7" style="text-align:center;padding:20px;color:#888;">Không có dữ liệu</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="summary">Tổng số lịch thi: <strong th:text="${items.size()}"></strong></div>
+
+    <div class="signatures">
+        <div class="sig-box"><div class="sig-title">Người lập</div><div class="sig-line">(Ký, ghi rõ họ tên)</div></div>
+        <div class="sig-box"><div class="sig-title">Trưởng Phòng Khảo thí</div><div class="sig-line">(Ký, ghi rõ họ tên)</div></div>
+        <div class="sig-box"><div class="sig-title">Hiệu trưởng</div><div class="sig-line">(Ký, đóng dấu)</div></div>
+    </div>
+
+</div>
+</body>
+</html>

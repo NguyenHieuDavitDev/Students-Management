@@ -129,6 +129,12 @@
                     <span>Course Prerequisites</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/graduation-conditions}" th:classappend="${activeMenu}=='graduation-conditions' ? 'active' : ''">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>Điều kiện xét tốt nghiệp</span>
+                </a>
+            </li>
 
             <!-- V. NHÓM QUẢN LÝ HỌC KỲ – LỚP HỌC PHẦN -->
             <li class="nav-header"> Học kỳ – Lớp học phần</li>
@@ -244,6 +250,12 @@
                 <a class="nav-link" th:href="@{/admin/exam-rooms}" th:classappend="${activeMenu}=='exam-rooms' ? 'active' : ''">
                     <i class="fa-solid fa-door-open"></i>
                     <span>Phân phòng thi</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/exam-schedules}" th:classappend="${activeMenu}=='exam-schedules' ? 'active' : ''">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>Lịch thi</span>
                 </a>
             </li>
             <li class="nav-header">Quản lý điểm - đánh giá học tập</li>
