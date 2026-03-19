@@ -4281,6 +4281,52 @@ Module **grade_components** (Thành phần điểm) định nghĩa các thành p
 - **Templates**: `grade-components/index.html`, `form.html`, `print.html`
 - **Sidebar**: Mục "Thành phần điểm" (icon percent), active menu `grade-components`
 
+### 23. Quản Lý Điều Kiện Xét Tốt Nghiệp (Graduation Conditions)
+
+Module **graduation_conditions** quản lý các tiêu chí xét tốt nghiệp áp dụng cho từng **chương trình đào tạo**.
+
+#### Bảng / Entity:
+
+- **`graduation_conditions`**:
+  - `id` (BIGINT, PK, identity)
+  - `program_id` (FK → `training_programs.program_id`)
+  - `min_credits` (INT): số tín chỉ tối thiểu cần tích lũy
+  - `min_gpa` (DECIMAL(4,2)): điểm trung bình tích lũy tối thiểu
+  - `required_certificate` (NVARCHAR(500)): chứng chỉ bắt buộc (ví dụ: ngoại ngữ, tin học)
+  - `required_courses` (NVARCHAR(MAX)): danh sách học phần bắt buộc (TEXT)
+  - `created_at` (DATETIME), `updated_at` (DATETIME)
+
+#### Tính năng:
+
+- **CRUD**: Thêm, sửa, xóa, xem danh sách điều kiện xét tốt nghiệp.
+- **Tìm kiếm gần đúng + phân trang**: theo `programCode`, `programName` và `requiredCertificate` (case-insensitive).
+- **Ràng buộc nghiệp vụ “1 chương trình - 1 điều kiện”**:
+  - Khi tạo mới, chặn nếu chương trình đã có điều kiện.
+  - Khi sửa, kiểm tra để không trùng điều kiện của chương trình khác.
+- **Giao diện form**:
+  - Trang **Thêm mới** chỉ hiển thị các chương trình đang hoạt động **chưa có** điều kiện xét tốt nghiệp.
+  - Trang **Chỉnh sửa** cố định `programId`, chỉ cho phép cập nhật các tiêu chí xét.
+
+#### URL Admin:
+
+| Chức năng | URL |
+|-----------|-----|
+| Danh sách | GET `/admin/graduation-conditions` |
+| Thêm mới | GET `/admin/graduation-conditions/new`, POST `/admin/graduation-conditions` |
+| Sửa | GET `/admin/graduation-conditions/{id}/edit`, POST `/admin/graduation-conditions/{id}` |
+| Xóa | POST `/admin/graduation-conditions/{id}/delete` |
+
+#### Cấu trúc code (module `graduationcondition`):
+
+- **Package**: `com.example.stduents_management.graduationcondition`
+- **Entity**: `graduationcondition.entity.GraduationCondition` (liên kết `TrainingProgram`)
+- **DTO**: `GraduationConditionRequest`, `GraduationConditionResponse`
+- **Repository**: `GraduationConditionRepository` (search theo keyword, lấy theo `programId`)
+- **Service**: `GraduationConditionService` (CRUD + kiểm tra trùng theo `programId`)
+- **Controller**: `GraduationConditionDashboardController` (Thymeleaf tại `/admin/graduation-conditions`)
+- **Templates**: `graduation-conditions/index.html`, `graduation-conditions/form.html`
+- **Sidebar**: Mục "Điều kiện xét tốt nghiệp" (active menu `graduation-conditions`)
+
 ---
 
 ## Tác Giả
@@ -4317,6 +4363,7 @@ Module **grade_components** (Thành phần điểm) định nghĩa các thành p
 - [x] Quản lý khóa phòng (Room Block Times)
 - [x] Gán hồ sơ giảng viên / sinh viên vào tài khoản người dùng
 - [x] Quản lý thành phần điểm (Grade Components)
+- [x] Quản lý điều kiện xét tốt nghiệp (Graduation Conditions)
 - [x] Quản lý điểm sinh viên (Student Grades)
 - [x] Xác thực người dùng (Authentication)
 - [x] Mã hóa mật khẩu (Password Encryption)
