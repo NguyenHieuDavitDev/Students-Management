@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Kết quả xét tốt nghiệp',
+        'Kết quả xét tốt nghiệp',
+        'Quản lý kết quả xét tốt nghiệp theo sinh viên',
+        'graduation-results',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+<style>
+.gr-card { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.gr-header {
+    background: linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%);
+    color:#fff; border-radius:12px 12px 0 0;
+    padding:14px 20px; font-weight:600; font-size:1rem;
+}
+.gr-table thead th {
+    background:#f5f3ff; color:#5b21b6; font-weight:600;
+    border-bottom:2px solid #ddd6fe; padding:10px 12px; white-space:nowrap;
+}
+.gr-table tbody tr:hover { background:#faf5ff; }
+.gr-table td { vertical-align:middle; padding:10px 12px; }
+.badge-ok { background:#dcfce7; color:#166534; border-radius:20px; padding:3px 12px; font-size:.8rem; font-weight:600; }
+.badge-no { background:#fee2e2; color:#991b1b; border-radius:20px; padding:3px 12px; font-size:.8rem; font-weight:600; }
+.badge-pending { background:#e5e7eb; color:#374151; border-radius:20px; padding:3px 12px; font-size:.8rem; font-weight:600; }
+.summary-card { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+.summary-card .card-body { padding:16px 20px; }
+.summary-icon { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; }
+</style>
+
+<div th:if="${success}" class="alert alert-success alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-circle-check me-2"></i><span th:text="${success}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<div th:if="${error}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="summary-card card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="summary-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fa-solid fa-user-graduate"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Tổng kết quả</div>
+                    <div class="fw-bold fs-5" th:text="${items.totalElements}">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="summary-card card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="summary-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fa-solid fa-list"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Trang</div>
+                    <div class="fw-bold fs-5" th:text="|${items.number + 1}/${items.totalPages == 0 ? 1 : items.totalPages}|">1/1</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card gr-card">
+    <div class="gr-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="fa-solid fa-graduation-cap me-2"></i>Danh sách kết quả xét tốt nghiệp</span>
+        <a class="btn btn-light btn-sm fw-semibold" th:href="@{/admin/graduation-results/new}">
+            <i class="fa-solid fa-plus me-1"></i>Thêm kết quả
+        </a>
+    </div>
+
+    <div class="card-body">
+        <form class="row g-2 mb-3" method="get" th:action="@{/admin/graduation-results}">
+            <div class="col-12 col-md-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                    </span>
+                    <input class="form-control border-start-0" name="keyword"
+                           placeholder="Mã SV, tên SV, mã/tên CTĐT..."
+                           th:value="${keyword}" autocomplete="off">
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <select class="form-select form-select-sm" name="status">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option th:each="s : ${statuses}"
+                            th:value="${s.name()}"
+                            th:text="${s.label}"
+                            th:selected="${s.name() == statusFilter}"></option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select class="form-select form-select-sm" name="size">
+                    <option th:each="n : ${#numbers.sequence(10,50,10)}"
+                            th:value="${n}" th:text="${n} + ' / trang'"
+                            th:selected="${n == size}"></option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary btn-sm px-3"><i class="fa-solid fa-filter me-1"></i>Lọc</button>
+                <a class="btn btn-outline-secondary btn-sm ms-1" th:href="@{/admin/graduation-results}">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table gr-table mb-0">
+                <thead>
+                <tr>
+                    <th style="width:46px">#</th>
+                    <th>Sinh viên</th>
+                    <th>Chương trình đào tạo</th>
+                    <th class="text-center">Tín chỉ</th>
+                    <th class="text-center">GPA</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th class="text-center">Ngày xét</th>
+                    <th class="text-end" style="width:130px">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="e, stat : ${items.content}">
+                    <td class="text-muted small" th:text="${items.number * size + stat.count}"></td>
+                    <td>
+                        <div class="fw-semibold" th:text="${e.studentName}"></div>
+                        <div class="small text-muted" th:text="${e.studentCode}"></div>
+                    </td>
+                    <td>
+                        <div class="fw-semibold" th:text="${e.programName}"></div>
+                        <div class="small text-muted" th:text="${e.programCode}"></div>
+                    </td>
+                    <td class="text-center" th:text="${e.totalCredits != null ? e.totalCredits : '—'}"></td>
+                    <td class="text-center" th:text="${e.gpa != null ? #numbers.formatDecimal(e.gpa, 1, 2) : '—'}"></td>
+                    <td class="text-center">
+                        <span th:if="${e.status.name() == 'ELIGIBLE'}" class="badge-ok">
+                            <i class="fa-solid fa-circle-check me-1"></i>Đủ điều kiện
+                        </span>
+                        <span th:if="${e.status.name() == 'NOT_ELIGIBLE'}" class="badge-no">
+                            <i class="fa-solid fa-circle-xmark me-1"></i>Chưa đủ
+                        </span>
+                        <span th:if="${e.status.name() == 'PENDING'}" class="badge-pending">
+                            <i class="fa-solid fa-clock me-1"></i>Chưa xét
+                        </span>
+                    </td>
+                    <td class="text-center small"
+                        th:text="${e.checkedAt != null ? #temporals.format(e.checkedAt, 'dd/MM/yyyy HH:mm') : '—'}"></td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/admin/graduation-results/{id}/edit(id=${e.id})}" title="Chỉnh sửa">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                        <form method="post" th:action="@{/admin/graduation-results/{id}/delete(id=${e.id})}"
+                              style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa kết quả này?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${items.content.isEmpty()}">
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-graduation-cap fa-2x d-block mb-2 opacity-40"></i>
+                        Chưa có kết quả xét tốt nghiệp nào.
+                        <a th:href="@{/admin/graduation-results/new}">Thêm ngay</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+            <small class="text-muted">Hiển thị <strong th:text="${items.numberOfElements}">0</strong> / <strong th:text="${items.totalElements}">0</strong> kết quả</small>
+            <nav th:if="${items.totalPages > 1}">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${items.first} ? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/graduation-results(page=${items.number - 1}, size=${size}, keyword=${keyword}, status=${statusFilter})}">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    <li th:each="i : ${#numbers.sequence(0, items.totalPages - 1)}"
+                        class="page-item" th:classappend="${i == items.number} ? ' active'">
+                        <a class="page-link" th:text="${i + 1}"
+                           th:href="@{/admin/graduation-results(page=${i}, size=${size}, keyword=${keyword}, status=${statusFilter})}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${items.last} ? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/graduation-results(page=${items.number + 1}, size=${size}, keyword=${keyword}, status=${statusFilter})}">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+</div>
+</body>
+</html>
+

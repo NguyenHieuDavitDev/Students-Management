@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        ${mode == 'create' ? 'Thêm kết quả xét tốt nghiệp' : 'Chỉnh sửa kết quả xét tốt nghiệp'},
+        ${mode == 'create' ? 'Thêm kết quả xét tốt nghiệp' : 'Chỉnh sửa kết quả xét tốt nghiệp'},
+        'Lưu kết quả xét theo sinh viên và chương trình đào tạo',
+        'graduation-results',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+<style>
+.gr-form-card { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.gr-form-header {
+    background: linear-gradient(135deg,#7c3aed 0%,#a78bfa 100%);
+    color:#fff; border-radius:12px 12px 0 0;
+    padding:14px 20px; font-weight:600; font-size:1rem;
+}
+.field-label { font-weight:600; font-size:.85rem; color:#374151; margin-bottom:4px; }
+.required-star { color:#ef4444; }
+</style>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a th:href="@{/admin/graduation-results}">Kết quả xét tốt nghiệp</a></li>
+        <li class="breadcrumb-item active" th:text="${mode == 'create' ? 'Thêm mới' : 'Chỉnh sửa'}"></li>
+    </ol>
+</nav>
+
+<div th:if="${globalError}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${globalError}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card gr-form-card">
+            <div class="gr-form-header">
+                <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-2' : 'fa-solid fa-pen-to-square me-2'}"></i>
+                <span th:text="${mode == 'create' ? 'Thêm kết quả xét tốt nghiệp' : 'Cập nhật kết quả xét tốt nghiệp'}"></span>
+            </div>
+            <div class="card-body p-4">
+                <form th:action="${mode == 'create'
+                            ? '/admin/graduation-results'
+                            : '/admin/graduation-results/' + resultId}"
+                      method="post"
+                      th:object="${graduationResultRequest}"
+                      novalidate>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="field-label">Sinh viên <span class="required-star">*</span></label>
+                            <select class="form-select" th:field="*{studentId}"
+                                    th:classappend="${#fields.hasErrors('studentId')} ? ' is-invalid'">
+                                <option value="">-- Chọn sinh viên --</option>
+                                <option th:each="s : ${students}"
+                                        th:value="${s.studentId}"
+                                        th:text="${s.studentCode + ' – ' + s.fullName}"></option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('studentId')}" th:errors="*{studentId}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="field-label">Chương trình đào tạo <span class="required-star">*</span></label>
+                            <select class="form-select" th:field="*{programId}"
+                                    th:classappend="${#fields.hasErrors('programId')} ? ' is-invalid'">
+                                <option value="">-- Chọn chương trình đào tạo --</option>
+                                <option th:each="p : ${programs}"
+                                        th:value="${p.programId}"
+                                        th:text="${p.programCode + ' – ' + p.programName + ' (' + (p.course ?: '') + ')'}"></option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('programId')}" th:errors="*{programId}"></div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="field-label">Tổng tín chỉ</label>
+                            <input type="number" class="form-control" th:field="*{totalCredits}"
+                                   th:classappend="${#fields.hasErrors('totalCredits')} ? ' is-invalid'"
+                                   min="0" max="999" placeholder="VD: 120">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('totalCredits')}" th:errors="*{totalCredits}"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="field-label">GPA</label>
+                            <input type="number" class="form-control" th:field="*{gpa}"
+                                   th:classappend="${#fields.hasErrors('gpa')} ? ' is-invalid'"
+                                   min="0" max="4" step="0.01" placeholder="VD: 2.75">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('gpa')}" th:errors="*{gpa}"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="field-label">Trạng thái <span class="required-star">*</span></label>
+                            <select class="form-select" th:field="*{status}"
+                                    th:classappend="${#fields.hasErrors('status')} ? ' is-invalid'">
+                                <option th:each="st : ${statuses}"
+                                        th:value="${st.name()}"
+                                        th:text="${st.label}"></option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('status')}" th:errors="*{status}"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="field-label">Chứng chỉ đã có</label>
+                        <input type="text" class="form-control" th:field="*{certificates}"
+                               th:classappend="${#fields.hasErrors('certificates')} ? ' is-invalid'"
+                               placeholder="VD: Ngoại ngữ B1; Tin học MOS">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('certificates')}" th:errors="*{certificates}"></div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="field-label">Học phần còn thiếu / lý do chưa đạt</label>
+                        <textarea class="form-control" rows="5" th:field="*{missingCourses}"
+                                  placeholder="Mỗi dòng một học phần hoặc lý do&#10;VD: IT401 - Đồ án tốt nghiệp (chưa đạt)"></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="field-label">Ghi chú</label>
+                        <textarea class="form-control" rows="3" th:field="*{note}"
+                                  th:classappend="${#fields.hasErrors('note')} ? ' is-invalid'"
+                                  placeholder="Ghi chú của quản trị viên..."></textarea>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('note')}" th:errors="*{note}"></div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end pt-2 border-top">
+                        <a th:href="@{/admin/graduation-results}" class="btn btn-outline-secondary">
+                            <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-1' : 'fa-solid fa-floppy-disk me-1'}"></i>
+                            <span th:text="${mode == 'create' ? 'Thêm kết quả' : 'Lưu thay đổi'}"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div th:if="${mode == 'edit' and currentResult != null}" class="card border-0 shadow-sm mb-3">
+            <div class="card-body small">
+                <div class="fw-semibold text-muted mb-2">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i>Thông tin hiện tại
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Sinh viên:</span>
+                    <span class="fw-semibold" th:text="${currentResult.studentCode}"></span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">CTĐT:</span>
+                    <span class="fw-semibold" th:text="${currentResult.programCode}"></span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Ngày xét:</span>
+                    <span th:text="${currentResult.checkedAt != null ? #temporals.format(currentResult.checkedAt, 'dd/MM/yyyy HH:mm') : '—'}"></span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Trạng thái:</span>
+                    <span class="fw-semibold" th:text="${currentResult.statusLabel}"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 bg-light">
+            <div class="card-body small">
+                <div class="fw-semibold mb-2">
+                    <i class="fa-solid fa-circle-info me-1 text-primary"></i>Gợi ý sử dụng
+                </div>
+                <ul class="mb-0 ps-3 text-muted" style="line-height:1.8">
+                    <li>Lưu trạng thái xét tốt nghiệp cho từng sinh viên theo chương trình.</li>
+                    <li>Dùng trường <strong>Học phần còn thiếu</strong> để liệt kê các mục cần hoàn thành.</li>
+                    <li>Hệ thống tự cập nhật <strong>checkedAt</strong> mỗi lần chỉnh sửa.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+</body>
+</html>
+
