@@ -36,6 +36,12 @@
                     <span>Overview</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/notifications}" th:classappend="${activeMenu}=='notifications' ? 'active' : ''">
+                    <i class="fa-solid fa-bell"></i>
+                    <span>Thông báo</span>
+                </a>
+            </li>
             <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
                 <a class="nav-link" th:href="@{/admin/roles}" th:classappend="${activeMenu}=='roles' ? 'active' : ''">
                     <i class="fa-solid fa-shield-halved"></i>

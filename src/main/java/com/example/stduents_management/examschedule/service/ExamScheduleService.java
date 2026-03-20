@@ -2,6 +2,10 @@ package com.example.stduents_management.examschedule.service;
 
 import com.example.stduents_management.classsection.entity.ClassSection;
 import com.example.stduents_management.classsection.repository.ClassSectionRepository;
+import com.example.stduents_management.courseregistration.entity.CourseRegistration;
+import com.example.stduents_management.courseregistration.repository.CourseRegistrationRepository;
+import com.example.stduents_management.notification.entity.NotificationCategory;
+import com.example.stduents_management.notification.service.NotificationService;
 import com.example.stduents_management.examschedule.dto.ExamScheduleRequest;
 import com.example.stduents_management.examschedule.dto.ExamScheduleResponse;
 import com.example.stduents_management.examschedule.entity.ExamSchedule;
@@ -21,7 +25,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -33,6 +36,8 @@ public class ExamScheduleService {
     private final ExamScheduleRepository examScheduleRepository;
     private final ClassSectionRepository classSectionRepository;
     private final ExamTypeRepository examTypeRepository;
+    private final CourseRegistrationRepository courseRegistrationRepository;
+    private final NotificationService notificationService;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
@@ -74,6 +79,7 @@ public class ExamScheduleService {
         ExamSchedule es = new ExamSchedule();
         buildEntity(es, req, cs, et);
         examScheduleRepository.save(es);
+        notifyExamScheduleChange(cs, et.getName(), req.getExamDate(), req.getStartTime(), req.getDurationMinutes(), req.getNote());
     }
 
     @Transactional
@@ -85,6 +91,7 @@ public class ExamScheduleService {
         ExamType et = resolveExamType(req.getExamTypeId());
         buildEntity(es, req, cs, et);
         examScheduleRepository.save(es);
+        notifyExamScheduleChange(cs, et.getName(), req.getExamDate(), req.getStartTime(), req.getDurationMinutes(), req.getNote());
     }
 
     @Transactional
@@ -201,6 +208,44 @@ public class ExamScheduleService {
         es.setDurationMinutes(req.getDurationMinutes());
         es.setNote(req.getNote() != null && !req.getNote().isBlank()
                 ? req.getNote().trim() : null);
+    }
+
+    private void notifyExamScheduleChange(
+            ClassSection cs,
+            String examTypeName,
+            LocalDate examDate,
+            java.time.LocalTime startTime,
+            Integer durationMinutes,
+            String note
+    ) {
+        if (cs == null || cs.getId() == null) return;
+        String title = NotificationCategory.EXAM_SCHEDULE.getLabel();
+        String courseName = cs.getCourse() != null ? cs.getCourse().getCourseName() : "";
+        String semesterName = cs.getSemester() != null ? cs.getSemester().getName() : "";
+        String classCode = cs.getClassCode();
+
+        String content = "Lịch thi đã được cập nhật: lớp " + (classCode != null ? classCode : "")
+                + (courseName.isBlank() ? "" : " - " + courseName)
+                + (semesterName.isBlank() ? "" : " (" + semesterName + ")")
+                + ". Ngày thi: " + (examDate != null ? examDate : "")
+                + ", Giờ: " + (startTime != null ? startTime : "")
+                + ", Thời lượng: " + (durationMinutes != null ? durationMinutes : 0) + " phút"
+                + ". Loại kỳ thi: " + (examTypeName != null ? examTypeName : "")
+                + (note != null && !note.isBlank() ? ". Ghi chú: " + note.trim() : "")
+                + ".";
+
+        java.util.List<CourseRegistration> regs = courseRegistrationRepository
+                .findByClassSection_IdOrderByStudent_FullName(cs.getId());
+
+        for (CourseRegistration cr : regs) {
+            if (cr == null || cr.getStudent() == null || cr.getStudent().getUser() == null) continue;
+            notificationService.createForUserId(
+                    cr.getStudent().getUser().getId(),
+                    NotificationCategory.EXAM_SCHEDULE,
+                    title,
+                    content
+            );
+        }
     }
 
     private LocalDate parseDate(String s) {

@@ -2,6 +2,8 @@ package com.example.stduents_management.scheduleoverride.service;
 
 import com.example.stduents_management.lecturer.entity.Lecturer;
 import com.example.stduents_management.lecturer.repository.LecturerRepository;
+import com.example.stduents_management.courseregistration.entity.CourseRegistration;
+import com.example.stduents_management.courseregistration.repository.CourseRegistrationRepository;
 import com.example.stduents_management.room.entity.Room;
 import com.example.stduents_management.room.repository.RoomRepository;
 import com.example.stduents_management.schedule.entity.Schedule;
@@ -12,6 +14,8 @@ import com.example.stduents_management.scheduleoverride.entity.OverrideStatus;
 import com.example.stduents_management.scheduleoverride.entity.OverrideType;
 import com.example.stduents_management.scheduleoverride.entity.ScheduleOverride;
 import com.example.stduents_management.scheduleoverride.repository.ScheduleOverrideRepository;
+import com.example.stduents_management.notification.entity.NotificationCategory;
+import com.example.stduents_management.notification.service.NotificationService;
 import com.example.stduents_management.timeslot.entity.TimeSlot;
 import com.example.stduents_management.timeslot.repository.TimeSlotRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +33,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -44,6 +47,8 @@ public class ScheduleOverrideService {
     private final RoomRepository roomRepository;
     private final TimeSlotRepository timeSlotRepository;
     private final LecturerRepository lecturerRepository;
+    private final CourseRegistrationRepository courseRegistrationRepository;
+    private final NotificationService notificationService;
 
     public Page<ScheduleOverrideResponse> search(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("overrideDate").descending().and(Sort.by("createdAt").descending()));
@@ -89,6 +94,7 @@ public class ScheduleOverrideService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giảng viên thay thế")));
         }
         repository.save(o);
+        notifyScheduleChange(schedule, o);
     }
 
     @Transactional
@@ -108,6 +114,7 @@ public class ScheduleOverrideService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy khung giờ mới")) : null);
         o.setNewLecturer(req.getNewLecturerId() != null ? lecturerRepository.findById(req.getNewLecturerId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giảng viên thay thế")) : null);
+        notifyScheduleChange(schedule, o);
     }
 
     @Transactional
@@ -116,6 +123,59 @@ public class ScheduleOverrideService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bản ghi thay đổi lịch");
         }
         repository.deleteById(id);
+    }
+
+    private void notifyScheduleChange(Schedule schedule, ScheduleOverride o) {
+        if (schedule == null || schedule.getClassSection() == null || schedule.getClassSection().getId() == null) return;
+
+        var cs = schedule.getClassSection();
+        Long classSectionId = cs.getId();
+
+        String title = NotificationCategory.SCHEDULE_CHANGE.getLabel();
+        String courseName = cs.getCourse() != null ? cs.getCourse().getCourseName() : "";
+        String semesterName = cs.getSemester() != null ? cs.getSemester().getName() : "";
+        String classCode = cs.getClassCode();
+
+        String overrideType = o.getOverrideType() != null ? o.getOverrideType().name() : "";
+        String overrideDate = o.getOverrideDate() != null ? o.getOverrideDate().toString() : "";
+        String status = o.getStatus() != null ? o.getStatus().name() : "";
+
+        String newRoomStr = o.getNewRoom() != null
+                ? (o.getNewRoom().getRoomCode() + " - " + o.getNewRoom().getRoomName())
+                : "";
+        String newTimeSlotStr = o.getNewTimeSlot() != null ? o.getNewTimeSlot().getSlotCode() : "";
+        String newLecturerStr = o.getNewLecturer() != null ? o.getNewLecturer().getFullName() : "";
+
+        String reasonPart = o.getReason() != null && !o.getReason().isBlank()
+                ? " Lý do: " + o.getReason().trim() + "."
+                : "";
+
+        boolean isCancelled = status.equalsIgnoreCase(OverrideStatus.CANCELLED.name());
+        String statusPart = isCancelled ? " (đã hủy)" : "";
+
+        String content = "Bạn có thông báo thay đổi lịch học: lớp "
+                + (classCode != null ? classCode : "")
+                + (courseName.isBlank() ? "" : " - " + courseName)
+                + (semesterName.isBlank() ? "" : " (" + semesterName + ")")
+                + ". Ngày áp dụng: " + overrideDate
+                + ". Loại: " + overrideType
+                + statusPart
+                + ". "
+                + (newRoomStr.isBlank() ? "" : "Phòng: " + newRoomStr + ". ")
+                + (newTimeSlotStr.isBlank() ? "" : "Khung giờ: " + newTimeSlotStr + ". ")
+                + (newLecturerStr.isBlank() ? "" : "GV thay thế: " + newLecturerStr + ". ")
+                + reasonPart;
+
+        List<CourseRegistration> regs = courseRegistrationRepository.findByClassSection_IdOrderByStudent_FullName(classSectionId);
+        for (CourseRegistration cr : regs) {
+            if (cr == null || cr.getStudent() == null || cr.getStudent().getUser() == null) continue;
+            notificationService.createForUserId(
+                    cr.getStudent().getUser().getId(),
+                    NotificationCategory.SCHEDULE_CHANGE,
+                    title,
+                    content
+            );
+        }
     }
 
     public List<ScheduleOverrideResponse> getForPrint() {

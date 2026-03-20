@@ -36,6 +36,14 @@
                             <a th:if="${userProfile.canAccessDashboard}" href="/admin" class="btn btn-outline-light btn-sm">
                                 <i class="fa-solid fa-gauge-high me-1"></i>Dashboard
                             </a>
+                            <a th:href="@{/notifications}" class="btn btn-outline-light btn-sm position-relative" aria-label="Thông báo">
+                                <i class="fa-solid fa-bell me-1"></i>Thông báo
+                                <span th:if="${unreadNotificationCount != null and unreadNotificationCount > 0}"
+                                      class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                      th:text="${unreadNotificationCount}">
+                                    0
+                                </span>
+                            </a>
                             <form th:action="@{/logout}" method="post" class="d-inline">
                                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                                 <button type="submit" class="btn btn-outline-danger btn-sm">

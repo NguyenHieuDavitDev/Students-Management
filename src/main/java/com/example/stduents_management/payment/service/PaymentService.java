@@ -6,6 +6,8 @@ import com.example.stduents_management.payment.entity.Payment;
 import com.example.stduents_management.payment.entity.PaymentMethod;
 import com.example.stduents_management.payment.entity.PaymentStatus;
 import com.example.stduents_management.payment.repository.PaymentRepository;
+import com.example.stduents_management.notification.entity.NotificationCategory;
+import com.example.stduents_management.notification.service.NotificationService;
 import com.example.stduents_management.studenttuition.entity.StudentTuition;
 import com.example.stduents_management.studenttuition.entity.StudentTuitionStatus;
 import com.example.stduents_management.studenttuition.repository.StudentTuitionRepository;
@@ -41,6 +43,7 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final StudentTuitionRepository studentTuitionRepository;
     private final StudentTuitionService studentTuitionService;
+    private final NotificationService notificationService;
 
     public Page<PaymentResponse> search(String keyword, String statusStr, int page, int size) {
         PaymentStatus status = parseStatus(statusStr);
@@ -68,6 +71,7 @@ public class PaymentService {
         buildEntity(entity, req, tuition);
         paymentRepository.save(entity);
         recalculateStudentTuition(tuition.getId());
+        notifyTuitionPaymentChange(tuition.getId());
     }
 
     @Transactional
@@ -81,8 +85,10 @@ public class PaymentService {
         buildEntity(entity, req, tuition);
         paymentRepository.save(entity);
         recalculateStudentTuition(tuitionId);
+        notifyTuitionPaymentChange(tuitionId);
         if (!tuitionId.equals(tuition.getId())) {
             recalculateStudentTuition(tuition.getId());
+            notifyTuitionPaymentChange(tuition.getId());
         }
     }
 
@@ -94,6 +100,54 @@ public class PaymentService {
         UUID tuitionId = payment.getStudentTuition().getId();
         paymentRepository.delete(payment);
         recalculateStudentTuition(tuitionId);
+    }
+
+    private void notifyTuitionPaymentChange(UUID studentTuitionId) {
+        if (studentTuitionId == null) return;
+        StudentTuition updated = studentTuitionRepository.findById(studentTuitionId)
+                .orElse(null);
+        if (updated == null) return;
+        if (updated.getStudent() == null || updated.getStudent().getUser() == null) return;
+        if (updated.getTotalAmount() == null || updated.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) return;
+
+        BigDecimal total = updated.getTotalAmount();
+        BigDecimal paid = updated.getAmountPaid() != null ? updated.getAmountPaid() : BigDecimal.ZERO;
+
+        int percent = total.compareTo(BigDecimal.ZERO) > 0
+                ? paid.multiply(BigDecimal.valueOf(100))
+                .divide(total, 0, java.math.RoundingMode.HALF_UP)
+                .intValue()
+                : 0;
+        if (percent > 100) percent = 100;
+
+        BigDecimal remaining = updated.getRemainingAmount() != null ? updated.getRemainingAmount() : BigDecimal.ZERO;
+        String semesterCode = updated.getSemester() != null ? updated.getSemester().getCode() : "";
+        String semesterName = updated.getSemester() != null ? updated.getSemester().getName() : "";
+        String semesterLabel = !semesterCode.isBlank()
+                ? semesterCode + (semesterName.isBlank() ? "" : " - " + semesterName)
+                : semesterName;
+
+        StudentTuitionStatus st = updated.getStatus();
+        String statusLabel = st != null ? st.getLabel() : "";
+
+        String title = NotificationCategory.TUITION_FEE.getLabel();
+        String content = "Học phí học kỳ " + (semesterLabel.isBlank() ? "" : "(" + semesterLabel + ") ") +
+                "đã được cập nhật. " +
+                "Tiến độ: " + percent + "%. " +
+                "Đã đóng: " + paid.toPlainString() + " / " + total.toPlainString() + " VNĐ. " +
+                (remaining.compareTo(BigDecimal.ZERO) > 0
+                        ? "Còn lại: " + remaining.toPlainString() + " VNĐ."
+                        : "Bạn đã đóng đủ học phí. ") +
+                (statusLabel.isBlank() ? "" : " (" + statusLabel + ")");
+
+        notificationService.createForUserId(
+                updated.getStudent().getUser().getId(),
+                NotificationCategory.TUITION_FEE,
+                title,
+                content,
+                null,
+                null
+        );
     }
 
     /**
