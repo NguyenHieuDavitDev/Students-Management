@@ -1,0 +1,50 @@
+/* Common UI/UX tweaks across admin + user pages (responsive-first). */
+
+html, body {
+    height: 100%;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.35;
+}
+
+/* Make tables safer on small screens */
+.table {
+    margin-bottom: 0;
+}
+
+.table td, .table th {
+    vertical-align: middle;
+    word-break: break-word;
+}
+
+/* Forms: tighter spacing on mobile */
+.form-control, .form-select {
+    min-height: 38px;
+}
+
+/* Responsive sidebar for dashboard layout */
+@media (max-width: 992px) {
+    .main-sidebar {
+        width: 70px !important;
+        min-width: 70px !important;
+    }
+    .main-sidebar .brand-link .brand-text,
+    .main-sidebar .nav-link span,
+    .main-sidebar .nav-header {
+        display: none !important;
+    }
+    .main-sidebar .nav-link {
+        justify-content: center;
+        padding: 10px 0 !important;
+    }
+    .main-sidebar .nav-link i {
+        margin-right: 0 !important;
+    }
+    .content {
+        padding: 12px !important;
+    }
+}
+

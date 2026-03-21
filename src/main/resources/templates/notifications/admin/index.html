@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Thông báo',
+        'Quản lý thông báo',
+        'Thông báo hệ thống',
+        'notifications',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show shadow-sm">
+        <i class="fa-solid fa-circle-check me-2"></i><span th:text="${success}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                <div>
+                    <div class="h4 mb-1"><i class="fa-solid fa-bell me-2 text-primary"></i>Quản lý thông báo</div>
+                    <div class="text-muted small">Tạo / chỉnh sửa / xóa thông báo thủ công</div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a class="btn btn-warning btn-sm fw-semibold text-dark"
+                       th:href="@{/admin/notifications/new}">
+                        <i class="fa-solid fa-plus me-1"></i>Thêm thông báo
+                    </a>
+                </div>
+            </div>
+
+            <form class="row g-2 align-items-end mb-3" method="get" th:action="@{/admin/notifications}">
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Loại</label>
+                    <select class="form-select" name="category">
+                        <option value="" th:selected="${category == null}">Tất cả</option>
+                        <option th:each="c : ${categories}"
+                                th:value="${c.name()}"
+                                th:selected="${category != null and c == category}"
+                                th:text="${c.getLabel()}">Loại</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Recipient (UUID)</label>
+                    <input class="form-control" name="recipientUserId" placeholder="(tùy chọn)"
+                           th:value="${recipientUserId != null ? recipientUserId : ''}"/>
+                </div>
+                <div class="col-12 col-md-3">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" id="unreadOnlyAdmin" name="unreadOnly"
+                               th:checked="${unreadOnly}">
+                        <label class="form-check-label" for="unreadOnlyAdmin">Chưa đọc</label>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Từ khóa</label>
+                    <input class="form-control" name="keyword" placeholder="Tìm theo tiêu đề / nội dung"
+                           th:value="${keyword}"/>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fa-solid fa-filter me-1"></i>Lọc
+                    </button>
+                </div>
+                <div class="col-12 col-md-2">
+                    <a th:href="@{/admin/notifications}" class="btn btn-outline-secondary w-100">Đặt lại</a>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                    <tr>
+                        <th style="width: 190px;">Người nhận</th>
+                        <th style="width: 130px;">Loại</th>
+                        <th>Tiêu đề</th>
+                        <th style="width: 130px;">Trạng thái</th>
+                        <th style="width: 150px;">Gửi lúc</th>
+                        <th style="width: 160px;">Ngày tạo</th>
+                        <th style="width: 180px;">Hành động</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="n : ${items}">
+                        <td>
+                            <div class="fw-semibold" th:text="${n.recipientUsername != null ? n.recipientUsername : n.recipientUserId}">user</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary" th:text="${n.categoryLabel != null ? n.categoryLabel : n.category}">Loại</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold" th:text="${n.title}">Tiêu đề</div>
+                            <div class="text-muted small"
+                                 th:text="${#strings.length(n.content) > 70 ? #strings.substring(n.content, 0, 70) + '...' : n.content}">
+                                Nội dung
+                            </div>
+                        </td>
+                        <td>
+                            <span th:if="${n.read}" class="badge bg-success">Đã đọc</span>
+                            <span th:unless="${n.read}" class="badge bg-danger">Chưa đọc</span>
+                        </td>
+                        <td th:text="${n.scheduledAt != null ? n.scheduledAt : '-'}">-</td>
+                        <td th:text="${n.createdAt}">-</td>
+                        <td>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a class="btn btn-sm btn-outline-primary"
+                                   th:href="@{/admin/notifications/{id}/edit(id=${n.id})}">
+                                    <i class="fa-solid fa-pen me-1"></i>Sửa
+                                </a>
+                                <form th:action="@{/admin/notifications/{id}/delete(id=${n.id})}" method="post">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit"
+                                            onclick="return confirm('Xóa thông báo này?')">
+                                        <i class="fa-solid fa-trash me-1"></i>Xóa
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${items == null or #lists.isEmpty(items)}">
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-bell-slash fa-2x d-block mb-2 opacity-40"></i>
+                            Không có thông báo nào phù hợp.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+                <small class="text-muted">
+                    Hiển thị <strong th:text="${page.numberOfElements}">0</strong> /
+                    <strong th:text="${page.totalElements}">0</strong> thông báo
+                </small>
+                <nav th:if="${page.totalPages > 1}">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item" th:classappend="${page.first} ? ' disabled'">
+                            <a class="page-link"
+                               th:href="@{/admin/notifications(page=${page.number - 1}, size=${size}, unreadOnly=${unreadOnly}, category=${categoryStr}, recipientUserId=${recipientUserId}, keyword=${keyword})}">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li th:each="i : ${#numbers.sequence(0, page.totalPages - 1)}"
+                            class="page-item"
+                            th:classappend="${i == page.number} ? ' active'">
+                            <a class="page-link"
+                               th:text="${i + 1}"
+                               th:href="@{/admin/notifications(page=${i}, size=${size}, unreadOnly=${unreadOnly}, category=${categoryStr}, recipientUserId=${recipientUserId}, keyword=${keyword})}"></a>
+                        </li>
+                        <li class="page-item" th:classappend="${page.last} ? ' disabled'">
+                            <a class="page-link"
+                               th:href="@{/admin/notifications(page=${page.number + 1}, size=${size}, unreadOnly=${unreadOnly}, category=${categoryStr}, recipientUserId=${recipientUserId}, keyword=${keyword})}">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>
+

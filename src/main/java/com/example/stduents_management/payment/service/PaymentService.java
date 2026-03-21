@@ -100,6 +100,7 @@ public class PaymentService {
         UUID tuitionId = payment.getStudentTuition().getId();
         paymentRepository.delete(payment);
         recalculateStudentTuition(tuitionId);
+        notifyTuitionPaymentChange(tuitionId);
     }
 
     private void notifyTuitionPaymentChange(UUID studentTuitionId) {
@@ -140,13 +141,14 @@ public class PaymentService {
                         : "Bạn đã đóng đủ học phí. ") +
                 (statusLabel.isBlank() ? "" : " (" + statusLabel + ")");
 
-        notificationService.createForUserId(
+        notificationService.upsertForUserBySource(
                 updated.getStudent().getUser().getId(),
                 NotificationCategory.TUITION_FEE,
                 title,
                 content,
                 null,
-                null
+                NotificationCategory.TUITION_FEE.name(),
+                studentTuitionId.toString()
         );
     }
 

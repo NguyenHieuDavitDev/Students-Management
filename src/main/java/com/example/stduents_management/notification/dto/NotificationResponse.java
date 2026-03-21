@@ -7,6 +7,8 @@ import java.util.UUID;
 
 public record NotificationResponse(
         UUID id,
+        UUID recipientUserId,
+        String recipientUsername,
         NotificationCategory category,
         String categoryLabel,
         String title,

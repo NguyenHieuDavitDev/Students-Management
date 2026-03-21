@@ -78,8 +78,8 @@ public class ExamScheduleService {
 
         ExamSchedule es = new ExamSchedule();
         buildEntity(es, req, cs, et);
-        examScheduleRepository.save(es);
-        notifyExamScheduleChange(cs, et.getName(), req.getExamDate(), req.getStartTime(), req.getDurationMinutes(), req.getNote());
+        ExamSchedule saved = examScheduleRepository.save(es);
+        notifyExamScheduleChange(saved.getId(), cs, et.getName(), req.getExamDate(), req.getStartTime(), req.getDurationMinutes(), req.getNote());
     }
 
     @Transactional
@@ -91,7 +91,7 @@ public class ExamScheduleService {
         ExamType et = resolveExamType(req.getExamTypeId());
         buildEntity(es, req, cs, et);
         examScheduleRepository.save(es);
-        notifyExamScheduleChange(cs, et.getName(), req.getExamDate(), req.getStartTime(), req.getDurationMinutes(), req.getNote());
+        notifyExamScheduleChange(id, cs, et.getName(), req.getExamDate(), req.getStartTime(), req.getDurationMinutes(), req.getNote());
     }
 
     @Transactional
@@ -100,6 +100,7 @@ public class ExamScheduleService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch thi");
         }
         examScheduleRepository.deleteById(id);
+        notificationService.deleteBySource(NotificationCategory.EXAM_SCHEDULE.name(), id.toString());
     }
 
     public void exportExcel(HttpServletResponse response) {
@@ -211,6 +212,7 @@ public class ExamScheduleService {
     }
 
     private void notifyExamScheduleChange(
+            UUID examScheduleId,
             ClassSection cs,
             String examTypeName,
             LocalDate examDate,
@@ -234,16 +236,23 @@ public class ExamScheduleService {
                 + (note != null && !note.isBlank() ? ". Ghi chú: " + note.trim() : "")
                 + ".";
 
+        java.time.LocalDateTime scheduledAt = (examDate != null && startTime != null)
+                ? java.time.LocalDateTime.of(examDate, startTime)
+                : null;
+
         java.util.List<CourseRegistration> regs = courseRegistrationRepository
                 .findByClassSection_IdOrderByStudent_FullName(cs.getId());
 
         for (CourseRegistration cr : regs) {
             if (cr == null || cr.getStudent() == null || cr.getStudent().getUser() == null) continue;
-            notificationService.createForUserId(
+            notificationService.upsertForUserBySource(
                     cr.getStudent().getUser().getId(),
                     NotificationCategory.EXAM_SCHEDULE,
                     title,
-                    content
+                    content,
+                    scheduledAt,
+                    NotificationCategory.EXAM_SCHEDULE.name(),
+                    examScheduleId != null ? examScheduleId.toString() : null
             );
         }
     }

@@ -123,6 +123,7 @@ public class ScheduleOverrideService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bản ghi thay đổi lịch");
         }
         repository.deleteById(id);
+        notificationService.deleteBySource(NotificationCategory.SCHEDULE_CHANGE.name(), id.toString());
     }
 
     private void notifyScheduleChange(Schedule schedule, ScheduleOverride o) {
@@ -139,6 +140,7 @@ public class ScheduleOverrideService {
         String overrideType = o.getOverrideType() != null ? o.getOverrideType().name() : "";
         String overrideDate = o.getOverrideDate() != null ? o.getOverrideDate().toString() : "";
         String status = o.getStatus() != null ? o.getStatus().name() : "";
+        java.time.LocalDateTime scheduledAt = o.getOverrideDate() != null ? o.getOverrideDate().atStartOfDay() : null;
 
         String newRoomStr = o.getNewRoom() != null
                 ? (o.getNewRoom().getRoomCode() + " - " + o.getNewRoom().getRoomName())
@@ -169,11 +171,14 @@ public class ScheduleOverrideService {
         List<CourseRegistration> regs = courseRegistrationRepository.findByClassSection_IdOrderByStudent_FullName(classSectionId);
         for (CourseRegistration cr : regs) {
             if (cr == null || cr.getStudent() == null || cr.getStudent().getUser() == null) continue;
-            notificationService.createForUserId(
+            notificationService.upsertForUserBySource(
                     cr.getStudent().getUser().getId(),
                     NotificationCategory.SCHEDULE_CHANGE,
                     title,
-                    content
+                    content,
+                    scheduledAt,
+                    NotificationCategory.SCHEDULE_CHANGE.name(),
+                    o.getOverrideId() != null ? o.getOverrideId().toString() : null
             );
         }
     }

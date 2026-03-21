@@ -1,6 +1,7 @@
 package com.example.stduents_management.notification.service;
 
 import com.example.stduents_management.notification.dto.NotificationResponse;
+import com.example.stduents_management.notification.dto.NotificationCreateRequest;
 import com.example.stduents_management.notification.entity.Notification;
 import com.example.stduents_management.notification.entity.NotificationCategory;
 import com.example.stduents_management.notification.repository.NotificationRepository;
@@ -90,6 +91,17 @@ public class NotificationService {
                 .map(this::toResponse);
     }
 
+    public Page<NotificationResponse> searchForAdmin(
+            NotificationCategory category,
+            UUID recipientUserId,
+            boolean unreadOnly,
+            String keyword,
+            Pageable pageable
+    ) {
+        return notificationRepository.searchForAdmin(category, recipientUserId, unreadOnly, keyword, pageable)
+                .map(this::toResponse);
+    }
+
     public long countUnreadForCurrentUser() {
         UUID userId = getCurrentUserId();
         return notificationRepository.countByRecipientUser_IdAndReadFalse(userId);
@@ -112,9 +124,129 @@ public class NotificationService {
         return toResponse(notification);
     }
 
+    public NotificationResponse getById(UUID notificationId) {
+        return notificationRepository.findById(notificationId)
+                .map(this::toResponse)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thông báo"));
+    }
+
+    @Transactional
+    public NotificationResponse createManual(NotificationCreateRequest req) {
+        return createForUserId(
+                req.getRecipientUserId(),
+                req.getCategory(),
+                req.getTitle(),
+                req.getContent(),
+                req.getScheduledAt(),
+                null
+        );
+    }
+
+    @Transactional
+    public NotificationResponse updateManual(UUID notificationId, NotificationCreateRequest req) {
+        Notification existing = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thông báo"));
+
+        User recipient = userRepository.getReferenceById(req.getRecipientUserId());
+        existing.setRecipientUser(recipient);
+        existing.setCategory(req.getCategory());
+        existing.setTitle(req.getTitle());
+        existing.setContent(req.getContent());
+        existing.setScheduledAt(req.getScheduledAt());
+
+        // Thông báo tạo tay: không gắn nguồn sự kiện để tránh bị auto CRUD ghi đè.
+        existing.setSourceType(null);
+        existing.setSourceId(null);
+
+        Notification saved = notificationRepository.save(existing);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public void deleteManual(UUID notificationId) {
+        if (notificationId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "notificationId không hợp lệ");
+        }
+        if (!notificationRepository.existsById(notificationId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thông báo");
+        }
+        notificationRepository.deleteById(notificationId);
+    }
+
+    /**
+     * Auto CRUD theo nguồn sự kiện: nếu đã có notification cho cùng user + category + sourceType + sourceId
+     * thì update title/content/scheduledAt; ngược lại thì tạo mới.
+     *
+     * Lưu ý: phần read/readAt không bị reset khi auto update.
+     */
+    @Transactional
+    public NotificationResponse upsertForUserBySource(
+            UUID recipientUserId,
+            NotificationCategory category,
+            String title,
+            String content,
+            LocalDateTime scheduledAt,
+            String sourceType,
+            String sourceId
+    ) {
+        if (recipientUserId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "recipientUserId không hợp lệ");
+        }
+        if (category == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "category không hợp lệ");
+        }
+        if (sourceType == null || sourceType.isBlank() || sourceId == null || sourceId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "sourceType/sourceId không hợp lệ");
+        }
+
+        User recipient = userRepository.getReferenceById(recipientUserId);
+
+        Notification existing = notificationRepository.findLatestBySource(recipientUserId, category, sourceType, sourceId)
+                .orElse(null);
+        if (existing != null) {
+            existing.setRecipientUser(recipient);
+            existing.setTitle(title);
+            existing.setContent(content);
+            existing.setCategory(category);
+            existing.setSourceType(sourceType);
+            existing.setSourceId(sourceId);
+            if (scheduledAt != null) {
+                existing.setScheduledAt(scheduledAt);
+            }
+            // giữ nguyên read/readAt
+            Notification saved = notificationRepository.save(existing);
+            return toResponse(saved);
+        }
+
+        Notification created = new Notification();
+        created.setRecipientUser(recipient);
+        created.setCategory(category);
+        created.setTitle(title);
+        created.setContent(content);
+        created.setSourceType(sourceType);
+        created.setSourceId(sourceId);
+        if (scheduledAt != null) {
+            created.setScheduledAt(scheduledAt);
+        }
+        // read/readAt mặc định: false/null
+
+        Notification saved = notificationRepository.save(created);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public void deleteBySource(String sourceType, String sourceId) {
+        if (sourceType == null || sourceType.isBlank() || sourceId == null || sourceId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "sourceType/sourceId không hợp lệ");
+        }
+        notificationRepository.deleteBySourceTypeAndSourceId(sourceType, sourceId);
+    }
+
     private NotificationResponse toResponse(Notification n) {
         return new NotificationResponse(
                 n.getId(),
+                n.getRecipientUser() != null ? n.getRecipientUser().getId() : null,
+                n.getRecipientUser() != null ? n.getRecipientUser().getUsername() : null,
                 n.getCategory(),
                 n.getCategory() != null ? n.getCategory().getLabel() : null,
                 n.getTitle(),

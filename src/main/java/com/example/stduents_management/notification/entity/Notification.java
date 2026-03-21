@@ -8,7 +8,14 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "notifications")
+@Table(
+        name = "notifications",
+        uniqueConstraints = {
+                // Dùng cho "tự động" (upsert theo nguồn sự kiện).
+                // Với thông báo tạo tay thì sourceType/sourceId có thể null nên không làm hạn chế trùng.
+                @UniqueConstraint(columnNames = {"recipient_user_id", "category", "source_type", "source_id"})
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -65,6 +72,13 @@ public class Notification {
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;
 
+    // Thông tin truy vết nguồn phát sinh (để auto CRUD: upsert/update/delete theo cùng nguồn).
+    @Column(name = "source_type", length = 60)
+    private String sourceType;
+
+    @Column(name = "source_id", length = 120)
+    private String sourceId;
+
     // dùng để truy vết ai tạo thông báo (admin/system). null nếu không áp dụng.
     @Column(name = "created_by", columnDefinition = "uniqueidentifier")
     private UUID createdBy;
@@ -79,6 +93,9 @@ public class Notification {
         }
         if (content != null) {
             content = content.trim();
+        }
+        if (title != null) {
+            title = title.trim();
         }
     }
 }
