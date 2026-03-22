@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa tài liệu':'Thêm tài liệu'),
+        (${mode}=='edit'?'Chỉnh sửa tài liệu':'Thêm tài liệu'),
+        'Form tài liệu học tập',
+        'documents',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="alert alert-danger"
+         th:if="${globalError}"
+         th:text="${globalError}"></div>
+
+    <form method="post"
+          enctype="multipart/form-data"
+          th:action="${mode}=='edit'
+        ? @{/admin/documents/{id}(id=${documentId})}
+        : @{/admin/documents}"
+          th:object="${documentRequest}">
+
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+        <div class="alert alert-warning py-2 small" th:if="${#fields.hasGlobalErrors()}">
+            <span th:each="err : ${#fields.globalErrors()}" th:text="${err}">Lỗi</span>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-12">
+                <label>Tiêu đề <span class="text-danger">*</span></label>
+                <input class="form-control" th:field="*{title}" placeholder="VD: Giáo trình môn Lập trình Web">
+                <small class="text-danger" th:errors="*{title}"></small>
+            </div>
+
+            <div class="col-md-12">
+                <label>Tải file từ máy tính</label>
+                <input type="file"
+                       class="form-control"
+                       name="attachmentFile"
+                       accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.rtf,.csv,.zip,.7z,.odt,.ods,.odp,.png,.jpg,.jpeg,.gif,.webp,.mp4,.mp3,.wav">
+                <div class="form-text">
+                    Tùy chọn nếu đã có URL bên dưới. Hỗ trợ PDF, Word, PowerPoint, Excel và hầu hết định dạng khác (tối đa 50MB).
+                    Nếu chọn file mới khi sửa, file cũ trên server (nếu có) sẽ được thay thế.
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <label>Hoặc đường dẫn / URL</label>
+                <input class="form-control" th:field="*{fileUrl}" placeholder="Để trống nếu chỉ tải file ở trên — hoặc dán link Drive, CDN…">
+                <small class="text-danger" th:errors="*{fileUrl}"></small>
+                <div class="form-text">Bắt buộc một trong hai: <strong>file tải lên</strong> hoặc <strong>URL</strong>.</div>
+            </div>
+
+            <div class="col-md-4">
+                <label>Loại file</label>
+                <input class="form-control" th:field="*{fileType}" placeholder="Để trống để tự nhận từ tên file / URL (vd: pdf, docx)">
+                <small class="text-danger" th:errors="*{fileType}"></small>
+            </div>
+
+            <div class="col-md-4">
+                <label>Môn học <span class="text-danger">*</span></label>
+                <select class="form-select" th:field="*{subjectId}">
+                    <option value="">-- Chọn học phần --</option>
+                    <option th:each="c : ${courses}"
+                            th:value="${c.id}"
+                            th:text="${c.courseCode + ' — ' + c.courseName}">
+                    </option>
+                </select>
+                <small class="text-danger" th:errors="*{subjectId}"></small>
+            </div>
+
+            <div class="col-md-4">
+                <label>Người tải lên <span class="text-danger">*</span></label>
+                <select class="form-select" th:field="*{uploadedById}">
+                    <option value="">-- Chọn tài khoản --</option>
+                    <option th:each="u : ${users}"
+                            th:value="${u.id}"
+                            th:text="${u.username + ' (' + u.email + ')'}">
+                    </option>
+                </select>
+                <small class="text-danger" th:errors="*{uploadedById}"></small>
+            </div>
+
+            <div class="col-12">
+                <label>Mô tả</label>
+                <textarea class="form-control" rows="3" th:field="*{description}" placeholder="Mô tả ngắn nội dung tài liệu"></textarea>
+                <small class="text-danger" th:errors="*{description}"></small>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">Lưu</button>
+            <a class="btn btn-secondary" th:href="@{/admin/documents}">Huỷ</a>
+        </div>
+
+    </form>
+
+</div>
+</body>
+</html>

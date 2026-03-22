@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In danh sách tài liệu học tập</title>
+    <style>
+        @page { size: A4; margin: 16mm; }
+        body { font-family: "Segoe UI", Arial, sans-serif; font-size: 12px; color: #000; }
+        .header { text-align: center; margin-bottom: 14px; }
+        .header h2 { margin: 0; font-size: 18px; text-transform: uppercase; }
+        .header .sub { font-size: 11px; margin-top: 4px; }
+        .info { margin-bottom: 8px; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { border: 1px solid #000; padding: 5px 6px; word-wrap: break-word; }
+        th { background: #f2f2f2; text-align: center; font-weight: 600; font-size: 11px; }
+        td { vertical-align: top; }
+        .text-center { text-align: center; }
+        .small-url { font-size: 10px; color: #333; }
+        .footer { margin-top: 18px; display: flex; justify-content: flex-end; font-size: 11px; }
+        .signature { text-align: center; width: 200px; }
+        .signature p { margin: 0; }
+    </style>
+</head>
+<body onload="window.print()">
+
+<div class="header">
+    <h2>DANH SÁCH TÀI LIỆU HỌC TẬP</h2>
+    <div class="sub">
+        Ngày in:
+        <span th:text="${#temporals.format(T(java.time.LocalDateTime).now(), 'dd/MM/yyyy HH:mm')}"></span>
+    </div>
+</div>
+
+<div class="info">
+    Tổng số tài liệu:
+    <strong th:text="${documents.size()}">0</strong>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th style="width:36px">STT</th>
+        <th style="width:22%">Tiêu đề</th>
+        <th style="width:14%">Môn học</th>
+        <th style="width:10%">Loại</th>
+        <th>URL / đường dẫn</th>
+        <th style="width:12%">Người tải</th>
+        <th style="width:11%">Thời gian</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="d, iter : ${documents}">
+        <td class="text-center" th:text="${iter.index + 1}"></td>
+        <td th:text="${d.title}"></td>
+        <td>
+            <span th:text="${d.subjectCourseCode}"></span>
+            <span th:if="${d.subjectCourseName != null}" th:text="${' — ' + d.subjectCourseName}"></span>
+        </td>
+        <td class="text-center" th:text="${d.fileType != null ? d.fileType : '—'}"></td>
+        <td class="small-url" th:text="${d.fileUrl}"></td>
+        <td th:text="${d.uploadedByUsername}"></td>
+        <td class="text-center small-url"
+            th:text="${d.createdAt != null ? #temporals.format(d.createdAt, 'dd/MM/yyyy HH:mm') : '—'}"></td>
+    </tr>
+    <tr th:if="${documents.isEmpty()}">
+        <td colspan="7" class="text-center">Không có dữ liệu</td>
+    </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    <div class="signature">
+        <p><strong>Người lập danh sách</strong></p>
+        <p style="margin-top: 36px;">(Ký, ghi rõ họ tên)</p>
+    </div>
+</div>
+
+</body>
+</html>

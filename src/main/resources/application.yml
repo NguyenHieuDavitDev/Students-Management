@@ -1,4 +1,9 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
+
   datasource:
     url: jdbc:sqlserver://localhost:1433;databaseName=student_db;encrypt=true;trustServerCertificate=true
     username: sa
@@ -9,3 +14,8 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+# File tài liệu học tập: lưu dưới uploads/documents/, phục vụ qua /uploads/documents/**
+app:
+  document-upload:
+    max-bytes: 52428800

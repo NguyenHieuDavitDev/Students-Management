@@ -4755,6 +4755,7 @@ gradescale/
 - [x] Quản lý chức danh (Position Management)
 - [x] Quản lý chương trình đào tạo (Training programs Management)
 - [x] Quản lý học phần (Courses Management)
+- [x] Quản lý tài liệu học tập (Documents — CRUD, tìm kiếm, phân trang, import/export Excel, in)
 - [x] Quản lý toà nhà (Building Management)
 - [x] Quản lý loại phòng (Room Type Management)
 - [x] Quản lý học phần tiên quyết (Course Prerequisite Management)
@@ -4781,5 +4782,25 @@ gradescale/
 - [ ] API Documentation (Swagger)
 
 
+---
+
+## Module Tài liệu học tập (Documents)
+
+Module lưu metadata tài liệu phục vụ học tập (giáo trình, slide, bài tập, tài liệu tham khảo…): tiêu đề, URL file, loại file, môn học, người tải, mô tả, thời gian tạo.
+
+### Đã triển khai
+
+| Thành phần | Mô tả |
+|------------|--------|
+| **Entity / DB** | Bảng `documents` (`document_id`, `title`, `file_url`, `file_type`, `subject_id` → `courses`, `uploaded_by` → `users`, `description`, `created_at`). Hibernate `ddl-auto: update` tạo/cập nhật schema. |
+| **REST API** | `DocumentController` tại `/api/documents`: CRUD JSON (`Content-Type: application/json`), **hoặc** tạo/cập nhật bằng `multipart/form-data` (cùng field như form + part `attachmentFile` cho file). `GET ?keyword&page&size`, `GET /print`, `GET /export`, `POST /import`. |
+| **Upload file** | File lưu tại `uploads/documents/`, URL lưu DB dạng `/uploads/documents/{uuid}_{tên}`. Phục vụ tĩnh qua `/uploads/**` (`WebConfig`). Giới hạn dung lượng: `spring.servlet.multipart` + `app.document-upload.max-bytes` (mặc định 50MB). Cho phép hầu hết đuôi file phục vụ học tập; **chặn** một số đuôi thực thi (exe, bat, cmd, …). |
+| **Giao diện admin** | `DocumentDashboardController` `/admin/documents`: danh sách (tìm kiếm, phân trang), form `multipart` (**URL hoặc file máy**), xóa / import-export / in; sidebar **Tài liệu học tập**. Khi sửa, file mới thay file cũ trên server nếu bản ghi đang trỏ tới `/uploads/documents/...`. |
+| **Import Excel** | Sheet đầu, dòng 1 là header: Title, File URL, File Type, Course Code, Uploaded By Username, Description. Tra cứu môn theo `course_code`, user theo `username`. |
+
+**Lưu ý:** `subject_id` tham chiếu bảng `courses` (học phần), phù hợp codebase hiện tại (chưa có bảng `subjects` riêng).
+
+---
+
 **Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 10/03/2026 – Bổ sung module Quản lý điểm sinh viên (student_grades): CRUD, nhập điểm theo thành phần, chọn giảng viên nhập điểm, tìm kiếm, phân trang, in ấn
+**Cập nhật lần cuối**: 21/03/2026 – Tài liệu học tập: upload file từ máy (PDF, Office, Excel, …), lưu `uploads/documents`, REST multipart

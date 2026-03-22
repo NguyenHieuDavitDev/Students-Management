@@ -130,6 +130,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/documents}" th:classappend="${activeMenu}=='documents' ? 'active' : ''">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>Tài liệu học tập</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/course-prerequisites}" th:classappend="${activeMenu}=='course-prerequisites' ? 'active' : ''">
                     <i class="fa-solid fa-diagram-project"></i>
                     <span>Course Prerequisites</span>
