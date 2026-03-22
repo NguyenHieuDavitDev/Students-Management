@@ -4735,6 +4735,122 @@ gradescale/
 
 ---
 
+### 26. Quản Lý Phản Hồi Đánh Giá Giảng Viên (Feedback Management)
+
+Module **feedbacks** cho phép ghi nhận, quản lý và xuất báo cáo về phản hồi đánh giá của sinh viên đối với giảng viên và môn học. Module cung cấp đồng thời **giao diện Admin** (Thymeleaf) và **REST API** phục vụ tích hợp bên ngoài.
+
+#### 26.1. Mô hình dữ liệu
+
+Bảng `feedbacks`:
+
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| `feedback_id` | UUID (PK) | Khóa chính, tự sinh |
+| `student_id` | FK → `students` | Sinh viên gửi phản hồi |
+| `lecturer_id` | FK → `lecturers` | Giảng viên được đánh giá |
+| `subject_id` | FK → `courses` | Môn học được đánh giá |
+| `rating` | INT | Điểm đánh giá từ **1 đến 5** (bắt buộc) |
+| `comment` | NVARCHAR(1000) | Nhận xét (tùy chọn, tối đa 1000 ký tự) |
+| `created_at` | DATETIME | Tự động ghi khi tạo |
+
+#### 26.2. Tính năng
+
+- **CRUD**: Thêm, sửa, xóa, xem chi tiết phản hồi.
+- **Tìm kiếm đa tiêu chí** (case-insensitive) kết hợp:
+  - Từ khóa: tên/mã sinh viên, tên/mã giảng viên, tên/mã môn học, nội dung nhận xét.
+  - **Tìm theo điểm đánh giá**: khi keyword là chữ số `1–5`, hệ thống khớp thêm cột `rating`.
+  - **Lọc theo khoảng ngày**: `fromDate` (bắt đầu từ 00:00:00) và `toDate` (kết thúc lúc 23:59:59).
+- **Phân trang**: mặc định 20/trang, sắp xếp `createdAt` giảm dần.
+- **Export Excel**: Xuất toàn bộ phản hồi ra file `feedbacks.xlsx` với định dạng tiêu đề có style (bold, nền xanh nhạt, viền), 10 cột:
+  > ID phản hồi · Mã SV · Họ tên SV · Mã GV · Họ tên GV · Mã môn · Tên môn · Điểm (1–5) · Nhận xét · Thời gian gửi
+- **Import Excel**: Nhập hàng loạt từ file `.xlsx` bắt đầu từ dòng 3 (dòng 1 tiêu đề, dòng 2 header). Hỗ trợ 2 định dạng:
+  - **Có cột UUID** (cột 0 là UUID): cột 1 → mã SV, cột 2 → mã GV, cột 3 → mã môn, cột 4 → rating, cột 5 → comment.
+  - **Không có UUID**: cột 0 → mã SV, cột 1 → mã GV, cột 2 → mã môn, cột 3 → rating, cột 4 → comment.
+  - Bỏ qua dòng thiếu dữ liệu bắt buộc hoặc không tìm được SV/GV/môn; trả về số lượng bản ghi đã import thành công.
+- **In**: Trang in lọc theo cùng bộ filter (keyword + fromDate + toDate).
+
+#### 26.3. Service (FeedbackService)
+
+| Phương thức | Mô tả |
+|-------------|-------|
+| `search(keyword, fromDate, toDate, page, size)` | Tìm kiếm phân trang đa tiêu chí |
+| `getAllFiltered(keyword, fromDate, toDate)` | Lấy toàn bộ kết quả lọc không phân trang (dùng cho print) |
+| `getById(id)` | Lấy chi tiết, ném 404 nếu không tồn tại |
+| `create(req)` | Tạo mới, kiểm tra tồn tại SV/GV/môn học |
+| `update(id, req)` | Sửa, kiểm tra tồn tại SV/GV/môn học |
+| `delete(id)` | Xóa, kiểm tra tồn tại trước |
+| `exportExcel(response)` | Ghi file `.xlsx` trực tiếp vào `HttpServletResponse` |
+| `importExcel(file)` | Đọc file, lưu từng dòng hợp lệ, trả về số dòng thành công |
+
+**Logic tìm kiếm đặc biệt**:
+- `parseRatingDigitKeyword(kw)`: nếu keyword là một ký tự `1–5` → truyền vào `ratingMatch`, query JPQL khớp thêm `f.rating = :ratingMatch`.
+- `parseDateStart` / `parseDateEnd`: parse chuỗi `yyyy-MM-dd` thành `LocalDateTime` đầu/cuối ngày.
+
+#### 26.4. DTO
+
+**`FeedbackRequest`** (tạo/sửa):
+
+| Trường | Ràng buộc | Mô tả |
+|--------|-----------|-------|
+| `studentId` | `@NotNull` | UUID sinh viên |
+| `lecturerId` | `@NotNull` | UUID giảng viên |
+| `subjectId` | `@NotNull` | UUID môn học |
+| `rating` | `@NotNull`, `@Min(1)`, `@Max(5)` | Điểm đánh giá (mặc định 5) |
+| `comment` | `@Size(max=1000)` | Nhận xét (tùy chọn) |
+
+**`FeedbackResponse`** (record): `feedbackId`, `studentId`, `studentCode`, `studentName`, `lecturerId`, `lecturerCode`, `lecturerName`, `subjectId`, `courseCode`, `courseName`, `rating`, `comment`, `createdAt`.
+
+#### 26.5. Giao diện Admin — Thymeleaf (`/admin/feedbacks`)
+
+| Chức năng | URL |
+|-----------|-----|
+| Danh sách | `GET /admin/feedbacks?keyword=&fromDate=&toDate=&page=0&size=20` |
+| Thêm mới | `GET /admin/feedbacks/new` · `POST /admin/feedbacks` |
+| Sửa | `GET /admin/feedbacks/{id}/edit` · `POST /admin/feedbacks/{id}` |
+| Xóa | `POST /admin/feedbacks/{id}/delete` |
+| In | `GET /admin/feedbacks/print?keyword=&fromDate=&toDate=` |
+| Export Excel | `GET /admin/feedbacks/export` |
+| Import Excel | `POST /admin/feedbacks/import` (multipart `file`) |
+
+#### 26.6. REST API (`/api/feedbacks`)
+
+| Method | URL | Mô tả | Response |
+|--------|-----|-------|----------|
+| `GET` | `/api/feedbacks` | Tìm kiếm phân trang | `Page<FeedbackResponse>` 200 |
+| `GET` | `/api/feedbacks/{id}` | Lấy chi tiết | `FeedbackResponse` 200 |
+| `POST` | `/api/feedbacks` | Tạo mới (JSON body) | `FeedbackResponse` 201 |
+| `PUT` | `/api/feedbacks/{id}` | Cập nhật (JSON body) | `FeedbackResponse` 200 |
+| `DELETE` | `/api/feedbacks/{id}` | Xóa | 204 No Content |
+| `GET` | `/api/feedbacks/export` | Tải file Excel toàn bộ | file `.xlsx` |
+| `POST` | `/api/feedbacks/import` | Import file Excel | chuỗi số lượng 200 |
+| `GET` | `/api/feedbacks/print` | Danh sách JSON có lọc | `List<FeedbackResponse>` 200 |
+
+#### 26.7. Repository (TeachingFeedbackRepository)
+
+| Method | Mô tả |
+|--------|-------|
+| `search(keyword, ratingMatch, from, to, pageable)` | Tìm kiếm phân trang theo keyword + rating + khoảng ngày |
+| `findAllForExport()` | Lấy toàn bộ có `JOIN FETCH` Student, Lecturer, Course (tránh N+1 khi export) |
+
+#### 26.8. Cấu trúc code
+
+```
+feedback/
+├── controller/
+│   ├── FeedbackDashboardController.java   # Thymeleaf Admin (/admin/feedbacks)
+│   └── FeedbackController.java            # REST API (/api/feedbacks)
+├── dto/
+│   ├── FeedbackRequest.java               # form/body tạo-sửa với @Valid
+│   └── FeedbackResponse.java              # record trả về đầy đủ thông tin
+├── entity/TeachingFeedback.java           # bảng feedbacks (@ManyToOne Student, Lecturer, Course)
+├── repository/TeachingFeedbackRepository.java  # search đa tiêu chí + findAllForExport
+└── service/FeedbackService.java           # toàn bộ logic nghiệp vụ + Excel import/export
+```
+
+**Templates**: `feedbacks/index.html`, `feedbacks/form.html`, `feedbacks/print.html`
+
+---
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -4778,7 +4894,7 @@ gradescale/
 - [ ] Audit Log
 - [ ] Report & Analytics
 - [x] Quản lý thông báo (Notification Management)
-- [ ] Gửi email thông báo
+- [x] Quản lý phản hồi đánh giá giảng viên (Feedback Management)
 - [ ] API Documentation (Swagger)
 
 

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In danh sách phản hồi đánh giá</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', serif; font-size: 11pt; color: #000; background: #fff; }
+        .page { max-width: 1100px; margin: 0 auto; padding: 18mm 12mm; }
+        .school-header { text-align: center; margin-bottom: 5mm; }
+        .school-name { font-size: 11pt; font-weight: bold; text-transform: uppercase; }
+        .dept-name { font-size: 10pt; }
+        .doc-title { font-size: 15pt; font-weight: bold; text-transform: uppercase; margin: 6mm 0 2mm; }
+        .doc-subtitle { font-size: 10pt; margin-bottom: 4mm; font-style: italic; color: #444; }
+        .doc-date { font-size: 10pt; color: #555; margin-bottom: 6mm; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 3mm; font-size: 9pt; }
+        thead th {
+            background: #4f46e5; color: #fff;
+            border: 1px solid #4338ca;
+            padding: 6px 8px; text-align: left; font-weight: bold;
+        }
+        tbody td { border: 1px solid #d1d5db; padding: 5px 8px; vertical-align: top; }
+        tbody tr:nth-child(even) { background: #eef2ff; }
+
+        .summary { margin-top: 5mm; font-size: 10pt; color: #555; border-top: 1px solid #e5e7eb; padding-top: 3mm; }
+
+        .signatures { display: flex; justify-content: space-between; margin-top: 14mm; font-size: 11pt; }
+        .sig-box { text-align: center; width: 200px; }
+        .sig-title { font-weight: bold; }
+        .sig-line { margin-top: 16mm; border-top: 1px solid #000; padding-top: 4px; font-style: italic; font-size: 9pt; }
+
+        @media print {
+            .no-print { display: none !important; }
+            .page { padding: 8mm; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <div class="no-print" style="text-align:right; margin-bottom:10px;">
+        <button onclick="window.print()"
+                style="background:#4f46e5;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;">
+            In ngay
+        </button>
+        <button onclick="window.close()"
+                style="background:#6b7280;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;margin-left:8px;">
+            Đóng
+        </button>
+    </div>
+
+    <div class="school-header">
+        <div class="school-name">TRƯỜNG ĐẠI HỌC [TÊN TRƯỜNG]</div>
+        <div class="dept-name">Phòng Đào tạo</div>
+        <div class="doc-title">Danh sách phản hồi đánh giá giảng viên / môn học</div>
+        <div class="doc-subtitle">Theo bộ lọc tìm kiếm hiện tại (nếu có)</div>
+        <div class="doc-date">
+            Ngày in: <span th:text="${#temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}"></span>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th style="width:32px">STT</th>
+            <th>Sinh viên</th>
+            <th>Giảng viên</th>
+            <th>Môn học</th>
+            <th style="width:50px;text-align:center">Điểm</th>
+            <th>Nhận xét</th>
+            <th style="width:110px;text-align:center">Thời gian</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="e, stat : ${items}">
+            <td style="text-align:center" th:text="${stat.count}"></td>
+            <td>
+                <span th:text="${e.studentName}"></span>
+                <span style="color:#666;font-size:8pt;display:block;" th:text="${e.studentCode}"></span>
+            </td>
+            <td>
+                <span th:text="${e.lecturerName}"></span>
+                <span style="color:#666;font-size:8pt;display:block;" th:text="${e.lecturerCode}"></span>
+            </td>
+            <td>
+                <span th:text="${e.courseName}"></span>
+                <span style="color:#666;font-size:8pt;display:block;" th:text="${e.courseCode}"></span>
+            </td>
+            <td style="text-align:center" th:text="${e.rating}"></td>
+            <td th:text="${e.comment != null ? e.comment : '—'}" style="font-size:8pt;"></td>
+            <td style="text-align:center;font-size:8pt;"
+                th:text="${e.createdAt != null ? #temporals.format(e.createdAt, 'dd/MM/yyyy HH:mm') : '—'}"></td>
+        </tr>
+        <tr th:if="${items.isEmpty()}">
+            <td colspan="7" style="text-align:center;padding:16px;color:#888;">
+                Không có dữ liệu
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="summary">
+        <span>Tổng số phản hồi: <strong th:text="${items.size()}"></strong></span>
+    </div>
+
+    <div class="signatures">
+        <div class="sig-box">
+            <div class="sig-title">Người lập</div>
+            <div class="sig-line">(Ký, ghi rõ họ tên)</div>
+        </div>
+        <div class="sig-box">
+            <div class="sig-title">Trưởng phòng</div>
+            <div class="sig-line">(Ký, ghi rõ họ tên)</div>
+        </div>
+        <div class="sig-box">
+            <div class="sig-title">Hiệu trưởng</div>
+            <div class="sig-line">(Ký, đóng dấu)</div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

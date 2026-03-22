@@ -1,931 +1,815 @@
--- DROP SCHEMA dbo;
+-- -------------------------------------------------------------
+-- TablePlus 6.8.2(656)
+--
+-- https://tableplus.com/
+--
+-- Database: student_db
+-- Generation Time: 2026-03-22 23:45:52.0600
+-- -------------------------------------------------------------
 
-CREATE SCHEMA dbo;
--- student_db.dbo.buildings definition
 
--- Drop table
-
--- DROP TABLE student_db.dbo.buildings;
-
-CREATE TABLE student_db.dbo.buildings (
-	building_id uniqueidentifier NOT NULL,
-	address nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	building_code varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	building_name nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	description varchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	number_of_floors int NULL,
-	total_area float NULL,
-	CONSTRAINT PK__building__9C9FBF7F8917B3C7 PRIMARY KEY (building_id),
-	CONSTRAINT UKrmelgq5kegpd644ap0pxxa97n UNIQUE (building_code)
+DROP TABLE IF EXISTS [dbo].[buildings];
+CREATE TABLE [dbo].[buildings] (
+    [building_id] uniqueidentifier,
+    [address] nvarchar(255),
+    [building_code] varchar(20),
+    [building_name] nvarchar(150),
+    [description] varchar(255),
+    [number_of_floors] int,
+    [total_area] float,
+    PRIMARY KEY ([building_id])
 );
 
-
--- student_db.dbo.education_types definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.education_types;
-
-CREATE TABLE student_db.dbo.education_types (
-	education_type_id uniqueidentifier NOT NULL,
-	created_at datetime2(6) NULL,
-	education_type_name nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	is_active bit NOT NULL,
-	updated_at datetime2(6) NULL,
-	CONSTRAINT PK__educatio__646DC1A45A5B0C9C PRIMARY KEY (education_type_id),
-	CONSTRAINT UKn5xsclbo2fg4d4y4hscv1ch3e UNIQUE (education_type_name)
+DROP TABLE IF EXISTS [dbo].[class_sections];
+CREATE TABLE [dbo].[class_sections] (
+    [id] bigint IDENTITY,
+    [class_code] nvarchar(50),
+    [class_name] nvarchar(200),
+    [created_at] datetime2(6),
+    [current_students] int,
+    [max_students] int,
+    [note] nvarchar(500),
+    [room] nvarchar(100),
+    [status] varchar(30),
+    [updated_at] datetime2(6),
+    [course_id] uniqueidentifier,
+    [semester_id] bigint,
+    [room_id] bigint,
+    CONSTRAINT [FK695u7g15n5nfnaskhw3nhnsbw] FOREIGN KEY ([course_id]) REFERENCES [dbo].[courses]([id]),
+    CONSTRAINT [FKtamlxyq4rm9ybyevrdtcbdbrb] FOREIGN KEY ([semester_id]) REFERENCES [dbo].[semesters]([id]),
+    CONSTRAINT [FK3os9of6f2v5o94rgksgxfn24l] FOREIGN KEY ([room_id]) REFERENCES [dbo].[rooms]([id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.exam_types definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.exam_types;
-
-CREATE TABLE student_db.dbo.exam_types (
-	id uniqueidentifier NOT NULL,
-	created_at datetime2(6) NULL,
-	description nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	name nvarchar(200) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	updated_at datetime2(6) NULL,
-	CONSTRAINT PK__exam_typ__3213E83F42EA0CD8 PRIMARY KEY (id)
+DROP TABLE IF EXISTS [dbo].[classes];
+CREATE TABLE [dbo].[classes] (
+    [class_id] uniqueidentifier,
+    [academic_year] nvarchar(20),
+    [class_code] nvarchar(50),
+    [class_name] nvarchar(150),
+    [class_status] nvarchar(50),
+    [created_at] datetime2(6),
+    [education_type] nvarchar(50),
+    [is_active] bit,
+    [max_student] int,
+    [training_level] nvarchar(50),
+    [updated_at] datetime2(6),
+    [major_id] uniqueidentifier,
+    [education_type_id] uniqueidentifier,
+    [training_level_id] uniqueidentifier,
+    CONSTRAINT [FK4daajpxy22fog83y3mqa48816] FOREIGN KEY ([training_level_id]) REFERENCES [dbo].[training_levels]([training_level_id]),
+    CONSTRAINT [FK6r9qmxcnxge92jgx4x4gltf0o] FOREIGN KEY ([major_id]) REFERENCES [dbo].[majors]([major_id]),
+    CONSTRAINT [FKitg5hh7h9iywbvetbyth42ak8] FOREIGN KEY ([education_type_id]) REFERENCES [dbo].[education_types]([education_type_id]),
+    PRIMARY KEY ([class_id])
 );
 
-
--- student_db.dbo.faculties definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.faculties;
-
-CREATE TABLE student_db.dbo.faculties (
-	faculty_id uniqueidentifier NOT NULL,
-	faculty_code nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	faculty_name nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	CONSTRAINT PK__facultie__7B00413CE60FD096 PRIMARY KEY (faculty_id),
-	CONSTRAINT UK3ff9r9bpq7fpqejwxylgy24v9 UNIQUE (faculty_code)
+DROP TABLE IF EXISTS [dbo].[course_prerequisites];
+CREATE TABLE [dbo].[course_prerequisites] (
+    [id] uniqueidentifier,
+    [course_id] uniqueidentifier,
+    [prerequisite_course_id] uniqueidentifier,
+    CONSTRAINT [FKhh4f1avebuvlv54m3j3l3pp36] FOREIGN KEY ([course_id]) REFERENCES [dbo].[courses]([id]),
+    CONSTRAINT [FKolf0a7iwh8c1mv9keyis4ebe8] FOREIGN KEY ([prerequisite_course_id]) REFERENCES [dbo].[courses]([id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.grade_scales definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.grade_scales;
-
-CREATE TABLE student_db.dbo.grade_scales (
-	id uniqueidentifier NOT NULL,
-	description nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	grade_point numeric(3,2) NOT NULL,
-	letter_grade varchar(2) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	max_score numeric(4,2) NOT NULL,
-	min_score numeric(4,2) NOT NULL,
-	CONSTRAINT PK__grade_sc__3213E83FE0AD4B16 PRIMARY KEY (id)
+DROP TABLE IF EXISTS [dbo].[course_registrations];
+CREATE TABLE [dbo].[course_registrations] (
+    [id] bigint IDENTITY,
+    [note] nvarchar(500),
+    [registered_at] datetime2(6),
+    [class_section_id] bigint,
+    [student_id] uniqueidentifier,
+    CONSTRAINT [FK36e9k9ywnlm0y4bcrh5n6bfhh] FOREIGN KEY ([class_section_id]) REFERENCES [dbo].[class_sections]([id]),
+    CONSTRAINT [FK1uitfc1h86q0t7ncnhlylbvab] FOREIGN KEY ([student_id]) REFERENCES [dbo].[students]([student_id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.permissions definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.permissions;
-
-CREATE TABLE student_db.dbo.permissions (
-	id uniqueidentifier NOT NULL,
-	[action] nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	description nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	name nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	resource nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	code nvarchar(80) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	CONSTRAINT PK__permissi__3213E83F75BD8E50 PRIMARY KEY (id),
-	CONSTRAINT UK7lcb6glmvwlro3p2w2cewxtvd UNIQUE (code),
-	CONSTRAINT UKpnvtwliis6p05pn6i3ndjrqt2 UNIQUE (name)
+DROP TABLE IF EXISTS [dbo].[courses];
+CREATE TABLE [dbo].[courses] (
+    [id] uniqueidentifier,
+    [course_code] nvarchar(50),
+    [course_name] nvarchar(200),
+    [created_at] datetime2(6),
+    [credits] int,
+    [description] nvarchar(1000),
+    [lecture_hours] int,
+    [practice_hours] int,
+    [status] bit,
+    [updated_at] datetime2(6),
+    [faculty_id] uniqueidentifier,
+    CONSTRAINT [FK81p0vixhqd3i5uwdk3sclg0nk] FOREIGN KEY ([faculty_id]) REFERENCES [dbo].[faculties]([faculty_id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.positions definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.positions;
-
-CREATE TABLE student_db.dbo.positions (
-	position_id uniqueidentifier NOT NULL,
-	position_code nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	position_name nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	description nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	CONSTRAINT PK__position__99A0E7A484A543F8 PRIMARY KEY (position_id),
-	CONSTRAINT UK157cqj7049g15mma1tpx32l39 UNIQUE (position_code),
-	CONSTRAINT UKb6lkwasxdrfpxihi038w6ixt6 UNIQUE (position_name)
+DROP TABLE IF EXISTS [dbo].[documents];
+CREATE TABLE [dbo].[documents] (
+    [document_id] uniqueidentifier,
+    [created_at] datetime2(6),
+    [description] nvarchar(500),
+    [file_type] nvarchar(50),
+    [file_url] nvarchar(500),
+    [title] nvarchar(255),
+    [subject_id] uniqueidentifier,
+    [uploaded_by] uniqueidentifier,
+    CONSTRAINT [FK1ugacya4ssi0ilf8a9tjycgs6] FOREIGN KEY ([uploaded_by]) REFERENCES [dbo].[users]([id]),
+    CONSTRAINT [FKaxmoskj22pfhg2eeldnu75fpv] FOREIGN KEY ([subject_id]) REFERENCES [dbo].[courses]([id]),
+    PRIMARY KEY ([document_id])
 );
 
-
--- student_db.dbo.roles definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.roles;
-
-CREATE TABLE student_db.dbo.roles (
-	id uniqueidentifier NOT NULL,
-	description nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	name nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	CONSTRAINT PK__roles__3213E83FCD14AC83 PRIMARY KEY (id),
-	CONSTRAINT UKofx66keruapi6vyqpv6f2or37 UNIQUE (name)
+DROP TABLE IF EXISTS [dbo].[education_types];
+CREATE TABLE [dbo].[education_types] (
+    [education_type_id] uniqueidentifier,
+    [created_at] datetime2(6),
+    [education_type_name] nvarchar(100),
+    [is_active] bit,
+    [updated_at] datetime2(6),
+    PRIMARY KEY ([education_type_id])
 );
 
-
--- student_db.dbo.room_types definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.room_types;
-
-CREATE TABLE student_db.dbo.room_types (
-	room_type_id uniqueidentifier NOT NULL,
-	description nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	max_capacity int NULL,
-	room_type_code varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	room_type_name nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	CONSTRAINT PK__room_typ__42395E84D53052BE PRIMARY KEY (room_type_id),
-	CONSTRAINT UKceedsn233pwaaeds15av1rgkc UNIQUE (room_type_code)
+DROP TABLE IF EXISTS [dbo].[equipments];
+CREATE TABLE [dbo].[equipments] (
+    [id] bigint IDENTITY,
+    [created_at] datetime2(6),
+    [equipment_code] varchar(50),
+    [equipment_name] nvarchar(150),
+    [purchase_date] date,
+    [serial_number] nvarchar(100),
+    [status] varchar(20),
+    [updated_at] datetime2(6),
+    [room_id] bigint,
+    CONSTRAINT [FK5r50pavpda4dbw3p8n6rjikkq] FOREIGN KEY ([room_id]) REFERENCES [dbo].[rooms]([id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.semesters definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.semesters;
-
-CREATE TABLE student_db.dbo.semesters (
-	id bigint IDENTITY(1,1) NOT NULL,
-	academic_year nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	code nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	created_at datetime2(6) NOT NULL,
-	description nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	end_date date NULL,
-	name nvarchar(200) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	registration_end date NULL,
-	registration_start date NULL,
-	start_date date NULL,
-	status varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	term int NOT NULL,
-	updated_at datetime2(6) NOT NULL,
-	CONSTRAINT PK__semester__3213E83F9522FAD0 PRIMARY KEY (id),
-	CONSTRAINT UKncllnspek0awc90guroynogp UNIQUE (code)
-);
-ALTER TABLE student_db.dbo.semesters WITH NOCHECK ADD CONSTRAINT CK__semesters__statu__3C34F16F CHECK (([status]='CLOSED' OR [status]='OPEN' OR [status]='UPCOMING'));
-
-
--- student_db.dbo.[templates/roles] definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.[templates/roles];
-
-CREATE TABLE student_db.dbo.[templates/roles] (
-	id uniqueidentifier NOT NULL,
-	description nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	name nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	CONSTRAINT PK__template__3213E83F73CF76FB PRIMARY KEY (id),
-	CONSTRAINT UKkobs6x9m8c2l34qe9vjut2wwu UNIQUE (name)
+DROP TABLE IF EXISTS [dbo].[exam_rooms];
+CREATE TABLE [dbo].[exam_rooms] (
+    [id] uniqueidentifier,
+    [created_at] datetime2(6),
+    [description] nvarchar(MAX),
+    [exam_capacity] int,
+    [updated_at] datetime2(6),
+    [room_id] bigint,
+    CONSTRAINT [FKeb4oab0wpuidk3kwoulgcop49] FOREIGN KEY ([room_id]) REFERENCES [dbo].[rooms]([id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.time_slots definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.time_slots;
-
-CREATE TABLE student_db.dbo.time_slots (
-	id int IDENTITY(1,1) NOT NULL,
-	end_time time NOT NULL,
-	is_active bit NOT NULL,
-	period_end int NOT NULL,
-	period_start int NOT NULL,
-	slot_code nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	start_time time NOT NULL,
-	CONSTRAINT PK__time_slo__3213E83FFD3AA8C9 PRIMARY KEY (id),
-	CONSTRAINT UKad00dsfpfvan0p1pd78h4pg2j UNIQUE (slot_code)
+DROP TABLE IF EXISTS [dbo].[exam_schedules];
+CREATE TABLE [dbo].[exam_schedules] (
+    [id] uniqueidentifier,
+    [created_at] datetime2(6),
+    [duration_minutes] int,
+    [exam_date] date,
+    [note] nvarchar(500),
+    [start_time] time(7),
+    [updated_at] datetime2(6),
+    [class_section_id] bigint,
+    [exam_type_id] uniqueidentifier,
+    CONSTRAINT [FK44gdqtyy5mhme35vacv0e9gs3] FOREIGN KEY ([exam_type_id]) REFERENCES [dbo].[exam_types]([id]),
+    CONSTRAINT [FK1akuy67l7e43pakrt7pajk7ho] FOREIGN KEY ([class_section_id]) REFERENCES [dbo].[class_sections]([id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.training_levels definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.training_levels;
-
-CREATE TABLE student_db.dbo.training_levels (
-	training_level_id uniqueidentifier NOT NULL,
-	training_level_name nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	description nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	CONSTRAINT PK__training__06C942D08AEF5405 PRIMARY KEY (training_level_id),
-	CONSTRAINT UK1y55r7dmt2d01oo3yflthiqst UNIQUE (training_level_name)
+DROP TABLE IF EXISTS [dbo].[exam_types];
+CREATE TABLE [dbo].[exam_types] (
+    [id] uniqueidentifier,
+    [created_at] datetime2(6),
+    [description] nvarchar(MAX),
+    [name] nvarchar(200),
+    [updated_at] datetime2(6),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.courses definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.courses;
-
-CREATE TABLE student_db.dbo.courses (
-	id uniqueidentifier NOT NULL,
-	course_code nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	course_name nvarchar(200) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	created_at datetime2(6) NULL,
-	credits int NULL,
-	description nvarchar(1000) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	lecture_hours int NULL,
-	practice_hours int NULL,
-	status bit NULL,
-	updated_at datetime2(6) NULL,
-	faculty_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__courses__3213E83F99AC277D PRIMARY KEY (id),
-	CONSTRAINT UKp02ts69sh53ptd62m3c67v0 UNIQUE (course_code),
-	CONSTRAINT FK81p0vixhqd3i5uwdk3sclg0nk FOREIGN KEY (faculty_id) REFERENCES student_db.dbo.faculties(faculty_id)
+DROP TABLE IF EXISTS [dbo].[faculties];
+CREATE TABLE [dbo].[faculties] (
+    [faculty_id] uniqueidentifier,
+    [faculty_code] nvarchar(50),
+    [faculty_name] nvarchar(150),
+    PRIMARY KEY ([faculty_id])
 );
 
-
--- student_db.dbo.lecturers definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.lecturers;
-
-CREATE TABLE student_db.dbo.lecturers (
-	lecturer_id uniqueidentifier NOT NULL,
-	academic_degree nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	academic_title nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	address nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	avatar varchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	citizen_id varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	date_of_birth date NULL,
-	email varchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	full_name nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	gender nvarchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	lecturer_code varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	phone_number varchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	faculty_id uniqueidentifier NOT NULL,
-	position_id uniqueidentifier NULL,
-	CONSTRAINT PK__lecturer__D4D1DAB1CB9344C9 PRIMARY KEY (lecturer_id),
-	CONSTRAINT UKk6vsb5jy1uq700gx4a6brvtpv UNIQUE (lecturer_code),
-	CONSTRAINT FK5s4iv2pp699ojmljjog3kioh FOREIGN KEY (faculty_id) REFERENCES student_db.dbo.faculties(faculty_id),
-	CONSTRAINT FKthh38obs4te6njpjs8ab15l6c FOREIGN KEY (position_id) REFERENCES student_db.dbo.positions(position_id)
+DROP TABLE IF EXISTS [dbo].[feedbacks];
+CREATE TABLE [dbo].[feedbacks] (
+    [feedback_id] uniqueidentifier,
+    [comment] nvarchar(1000),
+    [created_at] datetime2(6),
+    [rating] int,
+    [lecturer_id] uniqueidentifier,
+    [student_id] uniqueidentifier,
+    [subject_id] uniqueidentifier,
+    CONSTRAINT [FKnjtclkv7869w3l53iemsk446o] FOREIGN KEY ([lecturer_id]) REFERENCES [dbo].[lecturers]([lecturer_id]),
+    CONSTRAINT [FK6ki8qaeii3x9s3n34e7a61dh9] FOREIGN KEY ([subject_id]) REFERENCES [dbo].[courses]([id]),
+    CONSTRAINT [FK4ocysx6ldsioryb4bx1etqw32] FOREIGN KEY ([student_id]) REFERENCES [dbo].[students]([student_id]),
+    PRIMARY KEY ([feedback_id])
 );
 
-
--- student_db.dbo.majors definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.majors;
-
-CREATE TABLE student_db.dbo.majors (
-	major_id uniqueidentifier NOT NULL,
-	major_code nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	major_name nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	faculty_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__majors__DC7AC3C42D3D082C PRIMARY KEY (major_id),
-	CONSTRAINT UKb0dvoetbm4xrbu48badhm1lln UNIQUE (major_code),
-	CONSTRAINT UKqbrfdewrfc0gqn23389e7nwm5 UNIQUE (major_name,faculty_id),
-	CONSTRAINT FKitqtm0b9li7x2h872rumqnqol FOREIGN KEY (faculty_id) REFERENCES student_db.dbo.faculties(faculty_id)
+DROP TABLE IF EXISTS [dbo].[grade_components];
+CREATE TABLE [dbo].[grade_components] (
+    [id] uniqueidentifier,
+    [component_name] nvarchar(100),
+    [created_at] datetime2(6),
+    [max_score] numeric(4,2),
+    [weight] numeric(5,2),
+    [course_class_id] bigint,
+    CONSTRAINT [FK1niqvtx529y9svn3l55odmdu9] FOREIGN KEY ([course_class_id]) REFERENCES [dbo].[class_sections]([id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.role_permissions definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.role_permissions;
-
-CREATE TABLE student_db.dbo.role_permissions (
-	role_id uniqueidentifier NOT NULL,
-	permission_id uniqueidentifier NOT NULL,
-	id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__role_per__C85A5463880C8B95 PRIMARY KEY (role_id,permission_id),
-	CONSTRAINT UKt43p6aampim70fxxnkid1mibj UNIQUE (role_id,permission_id),
-	CONSTRAINT FKegdk29eiy7mdtefy5c7eirr6e FOREIGN KEY (permission_id) REFERENCES student_db.dbo.permissions(id),
-	CONSTRAINT FKn5fotdgk8d1xvo8nav9uv3muc FOREIGN KEY (role_id) REFERENCES student_db.dbo.roles(id)
+DROP TABLE IF EXISTS [dbo].[grade_scales];
+CREATE TABLE [dbo].[grade_scales] (
+    [id] uniqueidentifier,
+    [description] nvarchar(100),
+    [grade_point] numeric(3,2),
+    [letter_grade] varchar(2),
+    [max_score] numeric(4,2),
+    [min_score] numeric(4,2),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.rooms definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.rooms;
-
-CREATE TABLE student_db.dbo.rooms (
-	id bigint IDENTITY(1,1) NOT NULL,
-	area float NULL,
-	capacity int NULL,
-	created_at datetime2(6) NOT NULL,
-	floor int NULL,
-	is_active bit NOT NULL,
-	room_code nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	room_name nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	status nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	updated_at datetime2(6) NOT NULL,
-	building_id uniqueidentifier NOT NULL,
-	room_type_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__rooms__3213E83FFB8561D2 PRIMARY KEY (id),
-	CONSTRAINT UKejc4trkinbxtajwetru2o8kdo UNIQUE (room_code),
-	CONSTRAINT FKh9m2n1paq5hmd3u0klfl7wsfv FOREIGN KEY (room_type_id) REFERENCES student_db.dbo.room_types(room_type_id),
-	CONSTRAINT FKojgn0sxhkfxd7pmmojnem9r4q FOREIGN KEY (building_id) REFERENCES student_db.dbo.buildings(building_id)
-);
-ALTER TABLE student_db.dbo.rooms WITH NOCHECK ADD CONSTRAINT CK__rooms__status__31B762FC CHECK (([status]='MAINTENANCE' OR [status]='IN_USE' OR [status]='AVAILABLE'));
-
-
--- student_db.dbo.training_programs definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.training_programs;
-
-CREATE TABLE student_db.dbo.training_programs (
-	program_id uniqueidentifier NOT NULL,
-	course nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	description nvarchar(1000) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	duration_years int NULL,
-	is_active bit NULL,
-	program_code nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	program_name nvarchar(200) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	total_credits int NULL,
-	major_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__training__3A7890AC8683100F PRIMARY KEY (program_id),
-	CONSTRAINT UKrdoxywt0kicj6b4iycwvwkyo0 UNIQUE (program_code,major_id,course),
-	CONSTRAINT FKhmwge471sdvweygytmshmdt8s FOREIGN KEY (major_id) REFERENCES student_db.dbo.majors(major_id)
+DROP TABLE IF EXISTS [dbo].[graduation_conditions];
+CREATE TABLE [dbo].[graduation_conditions] (
+    [id] bigint IDENTITY,
+    [created_at] datetime2(6),
+    [min_credits] int,
+    [min_gpa] decimal(4,2),
+    [required_certificate] nvarchar(500),
+    [required_courses] nvarchar(MAX),
+    [updated_at] datetime2(6),
+    [program_id] uniqueidentifier,
+    CONSTRAINT [FK3wpw1crbjtat5k6m4isoy7ipr] FOREIGN KEY ([program_id]) REFERENCES [dbo].[training_programs]([program_id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.tuition_fees definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.tuition_fees;
-
-CREATE TABLE student_db.dbo.tuition_fees (
-	id uniqueidentifier NOT NULL,
-	created_at datetime2(6) NULL,
-	effective_date date NOT NULL,
-	fee_per_credit numeric(15,0) NOT NULL,
-	note nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	status varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	updated_at datetime2(6) NULL,
-	program_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__tuition___3213E83F1FBB6D09 PRIMARY KEY (id),
-	CONSTRAINT FKgcqy6r5qrsf0hu1utc621lvou FOREIGN KEY (program_id) REFERENCES student_db.dbo.training_programs(program_id)
-);
-ALTER TABLE student_db.dbo.tuition_fees WITH NOCHECK ADD CONSTRAINT CK__tuition_f__statu__2EA5EC27 CHECK (([status]='INACTIVE' OR [status]='ACTIVE'));
-
-
--- student_db.dbo.class_sections definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.class_sections;
-
-CREATE TABLE student_db.dbo.class_sections (
-	id bigint IDENTITY(1,1) NOT NULL,
-	class_code nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	class_name nvarchar(200) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	created_at datetime2(6) NOT NULL,
-	current_students int NOT NULL,
-	max_students int NOT NULL,
-	note nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	room nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	status varchar(30) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	updated_at datetime2(6) NULL,
-	course_id uniqueidentifier NOT NULL,
-	semester_id bigint NOT NULL,
-	room_id bigint NULL,
-	CONSTRAINT PK__class_se__3213E83FEC2F7ED7 PRIMARY KEY (id),
-	CONSTRAINT FK3os9of6f2v5o94rgksgxfn24l FOREIGN KEY (room_id) REFERENCES student_db.dbo.rooms(id),
-	CONSTRAINT FK695u7g15n5nfnaskhw3nhnsbw FOREIGN KEY (course_id) REFERENCES student_db.dbo.courses(id),
-	CONSTRAINT FKtamlxyq4rm9ybyevrdtcbdbrb FOREIGN KEY (semester_id) REFERENCES student_db.dbo.semesters(id)
-);
-ALTER TABLE student_db.dbo.class_sections WITH NOCHECK ADD CONSTRAINT CK__class_sec__statu__40058253 CHECK (([status]='CANCELLED' OR [status]='CLOSED' OR [status]='OPEN'));
-
-
--- student_db.dbo.classes definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.classes;
-
-CREATE TABLE student_db.dbo.classes (
-	class_id uniqueidentifier NOT NULL,
-	academic_year nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	class_code nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	class_name nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	class_status nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	created_at datetime2(6) NULL,
-	education_type nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	is_active bit NULL,
-	max_student int NULL,
-	training_level nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	updated_at datetime2(6) NULL,
-	major_id uniqueidentifier NOT NULL,
-	education_type_id uniqueidentifier NULL,
-	training_level_id uniqueidentifier NULL,
-	CONSTRAINT PK__classes__FDF479862C6F7E47 PRIMARY KEY (class_id),
-	CONSTRAINT UK3dmfbuj174uosjrycglymawul UNIQUE (class_code,academic_year),
-	CONSTRAINT FK4daajpxy22fog83y3mqa48816 FOREIGN KEY (training_level_id) REFERENCES student_db.dbo.training_levels(training_level_id),
-	CONSTRAINT FK6r9qmxcnxge92jgx4x4gltf0o FOREIGN KEY (major_id) REFERENCES student_db.dbo.majors(major_id),
-	CONSTRAINT FKitg5hh7h9iywbvetbyth42ak8 FOREIGN KEY (education_type_id) REFERENCES student_db.dbo.education_types(education_type_id)
+DROP TABLE IF EXISTS [dbo].[graduation_results];
+CREATE TABLE [dbo].[graduation_results] (
+    [id] bigint IDENTITY,
+    [certificates] nvarchar(500),
+    [checked_at] datetime2(6),
+    [created_at] datetime2(6),
+    [gpa] decimal(4,2),
+    [missing_courses] nvarchar(MAX),
+    [note] nvarchar(500),
+    [status] varchar(20),
+    [total_credits] int,
+    [updated_at] datetime2(6),
+    [program_id] uniqueidentifier,
+    [student_id] uniqueidentifier,
+    CONSTRAINT [FKtb53cda5aj4t2xqjfjtb6cvgh] FOREIGN KEY ([student_id]) REFERENCES [dbo].[students]([student_id]),
+    CONSTRAINT [FKi032pecot6qj6fjyv5ywhl5w3] FOREIGN KEY ([program_id]) REFERENCES [dbo].[training_programs]([program_id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.course_prerequisites definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.course_prerequisites;
-
-CREATE TABLE student_db.dbo.course_prerequisites (
-	id uniqueidentifier NOT NULL,
-	course_id uniqueidentifier NOT NULL,
-	prerequisite_course_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__course_p__3213E83FC8E73A10 PRIMARY KEY (id),
-	CONSTRAINT UKphv2lwb0wsq410oqfp4enf9gq UNIQUE (course_id,prerequisite_course_id),
-	CONSTRAINT FKhh4f1avebuvlv54m3j3l3pp36 FOREIGN KEY (course_id) REFERENCES student_db.dbo.courses(id),
-	CONSTRAINT FKolf0a7iwh8c1mv9keyis4ebe8 FOREIGN KEY (prerequisite_course_id) REFERENCES student_db.dbo.courses(id)
+DROP TABLE IF EXISTS [dbo].[lecturer_course_classes];
+CREATE TABLE [dbo].[lecturer_course_classes] (
+    [id] bigint IDENTITY,
+    [created_at] datetime2(6),
+    [note] nvarchar(500),
+    [updated_at] datetime2(6),
+    [class_section_id] bigint,
+    [lecturer_id] uniqueidentifier,
+    CONSTRAINT [FKdcjngpfupr3e5nbwxvjn8ddqx] FOREIGN KEY ([class_section_id]) REFERENCES [dbo].[class_sections]([id]),
+    CONSTRAINT [FK5rge75dqqakbup10yxa3c2gs] FOREIGN KEY ([lecturer_id]) REFERENCES [dbo].[lecturers]([lecturer_id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.equipments definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.equipments;
-
-CREATE TABLE student_db.dbo.equipments (
-	id bigint IDENTITY(1,1) NOT NULL,
-	created_at datetime2(6) NOT NULL,
-	equipment_code varchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	equipment_name nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	purchase_date date NULL,
-	serial_number nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	status varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	updated_at datetime2(6) NOT NULL,
-	room_id bigint NULL,
-	CONSTRAINT PK__equipmen__3213E83FF107457F PRIMARY KEY (id),
-	CONSTRAINT UK5mrbasb2pl3oc1puxiraohwek UNIQUE (equipment_code),
-	CONSTRAINT FK5r50pavpda4dbw3p8n6rjikkq FOREIGN KEY (room_id) REFERENCES student_db.dbo.rooms(id)
-);
-ALTER TABLE student_db.dbo.equipments WITH NOCHECK ADD CONSTRAINT CK__equipment__statu__37703C52 CHECK (([status]='MAINTENANCE' OR [status]='BROKEN' OR [status]='ACTIVE'));
-
-
--- student_db.dbo.exam_rooms definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.exam_rooms;
-
-CREATE TABLE student_db.dbo.exam_rooms (
-	id uniqueidentifier NOT NULL,
-	created_at datetime2(6) NULL,
-	description nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	exam_capacity int NULL,
-	updated_at datetime2(6) NULL,
-	room_id bigint NOT NULL,
-	CONSTRAINT PK__exam_roo__3213E83FCF197BA6 PRIMARY KEY (id),
-	CONSTRAINT UKj53evxhuwm8jt79ayjhdqgvgi UNIQUE (room_id),
-	CONSTRAINT FKeb4oab0wpuidk3kwoulgcop49 FOREIGN KEY (room_id) REFERENCES student_db.dbo.rooms(id)
+DROP TABLE IF EXISTS [dbo].[lecturers];
+CREATE TABLE [dbo].[lecturers] (
+    [lecturer_id] uniqueidentifier,
+    [academic_degree] nvarchar(50),
+    [academic_title] nvarchar(50),
+    [address] nvarchar(255),
+    [avatar] varchar(255),
+    [citizen_id] varchar(20),
+    [date_of_birth] date,
+    [email] varchar(255),
+    [full_name] nvarchar(150),
+    [gender] nvarchar(10),
+    [lecturer_code] varchar(20),
+    [phone_number] varchar(255),
+    [faculty_id] uniqueidentifier,
+    [position_id] uniqueidentifier,
+    CONSTRAINT [FK5s4iv2pp699ojmljjog3kioh] FOREIGN KEY ([faculty_id]) REFERENCES [dbo].[faculties]([faculty_id]),
+    CONSTRAINT [FKthh38obs4te6njpjs8ab15l6c] FOREIGN KEY ([position_id]) REFERENCES [dbo].[positions]([position_id]),
+    PRIMARY KEY ([lecturer_id])
 );
 
-
--- student_db.dbo.exam_schedules definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.exam_schedules;
-
-CREATE TABLE student_db.dbo.exam_schedules (
-	id uniqueidentifier NOT NULL,
-	created_at datetime2(6) NULL,
-	duration_minutes int NOT NULL,
-	exam_date date NOT NULL,
-	note nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	start_time time NOT NULL,
-	updated_at datetime2(6) NULL,
-	class_section_id bigint NOT NULL,
-	exam_type_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__exam_sch__3213E83F5C5BBB09 PRIMARY KEY (id),
-	CONSTRAINT UKufro23m7hq32bbhoc0mdvdj7 UNIQUE (class_section_id,exam_type_id),
-	CONSTRAINT FK1akuy67l7e43pakrt7pajk7ho FOREIGN KEY (class_section_id) REFERENCES student_db.dbo.class_sections(id),
-	CONSTRAINT FK44gdqtyy5mhme35vacv0e9gs3 FOREIGN KEY (exam_type_id) REFERENCES student_db.dbo.exam_types(id)
+DROP TABLE IF EXISTS [dbo].[majors];
+CREATE TABLE [dbo].[majors] (
+    [major_id] uniqueidentifier,
+    [major_code] nvarchar(50),
+    [major_name] nvarchar(150),
+    [faculty_id] uniqueidentifier,
+    CONSTRAINT [FKitqtm0b9li7x2h872rumqnqol] FOREIGN KEY ([faculty_id]) REFERENCES [dbo].[faculties]([faculty_id]),
+    PRIMARY KEY ([major_id])
 );
 
-
--- student_db.dbo.grade_components definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.grade_components;
-
-CREATE TABLE student_db.dbo.grade_components (
-	id uniqueidentifier NOT NULL,
-	component_name nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	created_at datetime2(6) NOT NULL,
-	max_score numeric(4,2) NULL,
-	weight numeric(5,2) NULL,
-	course_class_id bigint NOT NULL,
-	CONSTRAINT PK__grade_co__3213E83F1518665E PRIMARY KEY (id),
-	CONSTRAINT FK1niqvtx529y9svn3l55odmdu9 FOREIGN KEY (course_class_id) REFERENCES student_db.dbo.class_sections(id)
+DROP TABLE IF EXISTS [dbo].[notifications];
+CREATE TABLE [dbo].[notifications] (
+    [id] uniqueidentifier,
+    [category] varchar(50),
+    [content] nvarchar(2000),
+    [created_at] datetime2(6),
+    [created_by] uniqueidentifier,
+    [is_read] bit DEFAULT ((0)),
+    [read_at] datetime2(6),
+    [scheduled_at] datetime2(6),
+    [title] nvarchar(200),
+    [recipient_user_id] uniqueidentifier,
+    [source_id] varchar(120),
+    [source_type] varchar(60),
+    CONSTRAINT [FKt8ievafor22iuvg5sd4p7lhbk] FOREIGN KEY ([recipient_user_id]) REFERENCES [dbo].[users]([id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.graduation_conditions definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.graduation_conditions;
-
-CREATE TABLE student_db.dbo.graduation_conditions (
-	id bigint IDENTITY(1,1) NOT NULL,
-	created_at datetime2(6) NULL,
-	min_credits int NULL,
-	min_gpa decimal(4,2) NULL,
-	required_certificate nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	required_courses nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	updated_at datetime2(6) NULL,
-	program_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__graduati__3213E83F4F23E494 PRIMARY KEY (id),
-	CONSTRAINT FK3wpw1crbjtat5k6m4isoy7ipr FOREIGN KEY (program_id) REFERENCES student_db.dbo.training_programs(program_id)
+DROP TABLE IF EXISTS [dbo].[password_reset_tokens];
+CREATE TABLE [dbo].[password_reset_tokens] (
+    [id] uniqueidentifier,
+    [expiry_at] datetimeoffset,
+    [token] varchar(64),
+    [user_id] uniqueidentifier,
+    CONSTRAINT [FKk3ndxg5xp6v7wd4gjyusp15gq] FOREIGN KEY ([user_id]) REFERENCES [dbo].[users]([id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.lecturer_course_classes definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.lecturer_course_classes;
-
-CREATE TABLE student_db.dbo.lecturer_course_classes (
-	id bigint IDENTITY(1,1) NOT NULL,
-	created_at datetime2(6) NOT NULL,
-	note nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	updated_at datetime2(6) NULL,
-	class_section_id bigint NOT NULL,
-	lecturer_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__lecturer__3213E83F89D98DA7 PRIMARY KEY (id),
-	CONSTRAINT UKbh8ygem062p9d1pr9hkbbltwb UNIQUE (class_section_id,lecturer_id),
-	CONSTRAINT FK5rge75dqqakbup10yxa3c2gs FOREIGN KEY (lecturer_id) REFERENCES student_db.dbo.lecturers(lecturer_id),
-	CONSTRAINT FKdcjngpfupr3e5nbwxvjn8ddqx FOREIGN KEY (class_section_id) REFERENCES student_db.dbo.class_sections(id)
+DROP TABLE IF EXISTS [dbo].[payments];
+CREATE TABLE [dbo].[payments] (
+    [id] bigint IDENTITY,
+    [amount] numeric(18,0),
+    [created_at] datetime2(6),
+    [payment_date] datetime2(6),
+    [payment_method] varchar(30),
+    [status] varchar(20),
+    [transaction_code] varchar(100),
+    [updated_at] datetime2(6),
+    [student_tuition_id] uniqueidentifier,
+    CONSTRAINT [FKhsg7cbi6fisb0hw87l53qn3db] FOREIGN KEY ([student_tuition_id]) REFERENCES [dbo].[student_tuition]([id]),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.room_block_times definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.room_block_times;
-
-CREATE TABLE student_db.dbo.room_block_times (
-	block_id uniqueidentifier NOT NULL,
-	block_type nvarchar(30) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	created_at datetime2(6) NOT NULL,
-	day_of_week int NULL,
-	end_date date NULL,
-	end_week int NULL,
-	reason nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	start_date date NULL,
-	start_week int NULL,
-	status nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	updated_at datetime2(6) NOT NULL,
-	room_id bigint NOT NULL,
-	time_slot_id int NULL,
-	CONSTRAINT PK__room_blo__A67E647D7D8A28D4 PRIMARY KEY (block_id),
-	CONSTRAINT FK7b6va70lvhgrjktbxw2w2ysc8 FOREIGN KEY (room_id) REFERENCES student_db.dbo.rooms(id),
-	CONSTRAINT FK8tgguab0mb2vrti7n5o8fhnhp FOREIGN KEY (time_slot_id) REFERENCES student_db.dbo.time_slots(id)
-);
-ALTER TABLE student_db.dbo.room_block_times WITH NOCHECK ADD CONSTRAINT CK__room_bloc__block__0E391C95 CHECK (([block_type]='OTHER' OR [block_type]='EXAM' OR [block_type]='EVENT' OR [block_type]='MAINTENANCE'));
-ALTER TABLE student_db.dbo.room_block_times WITH NOCHECK ADD CONSTRAINT CK__room_bloc__statu__0F2D40CE CHECK (([status]='CANCELLED' OR [status]='ACTIVE'));
-
-
--- student_db.dbo.schedules definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.schedules;
-
-CREATE TABLE student_db.dbo.schedules (
-	id uniqueidentifier NOT NULL,
-	created_at datetime2(6) NULL,
-	created_by bigint NULL,
-	day_of_week int NOT NULL,
-	end_week int NOT NULL,
-	note nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	schedule_type varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	session_type varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	start_week int NOT NULL,
-	status varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	updated_at datetime2(6) NULL,
-	week_pattern varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	class_section_id bigint NOT NULL,
-	lecturer_id uniqueidentifier NOT NULL,
-	room_id bigint NOT NULL,
-	semester_id bigint NOT NULL,
-	time_slot_id int NOT NULL,
-	CONSTRAINT PK__schedule__3213E83F0B21BC6E PRIMARY KEY (id),
-	CONSTRAINT FK34r5t4jexlcas19pleifb8ihv FOREIGN KEY (room_id) REFERENCES student_db.dbo.rooms(id),
-	CONSTRAINT FK3g45lyn6835mq4uyb8rv8e4pr FOREIGN KEY (class_section_id) REFERENCES student_db.dbo.class_sections(id),
-	CONSTRAINT FK6xau0n9awp58ear4phhxssp7 FOREIGN KEY (time_slot_id) REFERENCES student_db.dbo.time_slots(id),
-	CONSTRAINT FKi7fs951hibbtpd8l7kak45gbb FOREIGN KEY (semester_id) REFERENCES student_db.dbo.semesters(id),
-	CONSTRAINT FKtnsx4uikatst6c88xvb7jim8t FOREIGN KEY (lecturer_id) REFERENCES student_db.dbo.lecturers(lecturer_id)
-);
-ALTER TABLE student_db.dbo.schedules WITH NOCHECK ADD CONSTRAINT CK__schedules__sched__69FBBC1F CHECK (([schedule_type]='EXTRA' OR [schedule_type]='MAKEUP' OR [schedule_type]='NORMAL'));
-ALTER TABLE student_db.dbo.schedules WITH NOCHECK ADD CONSTRAINT CK__schedules__sessi__6AEFE058 CHECK (([session_type]='EXAM' OR [session_type]='PRACTICE' OR [session_type]='THEORY'));
-ALTER TABLE student_db.dbo.schedules WITH NOCHECK ADD CONSTRAINT CK__schedules__statu__6BE40491 CHECK (([status]='MOVED' OR [status]='CANCELLED' OR [status]='ACTIVE'));
-ALTER TABLE student_db.dbo.schedules WITH NOCHECK ADD CONSTRAINT CK__schedules__week___6CD828CA CHECK (([week_pattern]='EVEN' OR [week_pattern]='ODD' OR [week_pattern]='ALL'));
-
-
--- student_db.dbo.students definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.students;
-
-CREATE TABLE student_db.dbo.students (
-	student_id uniqueidentifier NOT NULL,
-	address nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	avatar varchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	citizen_id varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	date_of_birth date NULL,
-	email varchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	full_name nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	gender nvarchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	phone_number varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	student_code varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	class_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__students__2A33069AF18199AB PRIMARY KEY (student_id),
-	CONSTRAINT UKcgcf3r5xk73o0etbduc1qxnol UNIQUE (student_code),
-	CONSTRAINT FKhnslh0rm5bthlble8vjunbnwe FOREIGN KEY (class_id) REFERENCES student_db.dbo.classes(class_id)
+DROP TABLE IF EXISTS [dbo].[permissions];
+CREATE TABLE [dbo].[permissions] (
+    [id] uniqueidentifier,
+    [action] nvarchar(50),
+    [description] nvarchar(255),
+    [name] nvarchar(150),
+    [resource] nvarchar(50),
+    [code] nvarchar(80),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.users definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.users;
-
-CREATE TABLE student_db.dbo.users (
-	id uniqueidentifier NOT NULL,
-	email nvarchar(150) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	enabled bit NOT NULL,
-	password varchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	username nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	lecturer_id uniqueidentifier NULL,
-	student_id uniqueidentifier NULL,
-	CONSTRAINT PK__users__3213E83FA005DAFA PRIMARY KEY (id),
-	CONSTRAINT UK6dotkott2kjsp8vw4d0m25fb7 UNIQUE (email),
-	CONSTRAINT UKr43af9ap4edm43mmtq01oddj6 UNIQUE (username),
-	CONSTRAINT FKc8nfkx91xbh5fv7a02092q1ip FOREIGN KEY (student_id) REFERENCES student_db.dbo.students(student_id),
-	CONSTRAINT FKnq773gne4equ22e4nc7mk92xm FOREIGN KEY (lecturer_id) REFERENCES student_db.dbo.lecturers(lecturer_id)
-);
- CREATE UNIQUE NONCLUSTERED INDEX UKa1v1u5edum24xvma8b9ykljqd ON student_db.dbo.users (  lecturer_id ASC  )  
-	 WHERE  ([lecturer_id] IS NOT NULL)
-	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
-	 ON [PRIMARY ] ;
- CREATE UNIQUE NONCLUSTERED INDEX UKqh3otyipv2k9hqte4a1abcyhq ON student_db.dbo.users (  student_id ASC  )  
-	 WHERE  ([student_id] IS NOT NULL)
-	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
-	 ON [PRIMARY ] ;
-
-
--- student_db.dbo.course_registrations definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.course_registrations;
-
-CREATE TABLE student_db.dbo.course_registrations (
-	id bigint IDENTITY(1,1) NOT NULL,
-	note nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	registered_at datetime2(6) NOT NULL,
-	class_section_id bigint NOT NULL,
-	student_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__course_r__3213E83F383B4D97 PRIMARY KEY (id),
-	CONSTRAINT UK66c1mavy5wi1gok3aufpo0244 UNIQUE (student_id,class_section_id),
-	CONSTRAINT FK1uitfc1h86q0t7ncnhlylbvab FOREIGN KEY (student_id) REFERENCES student_db.dbo.students(student_id),
-	CONSTRAINT FK36e9k9ywnlm0y4bcrh5n6bfhh FOREIGN KEY (class_section_id) REFERENCES student_db.dbo.class_sections(id)
+DROP TABLE IF EXISTS [dbo].[positions];
+CREATE TABLE [dbo].[positions] (
+    [position_id] uniqueidentifier,
+    [position_code] nvarchar(20),
+    [position_name] nvarchar(150),
+    [description] nvarchar(500),
+    PRIMARY KEY ([position_id])
 );
 
-
--- student_db.dbo.documents definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.documents;
-
-CREATE TABLE student_db.dbo.documents (
-	document_id uniqueidentifier NOT NULL,
-	created_at datetime2(6) NULL,
-	description nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	file_type nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	file_url nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	title nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	subject_id uniqueidentifier NOT NULL,
-	uploaded_by uniqueidentifier NOT NULL,
-	CONSTRAINT PK__document__9666E8AC1D2385A9 PRIMARY KEY (document_id),
-	CONSTRAINT FK1ugacya4ssi0ilf8a9tjycgs6 FOREIGN KEY (uploaded_by) REFERENCES student_db.dbo.users(id),
-	CONSTRAINT FKaxmoskj22pfhg2eeldnu75fpv FOREIGN KEY (subject_id) REFERENCES student_db.dbo.courses(id)
+DROP TABLE IF EXISTS [dbo].[role_permissions];
+CREATE TABLE [dbo].[role_permissions] (
+    [role_id] uniqueidentifier,
+    [permission_id] uniqueidentifier,
+    [id] uniqueidentifier,
+    CONSTRAINT [FKn5fotdgk8d1xvo8nav9uv3muc] FOREIGN KEY ([role_id]) REFERENCES [dbo].[roles]([id]),
+    CONSTRAINT [FKegdk29eiy7mdtefy5c7eirr6e] FOREIGN KEY ([permission_id]) REFERENCES [dbo].[permissions]([id]),
+    PRIMARY KEY ([role_id],[permission_id])
 );
 
-
--- student_db.dbo.graduation_results definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.graduation_results;
-
-CREATE TABLE student_db.dbo.graduation_results (
-	id bigint IDENTITY(1,1) NOT NULL,
-	certificates nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	checked_at datetime2(6) NULL,
-	created_at datetime2(6) NULL,
-	gpa decimal(4,2) NULL,
-	missing_courses nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	note nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	status varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	total_credits int NULL,
-	updated_at datetime2(6) NULL,
-	program_id uniqueidentifier NOT NULL,
-	student_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__graduati__3213E83F5569927E PRIMARY KEY (id),
-	CONSTRAINT UKmm54wu3ygksabastsgbd0oxha UNIQUE (student_id,program_id),
-	CONSTRAINT FKi032pecot6qj6fjyv5ywhl5w3 FOREIGN KEY (program_id) REFERENCES student_db.dbo.training_programs(program_id),
-	CONSTRAINT FKtb53cda5aj4t2xqjfjtb6cvgh FOREIGN KEY (student_id) REFERENCES student_db.dbo.students(student_id)
-);
-ALTER TABLE student_db.dbo.graduation_results WITH NOCHECK ADD CONSTRAINT CK__graduatio__statu__6ABAD62E CHECK (([status]='PENDING' OR [status]='NOT_ELIGIBLE' OR [status]='ELIGIBLE'));
-
-
--- student_db.dbo.notifications definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.notifications;
-
-CREATE TABLE student_db.dbo.notifications (
-	id uniqueidentifier NOT NULL,
-	category varchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	content nvarchar(2000) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	created_at datetime2(6) NOT NULL,
-	created_by uniqueidentifier NULL,
-	is_read bit DEFAULT 0 NOT NULL,
-	read_at datetime2(6) NULL,
-	scheduled_at datetime2(6) NULL,
-	title nvarchar(200) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	recipient_user_id uniqueidentifier NOT NULL,
-	source_id varchar(120) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	source_type varchar(60) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	CONSTRAINT PK__notifica__3213E83F3C3CE894 PRIMARY KEY (id),
-	CONSTRAINT FKt8ievafor22iuvg5sd4p7lhbk FOREIGN KEY (recipient_user_id) REFERENCES student_db.dbo.users(id)
-);
- CREATE UNIQUE NONCLUSTERED INDEX UKjwp85b16sv3ruvydx838ebkj1 ON student_db.dbo.notifications (  recipient_user_id ASC  , category ASC  , source_type ASC  , source_id ASC  )  
-	 WHERE  ([recipient_user_id] IS NOT NULL AND [category] IS NOT NULL AND [source_type] IS NOT NULL AND [source_id] IS NOT NULL)
-	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
-	 ON [PRIMARY ] ;
-ALTER TABLE student_db.dbo.notifications WITH NOCHECK ADD CONSTRAINT CK__notificat__categ__7073AF84 CHECK (([category]='OTHER' OR [category]='SYSTEM_WARNING' OR [category]='SCHEDULE_CHANGE' OR [category]='EXAM_SCHEDULE' OR [category]='TUITION_FEE'));
-
-
--- student_db.dbo.password_reset_tokens definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.password_reset_tokens;
-
-CREATE TABLE student_db.dbo.password_reset_tokens (
-	id uniqueidentifier NOT NULL,
-	expiry_at datetimeoffset(6) NOT NULL,
-	token varchar(64) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	user_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__password__3213E83F963A1289 PRIMARY KEY (id),
-	CONSTRAINT UK71lqwbwtklmljk3qlsugr1mig UNIQUE (token),
-	CONSTRAINT FKk3ndxg5xp6v7wd4gjyusp15gq FOREIGN KEY (user_id) REFERENCES student_db.dbo.users(id)
+DROP TABLE IF EXISTS [dbo].[roles];
+CREATE TABLE [dbo].[roles] (
+    [id] uniqueidentifier,
+    [description] nvarchar(255),
+    [name] nvarchar(100),
+    PRIMARY KEY ([id])
 );
 
-
--- student_db.dbo.schedule_overrides definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.schedule_overrides;
-
-CREATE TABLE student_db.dbo.schedule_overrides (
-	override_id uniqueidentifier NOT NULL,
-	approved_at datetime2(6) NULL,
-	approved_by uniqueidentifier NULL,
-	created_at datetime2(6) NULL,
-	override_date date NOT NULL,
-	override_type varchar(30) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	reason nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	status varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	updated_at datetime2(6) NULL,
-	new_lecturer_id uniqueidentifier NULL,
-	new_room_id bigint NULL,
-	new_time_slot_id int NULL,
-	schedule_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__schedule__2D0A781746F10275 PRIMARY KEY (override_id),
-	CONSTRAINT FKahdj2tw0ntmmq2uv7hlyt2u0i FOREIGN KEY (new_time_slot_id) REFERENCES student_db.dbo.time_slots(id),
-	CONSTRAINT FKfbb5a0bwnq8927sn3inkb1vlr FOREIGN KEY (new_lecturer_id) REFERENCES student_db.dbo.lecturers(lecturer_id),
-	CONSTRAINT FKhbtw334pvq95c3mj83bu7h59q FOREIGN KEY (new_room_id) REFERENCES student_db.dbo.rooms(id),
-	CONSTRAINT FKoodl2tghs09bov371b7bscgnb FOREIGN KEY (schedule_id) REFERENCES student_db.dbo.schedules(id)
-);
-ALTER TABLE student_db.dbo.schedule_overrides WITH NOCHECK ADD CONSTRAINT CK__schedule___overr__74794A92 CHECK (([override_type]='CANCEL' OR [override_type]='TIME_CHANGE' OR [override_type]='ROOM_CHANGE' OR [override_type]='MAKEUP'));
-ALTER TABLE student_db.dbo.schedule_overrides WITH NOCHECK ADD CONSTRAINT CK__schedule___statu__756D6ECB CHECK (([status]='CANCELLED' OR [status]='ACTIVE'));
-
-
--- student_db.dbo.student_grades definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.student_grades;
-
-CREATE TABLE student_db.dbo.student_grades (
-	id uniqueidentifier NOT NULL,
-	graded_at datetime2(6) NULL,
-	score numeric(4,2) NULL,
-	updated_at datetime2(6) NULL,
-	course_class_id bigint NOT NULL,
-	grade_component_id uniqueidentifier NOT NULL,
-	graded_by uniqueidentifier NULL,
-	student_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__student___3213E83F9E57EB15 PRIMARY KEY (id),
-	CONSTRAINT UKp95kr0ge6dww9jbnuojx161sc UNIQUE (student_id,course_class_id,grade_component_id),
-	CONSTRAINT FK23o9lbm2xnr8gamo6pload2ig FOREIGN KEY (course_class_id) REFERENCES student_db.dbo.class_sections(id),
-	CONSTRAINT FK3k33iae4i8poyy8abietq65mi FOREIGN KEY (grade_component_id) REFERENCES student_db.dbo.grade_components(id),
-	CONSTRAINT FKe8t3tau7ti61n06siogcuigkq FOREIGN KEY (student_id) REFERENCES student_db.dbo.students(student_id),
-	CONSTRAINT FKqas2lr2sk839kcpbdw06k9shr FOREIGN KEY (graded_by) REFERENCES student_db.dbo.lecturers(lecturer_id)
+DROP TABLE IF EXISTS [dbo].[room_block_times];
+CREATE TABLE [dbo].[room_block_times] (
+    [block_id] uniqueidentifier,
+    [block_type] nvarchar(30),
+    [created_at] datetime2(6),
+    [day_of_week] int,
+    [end_date] date,
+    [end_week] int,
+    [reason] nvarchar(255),
+    [start_date] date,
+    [start_week] int,
+    [status] nvarchar(20),
+    [updated_at] datetime2(6),
+    [room_id] bigint,
+    [time_slot_id] int,
+    CONSTRAINT [FK7b6va70lvhgrjktbxw2w2ysc8] FOREIGN KEY ([room_id]) REFERENCES [dbo].[rooms]([id]),
+    CONSTRAINT [FK8tgguab0mb2vrti7n5o8fhnhp] FOREIGN KEY ([time_slot_id]) REFERENCES [dbo].[time_slots]([id]),
+    PRIMARY KEY ([block_id])
 );
 
-
--- student_db.dbo.student_tuition definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.student_tuition;
-
-CREATE TABLE student_db.dbo.student_tuition (
-	id uniqueidentifier NOT NULL,
-	amount_paid numeric(18,0) NOT NULL,
-	created_at datetime2(6) NULL,
-	remaining_amount numeric(18,0) NOT NULL,
-	status varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	total_amount numeric(18,0) NOT NULL,
-	total_credits int NOT NULL,
-	updated_at datetime2(6) NULL,
-	semester_id bigint NOT NULL,
-	student_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__student___3213E83F326605C1 PRIMARY KEY (id),
-	CONSTRAINT UK8p10sv8gjvlmi6wqm9t294wl0 UNIQUE (student_id,semester_id),
-	CONSTRAINT FK33nrmt8f0q5s5fvwtn0ym7df FOREIGN KEY (student_id) REFERENCES student_db.dbo.students(student_id),
-	CONSTRAINT FK8e3gcu54kamww7cs8kepol3bx FOREIGN KEY (semester_id) REFERENCES student_db.dbo.semesters(id)
-);
-ALTER TABLE student_db.dbo.student_tuition WITH NOCHECK ADD CONSTRAINT CK__student_t__statu__41B8C09B CHECK (([status]='PAID' OR [status]='PARTIAL' OR [status]='UNPAID'));
-
-
--- student_db.dbo.user_roles definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.user_roles;
-
-CREATE TABLE student_db.dbo.user_roles (
-	user_id uniqueidentifier NOT NULL,
-	role_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__user_rol__6EDEA153142A2D74 PRIMARY KEY (user_id,role_id),
-	CONSTRAINT FKh8ciramu9cc9q3qcqiv4ue8a6 FOREIGN KEY (role_id) REFERENCES student_db.dbo.roles(id),
-	CONSTRAINT FKhfh9dx7w3ubf1co1vdev94g3f FOREIGN KEY (user_id) REFERENCES student_db.dbo.users(id)
+DROP TABLE IF EXISTS [dbo].[room_types];
+CREATE TABLE [dbo].[room_types] (
+    [room_type_id] uniqueidentifier,
+    [description] nvarchar(255),
+    [max_capacity] int,
+    [room_type_code] varchar(20),
+    [room_type_name] nvarchar(150),
+    PRIMARY KEY ([room_type_id])
 );
 
-
--- student_db.dbo.payments definition
-
--- Drop table
-
--- DROP TABLE student_db.dbo.payments;
-
-CREATE TABLE student_db.dbo.payments (
-	id bigint IDENTITY(1,1) NOT NULL,
-	amount numeric(18,0) NOT NULL,
-	created_at datetime2(6) NULL,
-	payment_date datetime2(6) NOT NULL,
-	payment_method varchar(30) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	status varchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	transaction_code varchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	updated_at datetime2(6) NULL,
-	student_tuition_id uniqueidentifier NOT NULL,
-	CONSTRAINT PK__payments__3213E83F9B6C88E9 PRIMARY KEY (id),
-	CONSTRAINT FKhsg7cbi6fisb0hw87l53qn3db FOREIGN KEY (student_tuition_id) REFERENCES student_db.dbo.student_tuition(id)
+DROP TABLE IF EXISTS [dbo].[rooms];
+CREATE TABLE [dbo].[rooms] (
+    [id] bigint IDENTITY,
+    [area] float,
+    [capacity] int,
+    [created_at] datetime2(6),
+    [floor] int,
+    [is_active] bit,
+    [room_code] nvarchar(20),
+    [room_name] nvarchar(100),
+    [status] nvarchar(20),
+    [updated_at] datetime2(6),
+    [building_id] uniqueidentifier,
+    [room_type_id] uniqueidentifier,
+    CONSTRAINT [FKojgn0sxhkfxd7pmmojnem9r4q] FOREIGN KEY ([building_id]) REFERENCES [dbo].[buildings]([building_id]),
+    CONSTRAINT [FKh9m2n1paq5hmd3u0klfl7wsfv] FOREIGN KEY ([room_type_id]) REFERENCES [dbo].[room_types]([room_type_id]),
+    PRIMARY KEY ([id])
 );
-ALTER TABLE student_db.dbo.payments WITH NOCHECK ADD CONSTRAINT CK__payments__paymen__477199F1 CHECK (([payment_method]='ONLINE_PAYMENT' OR [payment_method]='E_WALLET' OR [payment_method]='CASH' OR [payment_method]='BANK_TRANSFER'));
-ALTER TABLE student_db.dbo.payments WITH NOCHECK ADD CONSTRAINT CK__payments__status__4865BE2A CHECK (([status]='CANCELLED' OR [status]='COMPLETED' OR [status]='PENDING'));
+
+DROP TABLE IF EXISTS [dbo].[schedule_overrides];
+CREATE TABLE [dbo].[schedule_overrides] (
+    [override_id] uniqueidentifier,
+    [approved_at] datetime2(6),
+    [approved_by] uniqueidentifier,
+    [created_at] datetime2(6),
+    [override_date] date,
+    [override_type] varchar(30),
+    [reason] nvarchar(255),
+    [status] varchar(20),
+    [updated_at] datetime2(6),
+    [new_lecturer_id] uniqueidentifier,
+    [new_room_id] bigint,
+    [new_time_slot_id] int,
+    [schedule_id] uniqueidentifier,
+    CONSTRAINT [FKfbb5a0bwnq8927sn3inkb1vlr] FOREIGN KEY ([new_lecturer_id]) REFERENCES [dbo].[lecturers]([lecturer_id]),
+    CONSTRAINT [FKoodl2tghs09bov371b7bscgnb] FOREIGN KEY ([schedule_id]) REFERENCES [dbo].[schedules]([id]),
+    CONSTRAINT [FKhbtw334pvq95c3mj83bu7h59q] FOREIGN KEY ([new_room_id]) REFERENCES [dbo].[rooms]([id]),
+    CONSTRAINT [FKahdj2tw0ntmmq2uv7hlyt2u0i] FOREIGN KEY ([new_time_slot_id]) REFERENCES [dbo].[time_slots]([id]),
+    PRIMARY KEY ([override_id])
+);
+
+DROP TABLE IF EXISTS [dbo].[schedules];
+CREATE TABLE [dbo].[schedules] (
+    [id] uniqueidentifier,
+    [created_at] datetime2(6),
+    [created_by] bigint,
+    [day_of_week] int,
+    [end_week] int,
+    [note] nvarchar(255),
+    [schedule_type] varchar(20),
+    [session_type] varchar(20),
+    [start_week] int,
+    [status] varchar(20),
+    [updated_at] datetime2(6),
+    [week_pattern] varchar(20),
+    [class_section_id] bigint,
+    [lecturer_id] uniqueidentifier,
+    [room_id] bigint,
+    [semester_id] bigint,
+    [time_slot_id] int,
+    CONSTRAINT [FK34r5t4jexlcas19pleifb8ihv] FOREIGN KEY ([room_id]) REFERENCES [dbo].[rooms]([id]),
+    CONSTRAINT [FKi7fs951hibbtpd8l7kak45gbb] FOREIGN KEY ([semester_id]) REFERENCES [dbo].[semesters]([id]),
+    CONSTRAINT [FK6xau0n9awp58ear4phhxssp7] FOREIGN KEY ([time_slot_id]) REFERENCES [dbo].[time_slots]([id]),
+    CONSTRAINT [FKtnsx4uikatst6c88xvb7jim8t] FOREIGN KEY ([lecturer_id]) REFERENCES [dbo].[lecturers]([lecturer_id]),
+    CONSTRAINT [FK3g45lyn6835mq4uyb8rv8e4pr] FOREIGN KEY ([class_section_id]) REFERENCES [dbo].[class_sections]([id]),
+    PRIMARY KEY ([id])
+);
+
+DROP TABLE IF EXISTS [dbo].[semesters];
+CREATE TABLE [dbo].[semesters] (
+    [id] bigint IDENTITY,
+    [academic_year] nvarchar(20),
+    [code] nvarchar(20),
+    [created_at] datetime2(6),
+    [description] nvarchar(500),
+    [end_date] date,
+    [name] nvarchar(200),
+    [registration_end] date,
+    [registration_start] date,
+    [start_date] date,
+    [status] varchar(20),
+    [term] int,
+    [updated_at] datetime2(6),
+    PRIMARY KEY ([id])
+);
+
+DROP TABLE IF EXISTS [dbo].[student_grades];
+CREATE TABLE [dbo].[student_grades] (
+    [id] uniqueidentifier,
+    [graded_at] datetime2(6),
+    [score] numeric(4,2),
+    [updated_at] datetime2(6),
+    [course_class_id] bigint,
+    [grade_component_id] uniqueidentifier,
+    [graded_by] uniqueidentifier,
+    [student_id] uniqueidentifier,
+    CONSTRAINT [FK3k33iae4i8poyy8abietq65mi] FOREIGN KEY ([grade_component_id]) REFERENCES [dbo].[grade_components]([id]),
+    CONSTRAINT [FKe8t3tau7ti61n06siogcuigkq] FOREIGN KEY ([student_id]) REFERENCES [dbo].[students]([student_id]),
+    CONSTRAINT [FK23o9lbm2xnr8gamo6pload2ig] FOREIGN KEY ([course_class_id]) REFERENCES [dbo].[class_sections]([id]),
+    CONSTRAINT [FKqas2lr2sk839kcpbdw06k9shr] FOREIGN KEY ([graded_by]) REFERENCES [dbo].[lecturers]([lecturer_id]),
+    PRIMARY KEY ([id])
+);
+
+DROP TABLE IF EXISTS [dbo].[student_tuition];
+CREATE TABLE [dbo].[student_tuition] (
+    [id] uniqueidentifier,
+    [amount_paid] numeric(18,0),
+    [created_at] datetime2(6),
+    [remaining_amount] numeric(18,0),
+    [status] varchar(20),
+    [total_amount] numeric(18,0),
+    [total_credits] int,
+    [updated_at] datetime2(6),
+    [semester_id] bigint,
+    [student_id] uniqueidentifier,
+    CONSTRAINT [FK8e3gcu54kamww7cs8kepol3bx] FOREIGN KEY ([semester_id]) REFERENCES [dbo].[semesters]([id]),
+    CONSTRAINT [FK33nrmt8f0q5s5fvwtn0ym7df] FOREIGN KEY ([student_id]) REFERENCES [dbo].[students]([student_id]),
+    PRIMARY KEY ([id])
+);
+
+DROP TABLE IF EXISTS [dbo].[students];
+CREATE TABLE [dbo].[students] (
+    [student_id] uniqueidentifier,
+    [address] nvarchar(255),
+    [avatar] varchar(255),
+    [citizen_id] varchar(20),
+    [date_of_birth] date,
+    [email] varchar(150),
+    [full_name] nvarchar(150),
+    [gender] nvarchar(10),
+    [phone_number] varchar(20),
+    [student_code] varchar(20),
+    [class_id] uniqueidentifier,
+    CONSTRAINT [FKhnslh0rm5bthlble8vjunbnwe] FOREIGN KEY ([class_id]) REFERENCES [dbo].[classes]([class_id]),
+    PRIMARY KEY ([student_id])
+);
+
+DROP TABLE IF EXISTS [dbo].[templates/roles];
+CREATE TABLE [dbo].[templates/roles] (
+    [id] uniqueidentifier,
+    [description] nvarchar(255),
+    [name] nvarchar(100),
+    PRIMARY KEY ([id])
+);
+
+DROP TABLE IF EXISTS [dbo].[time_slots];
+CREATE TABLE [dbo].[time_slots] (
+    [id] int IDENTITY,
+    [end_time] time(7),
+    [is_active] bit,
+    [period_end] int,
+    [period_start] int,
+    [slot_code] nvarchar(20),
+    [start_time] time(7),
+    PRIMARY KEY ([id])
+);
+
+DROP TABLE IF EXISTS [dbo].[training_levels];
+CREATE TABLE [dbo].[training_levels] (
+    [training_level_id] uniqueidentifier,
+    [training_level_name] nvarchar(100),
+    [description] nvarchar(255),
+    PRIMARY KEY ([training_level_id])
+);
+
+DROP TABLE IF EXISTS [dbo].[training_programs];
+CREATE TABLE [dbo].[training_programs] (
+    [program_id] uniqueidentifier,
+    [course] nvarchar(20),
+    [description] nvarchar(1000),
+    [duration_years] int,
+    [is_active] bit,
+    [program_code] nvarchar(50),
+    [program_name] nvarchar(200),
+    [total_credits] int,
+    [major_id] uniqueidentifier,
+    CONSTRAINT [FKhmwge471sdvweygytmshmdt8s] FOREIGN KEY ([major_id]) REFERENCES [dbo].[majors]([major_id]),
+    PRIMARY KEY ([program_id])
+);
+
+DROP TABLE IF EXISTS [dbo].[tuition_fees];
+CREATE TABLE [dbo].[tuition_fees] (
+    [id] uniqueidentifier,
+    [created_at] datetime2(6),
+    [effective_date] date,
+    [fee_per_credit] numeric(15,0),
+    [note] nvarchar(500),
+    [status] varchar(20),
+    [updated_at] datetime2(6),
+    [program_id] uniqueidentifier,
+    CONSTRAINT [FKgcqy6r5qrsf0hu1utc621lvou] FOREIGN KEY ([program_id]) REFERENCES [dbo].[training_programs]([program_id]),
+    PRIMARY KEY ([id])
+);
+
+DROP TABLE IF EXISTS [dbo].[user_roles];
+CREATE TABLE [dbo].[user_roles] (
+    [user_id] uniqueidentifier,
+    [role_id] uniqueidentifier,
+    CONSTRAINT [FKh8ciramu9cc9q3qcqiv4ue8a6] FOREIGN KEY ([role_id]) REFERENCES [dbo].[roles]([id]),
+    CONSTRAINT [FKhfh9dx7w3ubf1co1vdev94g3f] FOREIGN KEY ([user_id]) REFERENCES [dbo].[users]([id]),
+    PRIMARY KEY ([user_id],[role_id])
+);
+
+DROP TABLE IF EXISTS [dbo].[users];
+CREATE TABLE [dbo].[users] (
+    [id] uniqueidentifier,
+    [email] nvarchar(150),
+    [enabled] bit,
+    [password] varchar(255),
+    [username] nvarchar(100),
+    [lecturer_id] uniqueidentifier,
+    [student_id] uniqueidentifier,
+    CONSTRAINT [FKnq773gne4equ22e4nc7mk92xm] FOREIGN KEY ([lecturer_id]) REFERENCES [dbo].[lecturers]([lecturer_id]),
+    CONSTRAINT [FKc8nfkx91xbh5fv7a02092q1ip] FOREIGN KEY ([student_id]) REFERENCES [dbo].[students]([student_id]),
+    PRIMARY KEY ([id])
+);
+
+INSERT INTO [dbo].[buildings] ([building_id], [address], [building_code], [building_name], [description], [number_of_floors], [total_area]) VALUES
+('C2F293AD-31C1-4755-8BF0-22822BA7AB3B', N'43 Xô Viết Nghệ Tĩnh, Hải Châu, Đà Nẵng', N'TC01', N'Toà Nhà Chính', N'Toà nhà chính ? Ðà N?ng', '10', '500000');
+
+INSERT INTO [dbo].[class_sections] ([id], [class_code], [class_name], [created_at], [current_students], [max_students], [note], [room], [status], [updated_at], [course_id], [semester_id], [room_id]) VALUES
+('1', N'IT25A', N'công nghệ thông tin A', '2026-03-01 23:25:23.201974', '52', '50', N'', N'A01', N'OPEN', '2026-03-09 17:04:36.228117', 'CCF11DE2-791A-4F6B-88D2-F5CAB381BD15', '1', '1'),
+('2', N'T1', N'Toán Giải tích 1', '2026-03-02 20:19:00.364226', '52', '50', N'', NULL, N'OPEN', '2026-03-09 17:04:48.116405', '99D6E0AD-78AC-4510-80E2-B18F0FF598B4', '1', '1');
+
+INSERT INTO [dbo].[classes] ([class_id], [academic_year], [class_code], [class_name], [class_status], [created_at], [education_type], [is_active], [max_student], [training_level], [updated_at], [major_id], [education_type_id], [training_level_id]) VALUES
+('C72BB2D4-A9BE-4069-905E-1F683AAD9D59', N'2025-2029', N'IT25A', N'công nghệ thông tin A', N'Đang học', '2026-02-07 11:06:10.822154', NULL, '1', '50', NULL, '2026-02-08 12:25:06.390440', '42F7105F-E1A9-4133-B0A1-8785290FE880', 'F35EF5FE-08AB-4076-99FD-DD7F38201734', '8947D0A3-1C41-4D30-B553-DF25E5D162D2');
+
+INSERT INTO [dbo].[course_prerequisites] ([id], [course_id], [prerequisite_course_id]) VALUES
+('0D1003C4-FD5D-4D5D-8E08-644BBD7748E8', '71B08C6F-C954-4CE0-9063-23708C5A5018', 'CCF11DE2-791A-4F6B-88D2-F5CAB381BD15'),
+('6A06B64C-33A0-45EA-AD4D-FF94C65DECEB', 'CCF11DE2-791A-4F6B-88D2-F5CAB381BD15', '99D6E0AD-78AC-4510-80E2-B18F0FF598B4');
+
+INSERT INTO [dbo].[course_registrations] ([id], [note], [registered_at], [class_section_id], [student_id]) VALUES
+('1', N'', '2026-03-03 15:31:32.086502', '2', '893D0B09-6B84-4EDC-B9C6-A87CD993D6A4'),
+('2', N'', '2026-03-03 15:32:33.738483', '1', '893D0B09-6B84-4EDC-B9C6-A87CD993D6A4'),
+('3', N'', '2026-03-09 17:04:36.179710', '1', '04B61953-0B82-4571-B905-37D5A11BD112'),
+('4', N'', '2026-03-09 17:04:48.112256', '2', '04B61953-0B82-4571-B905-37D5A11BD112');
+
+INSERT INTO [dbo].[courses] ([id], [course_code], [course_name], [created_at], [credits], [description], [lecture_hours], [practice_hours], [status], [updated_at], [faculty_id]) VALUES
+('71B08C6F-C954-4CE0-9063-23708C5A5018', N'KTLT', N'Kỹ thuật lập trình', '2026-03-21 11:31:37.656697', '3', N'', '25', '20', '1', '2026-03-21 11:31:37.656735', '2D290C0F-7BBD-44A5-957C-7C54525A2040'),
+('99D6E0AD-78AC-4510-80E2-B18F0FF598B4', N'T1', N'Toán', '2026-02-24 17:31:35.953775', '3', N'', '52', '0', '1', '2026-02-24 17:31:35.953819', '2D290C0F-7BBD-44A5-957C-7C54525A2040'),
+('CCF11DE2-791A-4F6B-88D2-F5CAB381BD15', N'TCC01', N'Toán cao cấp', '2026-02-13 15:19:55.768701', '3', N'Toán cao cấp giúp học nâng cao kiến thức nền tảng', '45', '0', '1', '2026-02-13 15:19:55.768778', '2D290C0F-7BBD-44A5-957C-7C54525A2040');
+
+INSERT INTO [dbo].[documents] ([document_id], [created_at], [description], [file_type], [file_url], [title], [subject_id], [uploaded_by]) VALUES
+('EB2466FE-C7A0-41D3-8B3D-9587CCA31E47', '2026-03-21 11:30:26.225003', N'kỹ thuật lập trình', N'pdf', N'/uploads/documents/254495d8-162f-4172-af48-fea1e1824ce6_699225_20183554_NguyenQuangHuy_BaiTH_05.docx.pdf', N'Kỹ thuật lập trình', '71B08C6F-C954-4CE0-9063-23708C5A5018', '9DBD6338-997C-4558-948E-039786D88D86');
+
+INSERT INTO [dbo].[education_types] ([education_type_id], [created_at], [education_type_name], [is_active], [updated_at]) VALUES
+('954D3925-4FD1-4EBA-A65F-03C021CFD056', '2026-02-08 11:31:10.220485', N'Văn bằng 2 chính quy', '1', '2026-02-08 11:31:10.220564'),
+('B9253E0F-AF5E-4901-92DB-96ED36BF77DB', '2026-02-08 11:30:05.521929', N'Vừa học vừa làm', '1', '2026-02-08 11:30:05.522005'),
+('38AAFE96-065E-45BB-929E-A2D0B6BDFA63', '2026-02-08 11:30:53.813565', N'Liên thông', '1', '2026-02-08 11:30:53.813630'),
+('F35EF5FE-08AB-4076-99FD-DD7F38201734', '2026-02-08 11:29:51.468889', N'Chính quy', '1', '2026-02-08 11:29:51.469191');
+
+INSERT INTO [dbo].[equipments] ([id], [created_at], [equipment_code], [equipment_name], [purchase_date], [serial_number], [status], [updated_at], [room_id]) VALUES
+('1', '2026-02-28 11:24:00.645327', N'Q01', N'Quạt trần', '2023-01-01', N'123456', N'ACTIVE', '2026-02-28 11:24:00.645327', '1');
+
+INSERT INTO [dbo].[exam_rooms] ([id], [created_at], [description], [exam_capacity], [updated_at], [room_id]) VALUES
+('2E279DB6-1EE9-4ED9-A989-1EBE9E91CDC6', '2026-03-16 09:24:29.751518', NULL, '50', '2026-03-16 09:24:29.751556', '1');
+
+INSERT INTO [dbo].[exam_schedules] ([id], [created_at], [duration_minutes], [exam_date], [note], [start_time], [updated_at], [class_section_id], [exam_type_id]) VALUES
+('A8F6E74C-4C0A-4858-A6EA-F139B470354A', '2026-03-16 09:45:25.230848', '60', '2026-01-11', NULL, '09:00:00.0000000', '2026-03-16 09:45:25.230872', '1', 'F0E09B39-C171-4B9D-8BDF-3A1EAC0572B5');
+
+INSERT INTO [dbo].[exam_types] ([id], [created_at], [description], [name], [updated_at]) VALUES
+('F0E09B39-C171-4B9D-8BDF-3A1EAC0572B5', '2026-03-15 21:43:38.877943', N'kiểm tra giữa kỳ', N'Giữa kỳ', '2026-03-15 21:43:38.878021'),
+('4866E9A2-5B34-49F4-B9FF-546BD30921B0', '2026-03-15 21:43:53.495761', N'kiểm tra kết thúc học phần', N'Cuối kỳ', '2026-03-15 21:43:53.495796'),
+('0EB94450-D043-4276-BA54-B157288F8EEF', '2026-03-15 21:45:06.435946', N'kỳ thi khi thi lại học phần đối với những sinh viên hoãn thi', N'Thi lại', '2026-03-15 21:45:06.436142'),
+('9A66A6BC-E960-43A5-AF5A-F234B82287FF', '2026-03-15 21:45:40.190894', N'dành cho những sinh viên đăng ký học lại học phần', N'Cải thiện', '2026-03-15 21:45:40.190909');
+
+INSERT INTO [dbo].[faculties] ([faculty_id], [faculty_code], [faculty_name]) VALUES
+('2D290C0F-7BBD-44A5-957C-7C54525A2040', N'CNTT', N'Công nghệ thông tin');
+
+INSERT INTO [dbo].[feedbacks] ([feedback_id], [comment], [created_at], [rating], [lecturer_id], [student_id], [subject_id]) VALUES
+('B7EFAFD6-ECF0-47FA-867B-1C31454B1464', N'Giảng viên giảng rất hay', '2026-03-22 10:02:45.818671', '5', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '04B61953-0B82-4571-B905-37D5A11BD112', '71B08C6F-C954-4CE0-9063-23708C5A5018');
+
+INSERT INTO [dbo].[grade_components] ([id], [component_name], [created_at], [max_score], [weight], [course_class_id]) VALUES
+('DDA28B03-9123-470F-BCC4-2486D8474F8B', N'Kết thúc học phần', '2026-03-09 07:55:00.056146', '10.00', '50.00', '1'),
+('32CC5421-25EB-4FDF-8320-96A6A30887EA', N'Thường Xuyên', '2026-03-09 07:54:03.064638', '10.00', '25.00', '1'),
+('41D14521-7A7E-471C-981A-D6762B23ED74', N'Giữa kỳ', '2026-03-09 07:54:17.164291', '10.00', '15.00', '1'),
+('714E0799-E046-49AC-95F6-EF367634F077', N'Chuyên Cần', '2026-03-09 07:53:48.419249', '10.00', '10.00', '1');
+
+INSERT INTO [dbo].[grade_scales] ([id], [description], [grade_point], [letter_grade], [max_score], [min_score]) VALUES
+('AE5034AC-98DC-48AF-8D5E-129787095FA1', N'Trung bình Khá', '2.50', N'C+', '6.90', '6.50'),
+('62A40B9A-6650-403D-969C-206DE1446C9E', N'Giỏi', '3.50', N'B+', '8.40', '8.00'),
+('851FCF4D-15D0-4A34-A0A0-310321035798', N'Khá', '3.00', N'B', '7.90', '7.00'),
+('7480BFC0-5C49-4477-9FAB-672AD404063F', N'Trung bình', '2.00', N'C', '6.40', '5.50'),
+('482D5210-C4FC-4B2C-8D3B-880CBECFFEB4', N'Trung bình Yếu', '1.50', N'D+', '5.40', '5.00'),
+('9690E400-9763-4848-AB4A-941F82DEEC42', N'Yếu', '1.00', N'D', '4.90', '4.00'),
+('44033120-0EAA-40CF-A0B5-BB12A09D5962', N'Xuất sắc', '4.00', N'A', '10.00', '8.50'),
+('AEF0C54E-0B7E-43D8-8716-D7E520C40E93', N'Kém', '0.00', N'F', '3.90', '0.00');
+
+INSERT INTO [dbo].[graduation_conditions] ([id], [created_at], [min_credits], [min_gpa], [required_certificate], [required_courses], [updated_at], [program_id]) VALUES
+('1', '2026-03-17 08:08:59.195762', '152', '2.00', N'Ngoại ngữ Toeic 500, Giáo dục thể chất, Chứng chỉ Quốc phòng An ninh', N'Đồ Án tốt nghiệp
+Thực tập tốt nghiệp', '2026-03-17 08:11:34.388478', '3BDE44A9-17B8-4B02-824F-50842B2B9ADB');
+
+INSERT INTO [dbo].[graduation_results] ([id], [certificates], [checked_at], [created_at], [gpa], [missing_courses], [note], [status], [total_credits], [updated_at], [program_id], [student_id]) VALUES
+('1', N'Ngoại ngữ B1, Giáo dục thể chất', '2026-03-18 20:46:08.533133', '2026-03-18 20:46:08.533102', '3.00', NULL, NULL, N'ELIGIBLE', '152', '2026-03-18 20:46:08.533130', '3BDE44A9-17B8-4B02-824F-50842B2B9ADB', '893D0B09-6B84-4EDC-B9C6-A87CD993D6A4');
+
+INSERT INTO [dbo].[lecturer_course_classes] ([id], [created_at], [note], [updated_at], [class_section_id], [lecturer_id]) VALUES
+('1', '2026-03-02 20:16:01.101152', N'', '2026-03-02 20:16:01.101152', '1', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A'),
+('2', '2026-03-02 20:20:17.983611', N'Toán giải tích 1 cơ bản', '2026-03-02 20:20:17.983611', '2', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A');
+
+INSERT INTO [dbo].[lecturers] ([lecturer_id], [academic_degree], [academic_title], [address], [avatar], [citizen_id], [date_of_birth], [email], [full_name], [gender], [lecturer_code], [phone_number], [faculty_id], [position_id]) VALUES
+('1DD48B3E-3D4B-4435-932A-C019E73DFD9A', N'Thạc sĩ', N'Giảng viên chính', N'Đà Nẵng, Việt Nam', N'/uploads/avatars/c22eb945-ff35-4057-a35e-d6f4c4899a16_avt.jpg', N'1999888777', '1005-01-01', N'an@donga.edu.com', N'Nguyễn Văn An', N'Nam', N'CH001', N'0868686868', '2D290C0F-7BBD-44A5-957C-7C54525A2040', '6C16960F-F12B-4EA4-AD4E-F8B795FF2A4E');
+
+INSERT INTO [dbo].[majors] ([major_id], [major_code], [major_name], [faculty_id]) VALUES
+('42F7105F-E1A9-4133-B0A1-8785290FE880', NULL, N'Công nghệ phần mềm', '2D290C0F-7BBD-44A5-957C-7C54525A2040');
+
+INSERT INTO [dbo].[notifications] ([id], [category], [content], [created_at], [created_by], [is_read], [read_at], [scheduled_at], [title], [recipient_user_id], [source_id], [source_type]) VALUES
+('DE8F1780-8186-4760-853C-0962A6751B5E', N'TUITION_FEE', N'Cần đóng học phí ngay trước khi thi', '2026-03-20 20:37:08.434307', NULL, '0', NULL, '2026-03-20 20:37:00.000000', N'Học phí', 'C6BC5113-77C3-4A82-801A-C1E07DED8E9B', NULL, NULL);
+
+INSERT INTO [dbo].[payments] ([id], [amount], [created_at], [payment_date], [payment_method], [status], [transaction_code], [updated_at], [student_tuition_id]) VALUES
+('1', '10000000', '2026-03-14 17:32:44.533949', '2026-03-14 17:32:00.000000', N'BANK_TRANSFER', N'COMPLETED', N'TX001', '2026-03-14 17:32:44.533949', '07C713F3-03E3-4D83-A0C9-39C67EAEDC21');
+
+INSERT INTO [dbo].[permissions] ([id], [action], [description], [name], [resource], [code]) VALUES
+('515A6E39-03B8-4ABE-92EF-E950705344D3', NULL, N'', N'admin chỉ có quyền tạo và đọc', NULL, N'ADMIN_CRUD');
+
+INSERT INTO [dbo].[positions] ([position_id], [position_code], [position_name], [description]) VALUES
+('6C16960F-F12B-4EA4-AD4E-F8B795FF2A4E', N'TS', N'Tiến sĩ', N'Tiến sĩ được học tại đại học nước ngoài');
+
+INSERT INTO [dbo].[role_permissions] ([role_id], [permission_id], [id]) VALUES
+('F4878407-DB22-4AB5-A783-6A6D661AEEAB', '515A6E39-03B8-4ABE-92EF-E950705344D3', '511F4B9F-B694-44CE-BE6C-8B440C97A785');
+
+INSERT INTO [dbo].[roles] ([id], [description], [name]) VALUES
+('F4878407-DB22-4AB5-A783-6A6D661AEEAB', N'Lecturer mangements', N'Lecturer'),
+('80612F4C-3A9E-4A4B-8607-6B8EF2055819', N'Quản trị hệ thống', N'ADMIN'),
+('E4530BE1-F109-45A5-9666-7C09E496289E', N'university students', N'student'),
+('2E8F79AB-A27C-4A42-AC41-9DFCD69F0040', N'Manager role with management access', N'MANAGER');
+
+INSERT INTO [dbo].[room_block_times] ([block_id], [block_type], [created_at], [day_of_week], [end_date], [end_week], [reason], [start_date], [start_week], [status], [updated_at], [room_id], [time_slot_id]) VALUES
+('ECC6E54E-3543-4A86-9FBD-A03EC510038F', N'EVENT', '2026-03-08 12:24:01.248004', '3', '2025-02-15', '2', N'Phòng sử dụng để tổ chức hội nghị tuyển sinh', '2025-02-01', '1', N'CANCELLED', '2026-03-08 12:24:01.248004', '2', '1');
+
+INSERT INTO [dbo].[room_types] ([room_type_id], [description], [max_capacity], [room_type_code], [room_type_name]) VALUES
+('A884DF6C-0772-4793-AC95-9F557FFFB358', N'Phòng học bình thường', '50', N'LT01', N'P401');
+
+INSERT INTO [dbo].[rooms] ([id], [area], [capacity], [created_at], [floor], [is_active], [room_code], [room_name], [status], [updated_at], [building_id], [room_type_id]) VALUES
+('1', '100', '50', '2026-02-27 17:02:52.088689', '1', '1', N'P101', N'Phòng học lý thuyết', N'AVAILABLE', '2026-02-27 17:02:52.088689', 'C2F293AD-31C1-4755-8BF0-22822BA7AB3B', 'A884DF6C-0772-4793-AC95-9F557FFFB358'),
+('2', '100', '50', '2026-03-08 12:22:52.459900', '1', '1', N'P102', N'Phòng học lý thuyết', N'AVAILABLE', '2026-03-08 12:22:52.459900', 'C2F293AD-31C1-4755-8BF0-22822BA7AB3B', 'A884DF6C-0772-4793-AC95-9F557FFFB358');
+
+INSERT INTO [dbo].[schedule_overrides] ([override_id], [approved_at], [approved_by], [created_at], [override_date], [override_type], [reason], [status], [updated_at], [new_lecturer_id], [new_room_id], [new_time_slot_id], [schedule_id]) VALUES
+('BA795C0D-0FB7-4F21-84A6-E463761E6D50', NULL, NULL, '2026-03-06 10:17:24.283006', '2026-01-01', N'MAKEUP', N'Bận công việc gia đình nên đổi lịch', N'ACTIVE', '2026-03-06 10:17:24.283006', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '1', '2', 'C331680C-1A91-470B-9A52-233FDBFF21CB');
+
+INSERT INTO [dbo].[schedules] ([id], [created_at], [created_by], [day_of_week], [end_week], [note], [schedule_type], [session_type], [start_week], [status], [updated_at], [week_pattern], [class_section_id], [lecturer_id], [room_id], [semester_id], [time_slot_id]) VALUES
+('C331680C-1A91-470B-9A52-233FDBFF21CB', '2026-03-05 08:52:06.705578', NULL, '2', '15', N'', N'NORMAL', N'THEORY', '1', N'ACTIVE', '2026-03-05 08:52:06.705578', N'ALL', '1', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '1', '1', '1'),
+('48119A01-4C8A-464E-9615-2B4620205888', '2026-03-09 17:10:55.977434', NULL, '3', '15', N'', N'NORMAL', N'THEORY', '1', N'ACTIVE', '2026-03-09 17:10:55.977434', N'ALL', '1', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '2', '1', '2'),
+('CA93D2DE-04EF-4012-8191-4417F90C4F3E', '2026-03-05 09:07:25.018962', NULL, '6', '15', NULL, N'NORMAL', N'THEORY', '1', N'ACTIVE', '2026-03-05 09:07:25.018962', N'ALL', '2', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '1', '1', '2'),
+('2D53595F-5C9E-40DA-91E0-66F7DA207ECC', '2026-03-05 09:07:25.018006', NULL, '4', '15', NULL, N'NORMAL', N'THEORY', '1', N'ACTIVE', '2026-03-05 09:07:25.018006', N'ALL', '1', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '1', '1', '1'),
+('5AC6089A-B76C-4012-AE46-97D1A28B225F', '2026-03-05 09:07:25.018389', NULL, '5', '15', NULL, N'NORMAL', N'THEORY', '1', N'ACTIVE', '2026-03-05 09:07:25.018389', N'ALL', '2', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '1', '1', '1'),
+('512BDCB4-2586-4541-ABF3-9D899FD47BEF', '2026-03-05 09:07:25.018202', NULL, '4', '15', NULL, N'NORMAL', N'PRACTICE', '1', N'ACTIVE', '2026-03-05 09:07:25.018202', N'ALL', '1', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '1', '1', '2'),
+('9C50B416-6400-4446-91FB-BC1B4D465B56', '2026-03-05 09:07:25.015133', NULL, '2', '15', N'', N'NORMAL', N'THEORY', '1', N'ACTIVE', '2026-03-05 14:39:37.046208', N'ALL', '1', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '1', '1', '2'),
+('B8ECC4C3-A8C6-4032-99E0-C8C54A519660', '2026-03-05 09:07:25.018774', NULL, '6', '15', NULL, N'NORMAL', N'THEORY', '1', N'ACTIVE', '2026-03-05 09:07:25.018774', N'ALL', '2', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '1', '1', '1'),
+('39BDC1C3-C097-43B6-A16B-DB9E42382BFC', '2026-03-05 09:07:25.017800', NULL, '3', '15', NULL, N'NORMAL', N'THEORY', '1', N'ACTIVE', '2026-03-05 09:07:25.017800', N'ALL', '1', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '1', '1', '2'),
+('CEBDB63C-D3C9-47C5-A6BC-E23B44308126', '2026-03-05 09:07:25.018575', NULL, '5', '15', NULL, N'NORMAL', N'THEORY', '1', N'ACTIVE', '2026-03-05 09:07:25.018575', N'ALL', '2', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '1', '1', '2'),
+('962409A3-FE9C-4B71-A1B9-F8BD4F9B823B', '2026-03-05 09:07:25.017531', NULL, '3', '15', NULL, N'NORMAL', N'THEORY', '1', N'ACTIVE', '2026-03-05 09:07:25.017531', N'ALL', '1', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '1', '1', '1');
+
+INSERT INTO [dbo].[semesters] ([id], [academic_year], [code], [created_at], [description], [end_date], [name], [registration_end], [registration_start], [start_date], [status], [term], [updated_at]) VALUES
+('1', N'2024-2025', N'HK1', '2026-03-01 23:15:00.771575', N'Học kỳ 1 cho khoá K25', '2025-01-15', N'Học kỳ 1', '2024-08-25', '2024-08-01', '2024-09-02', N'OPEN', '1', '2026-03-01 23:15:00.771575');
+
+INSERT INTO [dbo].[student_grades] ([id], [graded_at], [score], [updated_at], [course_class_id], [grade_component_id], [graded_by], [student_id]) VALUES
+('1BAEFA0A-69CA-479C-BD88-01E607C58349', '2026-03-10 15:57:38.269269', '9.00', '2026-03-10 15:57:38.272186', '1', '41D14521-7A7E-471C-981A-D6762B23ED74', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '893D0B09-6B84-4EDC-B9C6-A87CD993D6A4'),
+('80C422F8-F72B-4C17-89EA-0771B648B1E3', '2026-03-10 15:58:45.603928', '10.00', '2026-03-10 15:58:45.604321', '1', '714E0799-E046-49AC-95F6-EF367634F077', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '893D0B09-6B84-4EDC-B9C6-A87CD993D6A4'),
+('A8882F70-EFBB-4A3A-B7DD-32B2B478787E', '2026-03-10 11:56:12.794607', '10.00', '2026-03-10 11:56:12.797876', '1', '714E0799-E046-49AC-95F6-EF367634F077', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '04B61953-0B82-4571-B905-37D5A11BD112'),
+('1C0A110C-E0B2-4B0F-9576-773C8BBB4810', '2026-03-10 15:57:54.545869', '9.00', '2026-03-10 15:57:54.546138', '1', '32CC5421-25EB-4FDF-8320-96A6A30887EA', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '893D0B09-6B84-4EDC-B9C6-A87CD993D6A4'),
+('F33C9163-B04A-4C5D-96B2-FCEF608A84B6', '2026-03-10 15:58:10.947607', '8.50', '2026-03-10 15:58:10.948719', '1', 'DDA28B03-9123-470F-BCC4-2486D8474F8B', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '893D0B09-6B84-4EDC-B9C6-A87CD993D6A4');
+
+INSERT INTO [dbo].[student_tuition] ([id], [amount_paid], [created_at], [remaining_amount], [status], [total_amount], [total_credits], [updated_at], [semester_id], [student_id]) VALUES
+('07C713F3-03E3-4D83-A0C9-39C67EAEDC21', '10000000', '2026-03-13 10:42:26.951113', '9800000', N'PARTIAL', '19800000', '22', '2026-03-13 10:42:26.951113', '1', '893D0B09-6B84-4EDC-B9C6-A87CD993D6A4'),
+('329B7C4A-6D4B-4932-9231-FB9DA466C1DF', '0', '2026-03-13 10:40:30.795737', '21600000', N'UNPAID', '21600000', '24', '2026-03-13 10:40:30.795737', '1', '04B61953-0B82-4571-B905-37D5A11BD112');
+
+INSERT INTO [dbo].[students] ([student_id], [address], [avatar], [citizen_id], [date_of_birth], [email], [full_name], [gender], [phone_number], [student_code], [class_id]) VALUES
+('04B61953-0B82-4571-B905-37D5A11BD112', N'Quảng Nam, Đà Nẵng', N'/uploads/avatars/f4b2c135-ba0b-4e1a-a569-bf033ede9fc0_avtr huy.jpg', N'198888888', '2005-02-01', N'namson@gmail.com', N'Trương Nam Sơn', N'Nam', N'0123987789', N'SV002', 'C72BB2D4-A9BE-4069-905E-1F683AAD9D59'),
+('893D0B09-6B84-4EDC-B9C6-A87CD993D6A4', N'Quảng Nam, Đà Nẵng', N'/uploads/avatars/e22a00f8-d5f8-49d4-bd95-fefc4c21bd15_avt.jpg', N'1999888777', '2005-01-01', N'an@gmail.com', N'Nguyễn Văn An', N'Nam', N'0123321123', N'SV001', 'C72BB2D4-A9BE-4069-905E-1F683AAD9D59');
+
+INSERT INTO [dbo].[time_slots] ([id], [end_time], [is_active], [period_end], [period_start], [slot_code], [start_time]) VALUES
+('1', '09:45:00.0000000', '1', '3', '1', N'S1', '07:00:00.0000000'),
+('2', '12:00:00.0000000', '1', '6', '4', N'S2', '09:45:00.0000000');
+
+INSERT INTO [dbo].[training_levels] ([training_level_id], [training_level_name], [description]) VALUES
+('8947D0A3-1C41-4D30-B553-DF25E5D162D2', N'Đại học', N'học với hình thức 4 năm tại trường');
+
+INSERT INTO [dbo].[training_programs] ([program_id], [course], [description], [duration_years], [is_active], [program_code], [program_name], [total_credits], [major_id]) VALUES
+('3BDE44A9-17B8-4B02-824F-50842B2B9ADB', N'K25', N'Chương trình đào tạo được cập nhật theo chương trình mới 2026', '4', '1', N'CNTT-K25', N'Chương trình đào tạo Công nghệ thông tin', '152', '42F7105F-E1A9-4133-B0A1-8785290FE880');
+
+INSERT INTO [dbo].[tuition_fees] ([id], [created_at], [effective_date], [fee_per_credit], [note], [status], [updated_at], [program_id]) VALUES
+('E4F38EBF-C18A-4D61-9011-4C7F349C4353', '2026-03-11 08:54:53.926461', '2026-03-11', '900000', NULL, N'ACTIVE', '2026-03-11 08:54:53.926483', '3BDE44A9-17B8-4B02-824F-50842B2B9ADB');
+
+INSERT INTO [dbo].[user_roles] ([user_id], [role_id]) VALUES
+('9DBD6338-997C-4558-948E-039786D88D86', 'F4878407-DB22-4AB5-A783-6A6D661AEEAB'),
+('6D2CF87C-1CF6-4236-88C0-20793AB83312', '80612F4C-3A9E-4A4B-8607-6B8EF2055819'),
+('54C80879-6759-4FE0-8AA1-4DAF0907DECA', 'E4530BE1-F109-45A5-9666-7C09E496289E'),
+('50E3DC81-4BBC-4897-8600-A766EA6D4B00', '2E8F79AB-A27C-4A42-AC41-9DFCD69F0040'),
+('C6BC5113-77C3-4A82-801A-C1E07DED8E9B', 'E4530BE1-F109-45A5-9666-7C09E496289E'),
+('C186C9A4-DCD7-4DC1-9B9C-FF03AEA93100', '80612F4C-3A9E-4A4B-8607-6B8EF2055819');
+
+INSERT INTO [dbo].[users] ([id], [email], [enabled], [password], [username], [lecturer_id], [student_id]) VALUES
+('9DBD6338-997C-4558-948E-039786D88D86', N'loi@gmail.com', '1', N'$2a$10$CdC31VAjDGfJSOMUFqdV5eaiyFB7TnTn7TPfWHiQOTVPOr2oXBTNm', N'NgocLoi', NULL, NULL),
+('6D2CF87C-1CF6-4236-88C0-20793AB83312', N'hieu102056@donga.edu.vn', '1', N'123456', N'admin', NULL, NULL),
+('54C80879-6759-4FE0-8AA1-4DAF0907DECA', N'tien@gmail.com', '1', N'$2a$10$7GJshyLYnF1RiErLshfie..XvXFcfjKTicz3/odgfyezYiwnBvNaO', N'TranTien', NULL, NULL),
+('50E3DC81-4BBC-4897-8600-A766EA6D4B00', N'DucHuy@gmail.com', '1', N'123456', N'DucHuy', NULL, NULL),
+('C6BC5113-77C3-4A82-801A-C1E07DED8E9B', N'namson@gmail.com', '1', N'$2a$10$TcqwM9P.EEtfCOoBUwTZpeOEEYRjIoVU0bhfy2Z.HjsWtcp6Gvnyu', N'NamSon', NULL, '04B61953-0B82-4571-B905-37D5A11BD112'),
+('C186C9A4-DCD7-4DC1-9B9C-FF03AEA93100', N'admin1@admin.com', '1', N'$2a$10$jgZBqlM2584MYuwPJ/e0hey3mndh3x2ZUbCUH3LlYL0c90nwqnVRi', N'admin1', NULL, NULL);
+

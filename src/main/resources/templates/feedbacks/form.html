@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        ${mode == 'create' ? 'Thêm phản hồi' : 'Chỉnh sửa phản hồi'},
+        ${mode == 'create' ? 'Ghi nhận đánh giá mới' : 'Cập nhật phản hồi'},
+        'Đánh giá chất lượng giảng dạy và môn học theo thang 1–5 sao',
+        'feedbacks',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+<style>
+.fb-form-card { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.fb-form-header {
+    background: linear-gradient(135deg,#4f46e5 0%,#6366f1 100%);
+    color:#fff; border-radius:12px 12px 0 0;
+    padding:14px 20px; font-weight:600; font-size:1rem;
+}
+.field-label { font-weight:600; font-size:.85rem; color:#374151; margin-bottom:4px; }
+.required-star { color:#ef4444; }
+</style>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a th:href="@{/admin/feedbacks}">Phản hồi đánh giá</a></li>
+        <li class="breadcrumb-item active" th:text="${mode == 'create' ? 'Thêm mới' : 'Chỉnh sửa'}"></li>
+    </ol>
+</nav>
+
+<div th:if="${globalError}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${globalError}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card fb-form-card">
+            <div class="fb-form-header">
+                <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-2' : 'fa-solid fa-pen-to-square me-2'}"></i>
+                <span th:text="${mode == 'create' ? 'Thêm phản hồi' : 'Cập nhật phản hồi'}"></span>
+            </div>
+            <div class="card-body p-4">
+                <form th:action="${mode == 'create'
+                            ? '/admin/feedbacks'
+                            : '/admin/feedbacks/' + feedbackId}"
+                      method="post"
+                      th:object="${feedbackRequest}"
+                      novalidate>
+
+                    <div class="mb-3">
+                        <label class="field-label">Sinh viên <span class="required-star">*</span></label>
+                        <select class="form-select" th:field="*{studentId}"
+                                th:classappend="${#fields.hasErrors('studentId')} ? ' is-invalid'">
+                            <option value="">— Chọn sinh viên —</option>
+                            <option th:each="s : ${students}" th:value="${s.studentId}"
+                                    th:text="|${s.studentCode} — ${s.fullName}|"></option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('studentId')}"
+                             th:errors="*{studentId}"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="field-label">Giảng viên được đánh giá <span class="required-star">*</span></label>
+                        <select class="form-select" th:field="*{lecturerId}"
+                                th:classappend="${#fields.hasErrors('lecturerId')} ? ' is-invalid'">
+                            <option value="">— Chọn giảng viên —</option>
+                            <option th:each="l : ${lecturers}" th:value="${l.lecturerId}"
+                                    th:text="|${l.lecturerCode} — ${l.fullName}|"></option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('lecturerId')}"
+                             th:errors="*{lecturerId}"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="field-label">Môn học <span class="required-star">*</span></label>
+                        <select class="form-select" th:field="*{subjectId}"
+                                th:classappend="${#fields.hasErrors('subjectId')} ? ' is-invalid'">
+                            <option value="">— Chọn môn học —</option>
+                            <option th:each="c : ${courses}" th:value="${c.id}"
+                                    th:text="|${c.courseCode} — ${c.courseName}|"></option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('subjectId')}"
+                             th:errors="*{subjectId}"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="field-label">Điểm đánh giá (1–5 sao) <span class="required-star">*</span></label>
+                        <select class="form-select" th:field="*{rating}"
+                                th:classappend="${#fields.hasErrors('rating')} ? ' is-invalid'">
+                            <option th:each="n : ${#numbers.sequence(1,5)}"
+                                    th:value="${n}" th:text="|${n} sao|"></option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('rating')}"
+                             th:errors="*{rating}"></div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="field-label">Nhận xét chi tiết</label>
+                        <textarea class="form-control" rows="4" th:field="*{comment}"
+                                  maxlength="1000"
+                                  th:classappend="${#fields.hasErrors('comment')} ? ' is-invalid'"
+                                  placeholder="Nội dung giảng dạy, trải nghiệm học tập..."></textarea>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('comment')}"
+                             th:errors="*{comment}"></div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end pt-2 border-top">
+                        <a th:href="@{/admin/feedbacks}" class="btn btn-outline-secondary">
+                            <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
+                        </a>
+                        <button type="submit" class="btn text-white px-4" style="background:#4f46e5;">
+                            <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-1' : 'fa-solid fa-floppy-disk me-1'}"></i>
+                            <span th:text="${mode == 'create' ? 'Ghi nhận' : 'Lưu thay đổi'}"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 bg-light mb-3">
+            <div class="card-body small">
+                <div class="fw-semibold mb-2">
+                    <i class="fa-solid fa-circle-info me-1 text-primary"></i>Mục đích
+                </div>
+                <p class="mb-1 text-muted">
+                    Thu thập ý kiến sinh viên về <strong>chất lượng giảng dạy</strong>, <strong>nội dung môn học</strong>
+                    và <strong>trải nghiệm học tập</strong>.
+                </p>
+                <ul class="mb-0 ps-3 text-muted" style="line-height:1.7">
+                    <li>Thang điểm 1–5 (sao).</li>
+                    <li>Một sinh viên có thể gửi nhiều phản hồi theo thời gian.</li>
+                    <li>Import Excel: dùng mã SV, mã GV, mã môn có sẵn trong hệ thống.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div th:if="${mode == 'edit' and currentItem != null}" class="card border-0 shadow-sm">
+            <div class="card-body small">
+                <div class="fw-semibold text-muted mb-2">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i>Đã gửi lúc
+                </div>
+                <div th:text="${currentItem.createdAt != null ? #temporals.format(currentItem.createdAt, 'dd/MM/yyyy HH:mm') : '—'}"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+</body>
+</html>

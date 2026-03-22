@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Phản hồi đánh giá',
+        'Quản lý phản hồi giảng viên / môn học',
+        'Thu thập ý kiến sinh viên về chất lượng giảng dạy và trải nghiệm học tập',
+        'feedbacks',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+<style>
+.fb-card  { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.fb-header {
+    background: linear-gradient(135deg,#4f46e5 0%,#6366f1 100%);
+    color:#fff; border-radius:12px 12px 0 0;
+    padding:14px 20px; font-weight:600; font-size:1rem;
+}
+.fb-table thead th {
+    background:#eef2ff; color:#3730a3; font-weight:600;
+    border-bottom:2px solid #c7d2fe; padding:10px 12px; white-space:nowrap;
+}
+.fb-table tbody tr:hover { background:#eef2ff; }
+.fb-table td { vertical-align:middle; padding:10px 12px; }
+.stars { color:#f59e0b; letter-spacing:1px; }
+.summary-card { border:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+.summary-card .card-body { padding:16px 20px; }
+.summary-icon { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; }
+</style>
+
+<div th:if="${success}" class="alert alert-success alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-circle-check me-2"></i><span th:text="${success}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<div th:if="${error}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="summary-card card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="summary-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fa-solid fa-comments"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Tổng phản hồi (theo bộ lọc)</div>
+                    <div class="fw-bold fs-5" th:text="${items.totalElements}">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="summary-card card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="summary-icon bg-info bg-opacity-10 text-info">
+                    <i class="fa-solid fa-file-lines"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Trang hiện tại</div>
+                    <div class="fw-bold fs-5" th:text="|${items.number + 1}/${items.totalPages == 0 ? 1 : items.totalPages}|">1/1</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card fb-card">
+    <div class="fb-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="fa-solid fa-star-half-stroke me-2"></i>Phản hồi đánh giá giảng viên / môn học</span>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-light btn-sm" th:href="@{/admin/feedbacks/print(keyword=${keyword}, fromDate=${fromDate}, toDate=${toDate})}" target="_blank">
+                <i class="fa-solid fa-print me-1"></i>In
+            </a>
+            <a class="btn btn-light btn-sm" th:href="@{/admin/feedbacks/export}">
+                <i class="fa-solid fa-file-excel me-1"></i>Export Excel
+            </a>
+            <button class="btn btn-light btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="fa-solid fa-file-import me-1"></i>Import Excel
+            </button>
+            <a class="btn btn-success btn-sm fw-semibold text-white" style="background:#4338ca;border:none;" th:href="@{/admin/feedbacks/new}">
+                <i class="fa-solid fa-plus me-1"></i>Thêm phản hồi
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <form class="row g-2 mb-3" method="get" th:action="@{/admin/feedbacks}">
+            <div class="col-12 col-md-4">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                    </span>
+                    <input class="form-control border-start-0" name="keyword"
+                           placeholder="SV, GV, môn, nhận xét, hoặc điểm 1–5..."
+                           th:value="${keyword}" autocomplete="off">
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <input type="date" class="form-control form-control-sm" name="fromDate"
+                       th:value="${fromDate}">
+            </div>
+            <div class="col-6 col-md-2">
+                <input type="date" class="form-control form-control-sm" name="toDate"
+                       th:value="${toDate}">
+            </div>
+            <div class="col-6 col-md-2">
+                <select class="form-select form-select-sm" name="size">
+                    <option th:each="n : ${#numbers.sequence(10,50,10)}"
+                            th:value="${n}" th:text="${n} + ' / trang'"
+                            th:selected="${n == size}"></option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary btn-sm px-3" style="background:#4f46e5;border:none;">
+                    <i class="fa-solid fa-filter me-1"></i>Lọc
+                </button>
+                <a class="btn btn-outline-secondary btn-sm ms-1" th:href="@{/admin/feedbacks}">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table fb-table mb-0">
+                <thead>
+                <tr>
+                    <th style="width:46px">#</th>
+                    <th>Sinh viên</th>
+                    <th>Giảng viên</th>
+                    <th>Môn học</th>
+                    <th class="text-center">Điểm</th>
+                    <th>Nhận xét</th>
+                    <th class="text-center">Gửi lúc</th>
+                    <th class="text-end" style="width:130px">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="e, stat : ${items.content}">
+                    <td class="text-muted small" th:text="${items.number * size + stat.count}"></td>
+                    <td>
+                        <div class="fw-semibold small" th:text="${e.studentName}"></div>
+                        <span class="text-muted small" th:text="${e.studentCode}"></span>
+                    </td>
+                    <td>
+                        <div class="fw-semibold small" th:text="${e.lecturerName}"></div>
+                        <span class="text-muted small" th:text="${e.lecturerCode}"></span>
+                    </td>
+                    <td>
+                        <div class="small" th:text="${e.courseName}"></div>
+                        <span class="text-muted small" th:text="${e.courseCode}"></span>
+                    </td>
+                    <td class="text-center">
+                        <span class="stars"><span th:each="i : ${#numbers.sequence(1, e.rating)}">★</span></span>
+                        <span class="small text-muted d-block" th:text="|(${e.rating}/5)|"></span>
+                    </td>
+                    <td class="small text-secondary" th:text="${e.comment != null ? e.comment : '—'}" style="max-width:220px;"></td>
+                    <td class="text-center small"
+                        th:text="${e.createdAt != null ? #temporals.format(e.createdAt, 'dd/MM/yyyy HH:mm') : '—'}"></td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/admin/feedbacks/{id}/edit(id=${e.feedbackId})}" title="Chỉnh sửa">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                        <form method="post"
+                              th:action="@{/admin/feedbacks/{id}/delete(id=${e.feedbackId})}"
+                              style="display:inline;"
+                              onsubmit="return confirm('Xóa phản hồi này?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${items.content.isEmpty()}">
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-comments fa-2x d-block mb-2 opacity-40"></i>
+                        Chưa có phản hồi nào.
+                        <a th:href="@{/admin/feedbacks/new}">Thêm ngay</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+            <small class="text-muted">
+                Hiển thị <strong th:text="${items.numberOfElements}">0</strong> /
+                <strong th:text="${items.totalElements}">0</strong> phản hồi
+            </small>
+            <nav th:if="${items.totalPages > 1}">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${items.first} ? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/feedbacks(page=${items.number - 1}, size=${size}, keyword=${keyword}, fromDate=${fromDate}, toDate=${toDate})}">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    <li th:each="i : ${#numbers.sequence(0, items.totalPages - 1)}"
+                        class="page-item" th:classappend="${i == items.number} ? ' active'">
+                        <a class="page-link" th:text="${i + 1}"
+                           th:href="@{/admin/feedbacks(page=${i}, size=${size}, keyword=${keyword}, fromDate=${fromDate}, toDate=${toDate})}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${items.last} ? ' disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/feedbacks(page=${items.number + 1}, size=${size}, keyword=${keyword}, fromDate=${fromDate}, toDate=${toDate})}">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-file-import me-2 text-primary"></i>Import phản hồi từ Excel
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" th:action="@{/admin/feedbacks/import}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="alert alert-info small py-2">
+                        Hàng 1 = tiêu đề, hàng 2 = header, dữ liệu từ hàng 3.
+                        <strong>Mẫu ngắn:</strong> Mã SV | Mã GV | Mã môn | Điểm (1–5) | Nhận xét.
+                        Hoặc file export đầy đủ (có cột ID phản hồi ở đầu).
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Chọn file Excel (.xlsx)</label>
+                        <input type="file" class="form-control" name="file" accept=".xlsx" required>
+                    </div>
+                    <a th:href="@{/admin/feedbacks/export}" class="btn btn-outline-primary btn-sm">
+                        <i class="fa-solid fa-download me-1"></i>Tải mẫu (export hiện tại)
+                    </a>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-upload me-1"></i>Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+</div>
+</body>
+</html>
