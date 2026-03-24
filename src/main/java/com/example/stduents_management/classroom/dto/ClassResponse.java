@@ -17,6 +17,10 @@ public class ClassResponse {
     private UUID majorId;
     private String majorName;
 
+    private UUID academicAdvisorLecturerId;
+    private String academicAdvisorLecturerCode;
+    private String academicAdvisorLecturerName;
+
     private UUID educationTypeId;
     private String educationTypeName;
 

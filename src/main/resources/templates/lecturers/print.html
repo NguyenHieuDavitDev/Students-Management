@@ -111,6 +111,7 @@
         <th style="width:80px">Giới tính</th>
         <th style="width:100px">Học vị</th>
         <th style="width:100px">Học hàm</th>
+        <th style="width:120px">Chức vụ</th>
         <th style="width:140px">Khoa</th>
     </tr>
     </thead>
@@ -124,11 +125,12 @@
         <td class="text-center" th:text="${l.gender}"></td>
         <td class="text-center" th:text="${l.positionName}"></td>
         <td class="text-center" th:text="${l.academicTitle}"></td>
+        <td class="text-center" th:text="${l.lecturerDutyName}"></td>
         <td th:text="${l.facultyName}"></td>
     </tr>
 
     <tr th:if="${lecturers.isEmpty()}">
-        <td colspan="8" class="text-center">
+        <td colspan="9" class="text-center">
             Không có dữ liệu giảng viên
         </td>
     </tr>

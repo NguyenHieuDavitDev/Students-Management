@@ -18,8 +18,12 @@ public interface LecturerCourseClassRepository extends JpaRepository<LecturerCou
 
     boolean existsByClassSection_IdAndLecturer_LecturerIdAndIdNot(Long classSectionId, java.util.UUID lecturerId, Long id);
 
+    /**
+     * Không dùng DISTINCT + ORDER BY (tránh lỗi SQL Server: ORDER BY phải nằm trong SELECT khi DISTINCT).
+     * Ràng buộc duy nhất (class_section_id, lecturer_id) đảm bảo mỗi GV tối đa một dòng / lớp học phần.
+     */
     @Query("""
-           SELECT DISTINCT lcc.lecturer
+           SELECT lcc.lecturer
            FROM LecturerCourseClass lcc
            WHERE lcc.classSection.id = :classSectionId
            ORDER BY lcc.lecturer.fullName ASC

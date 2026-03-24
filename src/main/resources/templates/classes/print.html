@@ -22,6 +22,7 @@
         <th>Tên lớp</th>
         <th>Ngành</th>
         <th>Năm học</th>
+        <th>GV cố vấn HT (CVHT)</th>
     </tr>
     </thead>
     <tbody>
@@ -31,6 +32,11 @@
         <td th:text="${c.className}"></td>
         <td th:text="${c.majorName}"></td>
         <td th:text="${c.academicYear}"></td>
+        <td>
+            <th:block th:if="${c.academicAdvisorLecturerName != null and !c.academicAdvisorLecturerName.isEmpty()}"
+                      th:text="${c.academicAdvisorLecturerCode + ' — ' + c.academicAdvisorLecturerName}"></th:block>
+            <th:block th:if="${c.academicAdvisorLecturerName == null or c.academicAdvisorLecturerName.isEmpty()}">—</th:block>
+        </td>
     </tr>
     </tbody>
 </table>

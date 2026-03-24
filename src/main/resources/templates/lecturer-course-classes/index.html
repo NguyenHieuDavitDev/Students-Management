@@ -92,7 +92,10 @@
                             <div class="fw-semibold" th:text="${i.classCode}"></div>
                             <div class="text-muted small" th:text="${i.className}"></div>
                         </td>
-                        <td th:text="${i.courseCode + ' - ' + i.courseName}"></td>
+                        <td th:with="cc=${i.courseCode}, cn=${i.courseName},
+                                     txt=${(cc != null ? cc : '') + (cc != null && cn != null ? ' - ' : '') + (cn != null ? cn : '')}">
+                            <span th:text="${#strings.isEmpty(txt) ? '—' : txt}">—</span>
+                        </td>
                         <td th:text="${i.semesterCode}"></td>
                         <td>
                             <div class="fw-semibold" th:text="${i.lecturerCode}"></div>

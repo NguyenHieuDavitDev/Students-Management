@@ -6,6 +6,8 @@ import com.example.stduents_management.classroom.entity.ClassEntity;
 import com.example.stduents_management.classroom.repository.ClassRepository;
 import com.example.stduents_management.educationtype.entity.EducationType;
 import com.example.stduents_management.educationtype.repository.EducationTypeRepository;
+import com.example.stduents_management.lecturer.entity.Lecturer;
+import com.example.stduents_management.lecturer.repository.LecturerRepository;
 import com.example.stduents_management.major.entity.Major;
 import com.example.stduents_management.major.repository.MajorRepository;
 import com.example.stduents_management.traininglevel.entity.TrainingLevel;
@@ -31,10 +33,12 @@ public class ClassService {
 
     private final ClassRepository classRepository;
     private final MajorRepository majorRepository;
+    private final LecturerRepository lecturerRepository;
     private final EducationTypeRepository educationTypeRepository;
     private final TrainingLevelRepository trainingLevelRepository;
 
     /* ================= SEARCH ================= */
+    @Transactional(readOnly = true)
     public Page<ClassResponse> search(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("className"));
 
@@ -50,6 +54,7 @@ public class ClassService {
     }
 
     /* ================= GET BY ID ================= */
+    @Transactional(readOnly = true)
     public ClassResponse getById(UUID id) {
         return classRepository.findById(id)
                 .map(this::toResponse)
@@ -115,6 +120,7 @@ public class ClassService {
     }
 
     /* ================= PRINT ================= */
+    @Transactional(readOnly = true)
     public List<ClassResponse> getForPrint() {
         return classRepository.findAll(Sort.by("className"))
                 .stream()
@@ -123,6 +129,7 @@ public class ClassService {
     }
 
     /* ================= EXPORT EXCEL ================= */
+    @Transactional(readOnly = true)
     public void exportExcel(HttpServletResponse response) {
         try (Workbook workbook = new XSSFWorkbook()) {
 
@@ -132,7 +139,8 @@ public class ClassService {
             String[] columns = {
                     "Mã lớp", "Tên lớp", "Năm học",
                     "Ngành", "Hệ đào tạo", "Trình độ",
-                    "Sĩ số tối đa", "Trạng thái"
+                    "Sĩ số tối đa", "Trạng thái",
+                    "Mã GV CVHT"
             };
 
             for (int i = 0; i < columns.length; i++) {
@@ -155,6 +163,11 @@ public class ClassService {
                         c.getMaxStudent() != null ? c.getMaxStudent() : 0
                 );
                 row.createCell(7).setCellValue(c.getClassStatus());
+                row.createCell(8).setCellValue(
+                        c.getAcademicAdvisor() != null
+                                ? c.getAcademicAdvisor().getLecturerCode()
+                                : ""
+                );
             }
 
             response.setContentType(
@@ -218,6 +231,16 @@ public class ClassService {
                 c.setClassStatus(row.getCell(7).getStringCellValue());
                 c.setIsActive(true);
 
+                Cell cvhtCell = row.getCell(8);
+                if (cvhtCell != null) {
+                    String cvhtCode = readExcelCellAsString(cvhtCell).trim();
+                    if (!cvhtCode.isEmpty()) {
+                        lecturerRepository.findByLecturerCodeIgnoreCase(cvhtCode)
+                                .filter(l -> l.getFaculty().getFacultyId().equals(major.getFaculty().getFacultyId()))
+                                .ifPresent(c::setAcademicAdvisor);
+                    }
+                }
+
                 classRepository.save(c);
                 count++;
             }
@@ -258,6 +281,45 @@ public class ClassService {
         c.setIsActive(
                 r.getIsActive() != null ? r.getIsActive() : true
         );
+        c.setAcademicAdvisor(resolveAcademicAdvisorOrNull(m, r.getAcademicAdvisorLecturerId()));
+    }
+
+    /**
+     * CVHT phải là giảng viên trực thuộc khoa quản lý ngành của lớp — đúng nguyên tắc phân công cố vấn phổ biến ở các cơ sở GD ĐH.
+     */
+    private static String readExcelCellAsString(Cell cell) {
+        if (cell == null) {
+            return "";
+        }
+        return switch (cell.getCellType()) {
+            case STRING -> cell.getStringCellValue();
+            case NUMERIC -> org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell)
+                    ? cell.getDateCellValue().toString()
+                    : (cell.getNumericCellValue() == Math.floor(cell.getNumericCellValue())
+                    ? String.valueOf((long) cell.getNumericCellValue())
+                    : String.valueOf(cell.getNumericCellValue()));
+            case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+            case FORMULA -> cell.getCellFormula();
+            default -> "";
+        };
+    }
+
+    private Lecturer resolveAcademicAdvisorOrNull(Major major, UUID academicAdvisorLecturerId) {
+        if (academicAdvisorLecturerId == null) {
+            return null;
+        }
+        Lecturer advisor = lecturerRepository.findById(academicAdvisorLecturerId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Không tìm thấy giảng viên được chọn làm giảng viên cố vấn học tập (CVHT)"));
+        UUID majorFacultyId = major.getFaculty().getFacultyId();
+        UUID advisorFacultyId = advisor.getFaculty().getFacultyId();
+        if (!majorFacultyId.equals(advisorFacultyId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Giảng viên cố vấn học tập phải thuộc khoa đào tạo ngành của lớp (cùng khoa với ngành đã chọn).");
+        }
+        return advisor;
     }
 
     private ClassResponse toResponse(ClassEntity c) {
@@ -269,6 +331,10 @@ public class ClassService {
 
                 c.getMajor() != null ? c.getMajor().getMajorId() : null,
                 c.getMajor() != null ? c.getMajor().getMajorName() : null,
+
+                c.getAcademicAdvisor() != null ? c.getAcademicAdvisor().getLecturerId() : null,
+                c.getAcademicAdvisor() != null ? c.getAcademicAdvisor().getLecturerCode() : null,
+                c.getAcademicAdvisor() != null ? c.getAcademicAdvisor().getFullName() : null,
 
                 c.getEducationType() != null ? c.getEducationType().getEducationTypeId() : null,
                 c.getEducationType() != null ? c.getEducationType().getEducationTypeName() : null,

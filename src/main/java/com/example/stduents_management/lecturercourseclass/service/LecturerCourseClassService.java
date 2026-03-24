@@ -34,6 +34,7 @@ public class LecturerCourseClassService {
     private final ClassSectionRepository classSectionRepository;
     private final LecturerRepository lecturerRepository;
 
+    @Transactional(readOnly = true)
     public Page<LecturerCourseClassResponse> search(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         Page<LecturerCourseClass> data =
@@ -43,6 +44,7 @@ public class LecturerCourseClassService {
         return data.map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     public LecturerCourseClassResponse getById(Long id) {
         return repository.findById(id)
                 .map(this::toResponse)
@@ -63,6 +65,7 @@ public class LecturerCourseClassService {
                         new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy phân công giảng viên"));
         validateDuplicate(req.getClassSectionId(), req.getLecturerId(), id);
         build(entity, req);
+        repository.save(entity);
     }
 
     @Transactional
@@ -73,6 +76,7 @@ public class LecturerCourseClassService {
         repository.deleteById(id);
     }
 
+    @Transactional(readOnly = true)
     public List<LecturerCourseClassResponse> getForPrint() {
         return repository.findAll(Sort.by(Sort.Direction.ASC, "classSection.classCode")
                         .and(Sort.by("lecturer.lecturerCode")))
@@ -83,6 +87,9 @@ public class LecturerCourseClassService {
 
     @Transactional
     public void importExcel(MultipartFile file) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File import rỗng");
+        }
         DataFormatter formatter = new DataFormatter(Locale.getDefault());
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
@@ -104,9 +111,7 @@ public class LecturerCourseClassService {
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Dòng " + rowNum + ": Không tìm thấy lớp học phần " + classCode));
 
-                Lecturer lecturer = lecturerRepository.findAll().stream()
-                        .filter(l -> l.getLecturerCode().equalsIgnoreCase(lecturerCode.trim()))
-                        .findFirst()
+                Lecturer lecturer = lecturerRepository.findByLecturerCodeIgnoreCase(lecturerCode.trim())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Dòng " + rowNum + ": Không tìm thấy giảng viên " + lecturerCode));
 
@@ -123,6 +128,7 @@ public class LecturerCourseClassService {
         }
     }
 
+    @Transactional(readOnly = true)
     public byte[] exportExcel() throws Exception {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("LecturerCourseClasses");
@@ -186,18 +192,30 @@ public class LecturerCourseClassService {
     private LecturerCourseClassResponse toResponse(LecturerCourseClass e) {
         ClassSection cs = e.getClassSection();
         Lecturer l = e.getLecturer();
+        String courseCode = null;
+        String courseName = null;
+        if (cs != null && cs.getCourse() != null) {
+            courseCode = cs.getCourse().getCourseCode();
+            courseName = cs.getCourse().getCourseName();
+        }
+        String semesterCode = (cs != null && cs.getSemester() != null)
+                ? cs.getSemester().getCode()
+                : null;
+        String facultyName = (l != null && l.getFaculty() != null)
+                ? l.getFaculty().getFacultyName()
+                : null;
         return new LecturerCourseClassResponse(
                 e.getId(),
                 cs != null ? cs.getId() : null,
                 cs != null ? cs.getClassCode() : null,
                 cs != null ? cs.getClassName() : null,
-                cs != null && cs.getCourse() != null ? cs.getCourse().getCourseCode() : null,
-                cs != null && cs.getCourse() != null ? cs.getCourse().getCourseName() : null,
-                cs != null && cs.getSemester() != null ? cs.getSemester().getCode() : null,
+                courseCode,
+                courseName,
+                semesterCode,
                 l != null ? l.getLecturerId() : null,
                 l != null ? l.getLecturerCode() : null,
                 l != null ? l.getFullName() : null,
-                l != null && l.getFaculty() != null ? l.getFaculty().getFacultyName() : null,
+                facultyName,
                 e.getNote(),
                 e.getCreatedAt(),
                 e.getUpdatedAt()

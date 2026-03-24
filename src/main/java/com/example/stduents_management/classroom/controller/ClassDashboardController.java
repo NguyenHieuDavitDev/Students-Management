@@ -4,6 +4,7 @@ import com.example.stduents_management.classroom.dto.ClassRequest;
 import com.example.stduents_management.classroom.dto.ClassResponse;
 import com.example.stduents_management.classroom.service.ClassService;
 import com.example.stduents_management.educationtype.repository.EducationTypeRepository;
+import com.example.stduents_management.lecturer.repository.LecturerRepository;
 import com.example.stduents_management.major.repository.MajorRepository;
 import com.example.stduents_management.traininglevel.repository.TrainingLevelRepository;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,6 +28,7 @@ public class ClassDashboardController {
 
     private final ClassService classService;
     private final MajorRepository majorRepository;
+    private final LecturerRepository lecturerRepository;
     private final EducationTypeRepository educationTypeRepository;
     private final TrainingLevelRepository trainingLevelRepository;
 
@@ -93,6 +95,7 @@ public class ClassDashboardController {
         req.setClassName(c.getClassName());
         req.setAcademicYear(c.getAcademicYear());
         req.setMajorId(c.getMajorId());
+        req.setAcademicAdvisorLecturerId(c.getAcademicAdvisorLecturerId());
         req.setEducationTypeId(c.getEducationTypeId());
         req.setTrainingLevelId(c.getTrainingLevelId());
         req.setMaxStudent(c.getMaxStudent());
@@ -175,6 +178,9 @@ public class ClassDashboardController {
     /* ================== UTIL ================== */
     private void loadSelectData(Model model) {
         model.addAttribute("majors", majorRepository.findAll());
+        model.addAttribute(
+                "lecturers",
+                lecturerRepository.findAllWithFacultyOrderByLecturerCode());
         model.addAttribute("educationTypes", educationTypeRepository.findAll());
         model.addAttribute("trainingLevels", trainingLevelRepository.findAll());
     }

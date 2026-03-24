@@ -42,6 +42,7 @@ DROP TABLE IF EXISTS [dbo].[students];
 DROP TABLE IF EXISTS [dbo].[classes];
 DROP TABLE IF EXISTS [dbo].[training_programs];
 DROP TABLE IF EXISTS [dbo].[lecturers];
+DROP TABLE IF EXISTS [dbo].[lecturer_duties];
 DROP TABLE IF EXISTS [dbo].[majors];
 DROP TABLE IF EXISTS [dbo].[rooms];
 DROP TABLE IF EXISTS [dbo].[courses];
@@ -127,6 +128,14 @@ CREATE TABLE [dbo].[positions] (
     [position_name] nvarchar(150),
     [description]   nvarchar(500),
     PRIMARY KEY ([position_id])
+);
+
+CREATE TABLE [dbo].[lecturer_duties] (
+    [lecturer_duty_id] uniqueidentifier NOT NULL,
+    [duty_code]        nvarchar(20) NOT NULL,
+    [duty_name]        nvarchar(150) NOT NULL,
+    [description]      nvarchar(500),
+    PRIMARY KEY ([lecturer_duty_id])
 );
 
 CREATE TABLE [dbo].[roles] (
@@ -235,48 +244,52 @@ CREATE TABLE [dbo].[courses] (
     PRIMARY KEY ([id])
 );
 
--- ── Phụ thuộc vào faculties, positions ───────────────────────
+-- ── Phụ thuộc vào faculties, positions, lecturer_duties ─────────
 
 CREATE TABLE [dbo].[lecturers] (
-    [lecturer_id]    uniqueidentifier NOT NULL,
-    [academic_degree] nvarchar(50),
-    [academic_title] nvarchar(50),
-    [address]        nvarchar(255),
-    [avatar]         varchar(255),
-    [citizen_id]     varchar(20),
-    [date_of_birth]  date,
-    [email]          varchar(255),
-    [full_name]      nvarchar(150),
-    [gender]         nvarchar(10),
-    [lecturer_code]  varchar(20),
-    [phone_number]   varchar(255),
-    [faculty_id]     uniqueidentifier,
-    [position_id]    uniqueidentifier,
-    CONSTRAINT [FK5s4iv2pp699ojmljjog3kioh]  FOREIGN KEY ([faculty_id])  REFERENCES [dbo].[faculties]([faculty_id]),
-    CONSTRAINT [FKthh38obs4te6njpjs8ab15l6c] FOREIGN KEY ([position_id]) REFERENCES [dbo].[positions]([position_id]),
+    [lecturer_id]      uniqueidentifier NOT NULL,
+    [academic_degree]  nvarchar(50),
+    [academic_title]   nvarchar(50),
+    [address]          nvarchar(255),
+    [avatar]           varchar(255),
+    [citizen_id]       varchar(20),
+    [date_of_birth]    date,
+    [email]            varchar(255),
+    [full_name]        nvarchar(150),
+    [gender]           nvarchar(10),
+    [lecturer_code]    varchar(20),
+    [phone_number]     varchar(255),
+    [faculty_id]       uniqueidentifier,
+    [position_id]      uniqueidentifier,
+    [lecturer_duty_id] uniqueidentifier,
+    CONSTRAINT [FK5s4iv2pp699ojmljjog3kioh]   FOREIGN KEY ([faculty_id])        REFERENCES [dbo].[faculties]([faculty_id]),
+    CONSTRAINT [FKthh38obs4te6njpjs8ab15l6c]  FOREIGN KEY ([position_id])       REFERENCES [dbo].[positions]([position_id]),
+    CONSTRAINT [FKlecturer_duty_lecturer]    FOREIGN KEY ([lecturer_duty_id])  REFERENCES [dbo].[lecturer_duties]([lecturer_duty_id]),
     PRIMARY KEY ([lecturer_id])
 );
 
 -- ── Phụ thuộc vào majors, education_types, training_levels ───
 
 CREATE TABLE [dbo].[classes] (
-    [class_id]          uniqueidentifier NOT NULL,
-    [academic_year]     nvarchar(20),
-    [class_code]        nvarchar(50),
-    [class_name]        nvarchar(150),
-    [class_status]      nvarchar(50),
-    [created_at]        datetime2(6),
-    [education_type]    nvarchar(50),
-    [is_active]         bit,
-    [max_student]       int,
-    [training_level]    nvarchar(50),
-    [updated_at]        datetime2(6),
-    [major_id]          uniqueidentifier,
-    [education_type_id] uniqueidentifier,
-    [training_level_id] uniqueidentifier,
+    [class_id]                      uniqueidentifier NOT NULL,
+    [academic_year]                 nvarchar(20),
+    [class_code]                    nvarchar(50),
+    [class_name]                    nvarchar(150),
+    [class_status]                  nvarchar(50),
+    [created_at]                    datetime2(6),
+    [education_type]                nvarchar(50),
+    [is_active]                     bit,
+    [max_student]                   int,
+    [training_level]                nvarchar(50),
+    [updated_at]                    datetime2(6),
+    [major_id]                      uniqueidentifier,
+    [education_type_id]             uniqueidentifier,
+    [training_level_id]             uniqueidentifier,
+    [academic_advisor_lecturer_id]  uniqueidentifier,
     CONSTRAINT [FK4daajpxy22fog83y3mqa48816] FOREIGN KEY ([training_level_id]) REFERENCES [dbo].[training_levels]([training_level_id]),
     CONSTRAINT [FK6r9qmxcnxge92jgx4x4gltf0o] FOREIGN KEY ([major_id])          REFERENCES [dbo].[majors]([major_id]),
     CONSTRAINT [FKitg5hh7h9iywbvetbyth42ak8] FOREIGN KEY ([education_type_id]) REFERENCES [dbo].[education_types]([education_type_id]),
+    CONSTRAINT [FK_classes_academic_advisor] FOREIGN KEY ([academic_advisor_lecturer_id]) REFERENCES [dbo].[lecturers]([lecturer_id]),
     PRIMARY KEY ([class_id])
 );
 
@@ -767,6 +780,11 @@ INSERT INTO [dbo].[permissions] ([id],[action],[description],[name],[resource],[
 INSERT INTO [dbo].[positions] ([position_id],[position_code],[position_name],[description]) VALUES
 ('6C16960F-F12B-4EA4-AD4E-F8B795FF2A4E',N'TS',N'Tiến sĩ',N'Tiến sĩ được học tại đại học nước ngoài');
 
+-- lecturer_duties (chức vụ tổ chức: trưởng bộ môn, phó khoa, ...)
+INSERT INTO [dbo].[lecturer_duties] ([lecturer_duty_id],[duty_code],[duty_name],[description]) VALUES
+('8F2A1C3E-5D4B-4A7F-9E8D-1234567890AB',N'TBM',N'Trưởng bộ môn',N'Quản lý bộ môn trong khoa'),
+('9E3B2D4F-6E5C-4B8A-AF9E-2345678901BC',N'GV',N'Giảng viên',N'Giảng dạy, nghiên cứu');
+
 -- roles
 INSERT INTO [dbo].[roles] ([id],[description],[name]) VALUES
 ('F4878407-DB22-4AB5-A783-6A6D661AEEAB',N'Lecturer mangements',N'Lecturer'),
@@ -813,16 +831,16 @@ INSERT INTO [dbo].[courses] ([id],[course_code],[course_name],[created_at],[cred
 ('71B08C6F-C954-4CE0-9063-23708C5A5018',N'KTLT',N'Kỹ thuật lập trình','2026-03-21 11:31:37.656697','3',N'','25','20','1','2026-03-21 11:31:37.656735','2D290C0F-7BBD-44A5-957C-7C54525A2040');
 
 -- lecturers
-INSERT INTO [dbo].[lecturers] ([lecturer_id],[academic_degree],[academic_title],[address],[avatar],[citizen_id],[date_of_birth],[email],[full_name],[gender],[lecturer_code],[phone_number],[faculty_id],[position_id]) VALUES
-('1DD48B3E-3D4B-4435-932A-C019E73DFD9A',N'Thạc sĩ',N'Giảng viên chính',N'Đà Nẵng, Việt Nam',N'/uploads/avatars/c22eb945-ff35-4057-a35e-d6f4c4899a16_avt.jpg',N'1999888777','1985-01-10',N'an@donga.edu.com',N'Nguyễn Văn An',N'Nam',N'CH001',N'0868686868','2D290C0F-7BBD-44A5-957C-7C54525A2040','6C16960F-F12B-4EA4-AD4E-F8B795FF2A4E');
+INSERT INTO [dbo].[lecturers] ([lecturer_id],[academic_degree],[academic_title],[address],[avatar],[citizen_id],[date_of_birth],[email],[full_name],[gender],[lecturer_code],[phone_number],[faculty_id],[position_id],[lecturer_duty_id]) VALUES
+('1DD48B3E-3D4B-4435-932A-C019E73DFD9A',N'Thạc sĩ',N'Giảng viên chính',N'Đà Nẵng, Việt Nam',N'/uploads/avatars/c22eb945-ff35-4057-a35e-d6f4c4899a16_avt.jpg',N'1999888777','1985-01-10',N'an@donga.edu.com',N'Nguyễn Văn An',N'Nam',N'CH001',N'0868686868','2D290C0F-7BBD-44A5-957C-7C54525A2040','6C16960F-F12B-4EA4-AD4E-F8B795FF2A4E','8F2A1C3E-5D4B-4A7F-9E8D-1234567890AB');
 
 -- training_programs
 INSERT INTO [dbo].[training_programs] ([program_id],[course],[description],[duration_years],[is_active],[program_code],[program_name],[total_credits],[major_id]) VALUES
 ('3BDE44A9-17B8-4B02-824F-50842B2B9ADB',N'K25',N'Chương trình đào tạo được cập nhật theo chương trình mới 2026','4','1',N'CNTT-K25',N'Chương trình đào tạo Công nghệ thông tin','152','42F7105F-E1A9-4133-B0A1-8785290FE880');
 
 -- classes
-INSERT INTO [dbo].[classes] ([class_id],[academic_year],[class_code],[class_name],[class_status],[created_at],[education_type],[is_active],[max_student],[training_level],[updated_at],[major_id],[education_type_id],[training_level_id]) VALUES
-('C72BB2D4-A9BE-4069-905E-1F683AAD9D59',N'2025-2029',N'IT25A',N'công nghệ thông tin A',N'Đang học','2026-02-07 11:06:10.822154',NULL,'1','50',NULL,'2026-02-08 12:25:06.390440','42F7105F-E1A9-4133-B0A1-8785290FE880','F35EF5FE-08AB-4076-99FD-DD7F38201734','8947D0A3-1C41-4D30-B553-DF25E5D162D2');
+INSERT INTO [dbo].[classes] ([class_id],[academic_year],[class_code],[class_name],[class_status],[created_at],[education_type],[is_active],[max_student],[training_level],[updated_at],[major_id],[education_type_id],[training_level_id],[academic_advisor_lecturer_id]) VALUES
+('C72BB2D4-A9BE-4069-905E-1F683AAD9D59',N'2025-2029',N'IT25A',N'công nghệ thông tin A',N'Đang học','2026-02-07 11:06:10.822154',NULL,'1','50',NULL,'2026-02-08 12:25:06.390440','42F7105F-E1A9-4133-B0A1-8785290FE880','F35EF5FE-08AB-4076-99FD-DD7F38201734','8947D0A3-1C41-4D30-B553-DF25E5D162D2','1DD48B3E-3D4B-4435-932A-C019E73DFD9A');
 
 -- students
 INSERT INTO [dbo].[students] ([student_id],[address],[avatar],[citizen_id],[date_of_birth],[email],[full_name],[gender],[phone_number],[student_code],[class_id]) VALUES

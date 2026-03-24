@@ -1,6 +1,7 @@
 package com.example.stduents_management.classroom.entity;
 
 import com.example.stduents_management.educationtype.entity.EducationType;
+import com.example.stduents_management.lecturer.entity.Lecturer;
 import com.example.stduents_management.major.entity.Major;
 import com.example.stduents_management.traininglevel.entity.TrainingLevel;
 import jakarta.persistence.*;
@@ -47,6 +48,14 @@ public class ClassEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "training_level_id", nullable = true)
     private TrainingLevel trainingLevel;
+
+    /**
+     * Giảng viên cố vấn học tập (CVHT) — một lớp hành chính thường được quy định một GV phụ trách cố vấn học tập,
+     * theo phân công của đơn vị đào tạo (khoa/bộ môn).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "academic_advisor_lecturer_id")
+    private Lecturer academicAdvisor;
 
     @Column(name = "max_student")
     private Integer maxStudent;

@@ -7,6 +7,8 @@ import com.example.stduents_management.lecturer.dto.LecturerRequest;
 import com.example.stduents_management.lecturer.dto.LecturerResponse;
 import com.example.stduents_management.lecturer.entity.Lecturer;
 import com.example.stduents_management.lecturer.repository.LecturerRepository;
+import com.example.stduents_management.lecturerduty.entity.LecturerDuty;
+import com.example.stduents_management.lecturerduty.repository.LecturerDutyRepository;
 import com.example.stduents_management.position.entity.Position;
 import com.example.stduents_management.position.repository.PositionRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class LecturerService {
     private final LecturerRepository lecturerRepository;
     private final FacultyRepository facultyRepository;
     private final PositionRepository positionRepository;
+    private final LecturerDutyRepository lecturerDutyRepository;
     private final FileStorageService fileStorageService;
 
     public Page<LecturerResponse> search(String keyword, int page, int size) {
@@ -91,7 +94,14 @@ public class LecturerService {
         if (req.getPositionId() != null) {
             position = positionRepository.findById(req.getPositionId())
                     .orElseThrow(() ->
-                            new ResponseStatusException(HttpStatus.NOT_FOUND, "Chức danh không tồn tại"));
+                            new ResponseStatusException(HttpStatus.NOT_FOUND, "Học vị không tồn tại"));
+        }
+
+        LecturerDuty lecturerDuty = null;
+        if (req.getLecturerDutyId() != null) {
+            lecturerDuty = lecturerDutyRepository.findById(req.getLecturerDutyId())
+                    .orElseThrow(() ->
+                            new ResponseStatusException(HttpStatus.NOT_FOUND, "Chức vụ không tồn tại"));
         }
 
         l.setLecturerCode(req.getLecturerCode());
@@ -103,6 +113,7 @@ public class LecturerService {
         l.setPhoneNumber(req.getPhoneNumber());
         l.setAddress(req.getAddress());
         l.setPosition(position);
+        l.setLecturerDuty(lecturerDuty);
         l.setAcademicTitle(req.getAcademicTitle());
 
         if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
@@ -128,6 +139,8 @@ public class LecturerService {
                 l.getPosition() != null ? l.getPosition().getPositionId() : null,
                 l.getPosition() != null ? l.getPosition().getPositionName() : null,
                 l.getAcademicTitle(),
+                l.getLecturerDuty() != null ? l.getLecturerDuty().getLecturerDutyId() : null,
+                l.getLecturerDuty() != null ? l.getLecturerDuty().getDutyName() : null,
                 l.getFaculty().getFacultyId(),
                 l.getFaculty().getFacultyName()
         );

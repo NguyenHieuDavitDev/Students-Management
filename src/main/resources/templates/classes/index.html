@@ -77,6 +77,7 @@
                         <th>Hệ đào tạo</th>
                         <th>Trình độ</th>
                         <th>Năm học</th>
+                        <th>CVHT</th>
                         <th>Sĩ số</th>
                         <th>Trạng thái</th>
                         <th>Kích hoạt</th>
@@ -85,7 +86,7 @@
                     </thead>
                     <tbody>
                     <tr th:if="${classes.content.isEmpty()}">
-                        <td colspan="10" class="text-muted">Không có dữ liệu</td>
+                        <td colspan="11" class="text-muted">Không có dữ liệu</td>
                     </tr>
 
                     <tr th:each="c : ${classes.content}">
@@ -105,6 +106,12 @@
                             </span>
                         </td>
                         <td th:text="${c.academicYear}"></td>
+                        <td>
+                            <span th:if="${c.academicAdvisorLecturerName != null and !c.academicAdvisorLecturerName.isEmpty()}"
+                                  th:text="|${c.academicAdvisorLecturerCode} — ${c.academicAdvisorLecturerName}|">
+                            </span>
+                            <span class="text-muted small" th:if="${c.academicAdvisorLecturerName == null or c.academicAdvisorLecturerName.isEmpty()}">—</span>
+                        </td>
                         <td th:text="${c.maxStudent ?: '-'}"></td>
                         <td>
                             <span class="badge" 

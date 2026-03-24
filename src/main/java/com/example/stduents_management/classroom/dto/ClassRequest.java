@@ -20,6 +20,9 @@ public class ClassRequest {
     @NotNull
     private UUID majorId;
 
+    /** Giảng viên cố vấn học tập (CVHT); có thể bỏ trống khi chưa phân công. */
+    private UUID academicAdvisorLecturerId;
+
     @NotNull
     private UUID educationTypeId;
 

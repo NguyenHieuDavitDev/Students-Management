@@ -97,6 +97,17 @@
         </div>
 
         <div class="mb-3">
+            <label>Chức vụ</label>
+            <select class="form-select" th:field="*{lecturerDutyId}">
+                <option value="">-- Chọn --</option>
+                <option th:each="duty : ${lecturerDuties}"
+                        th:value="${duty.lecturerDutyId}"
+                        th:text="${duty.dutyName}">
+                </option>
+            </select>
+        </div>
+
+        <div class="mb-3">
             <label>Học hàm</label>
             <select class="form-select" th:field="*{academicTitle}">
                 <option value="">-- Chọn --</option>

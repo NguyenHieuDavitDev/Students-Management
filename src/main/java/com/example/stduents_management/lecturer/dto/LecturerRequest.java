@@ -29,6 +29,7 @@ public class LecturerRequest {
     private String address;
 
     private UUID positionId;  // Học vị
+    private UUID lecturerDutyId;  // Chức vụ
     private String academicTitle;
 
     private MultipartFile avatarFile;

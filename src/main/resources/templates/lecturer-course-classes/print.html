@@ -54,7 +54,9 @@
         <td class="text-center" th:text="${idx.index + 1}"></td>
         <td th:text="${i.classCode}"></td>
         <td th:text="${i.className}"></td>
-        <td th:text="${i.courseCode + ' - ' + i.courseName}"></td>
+        <td th:with="cc=${i.courseCode}, cn=${i.courseName},
+                     txt=${(cc != null ? cc : '') + (cc != null && cn != null ? ' - ' : '') + (cn != null ? cn : '')}"
+            th:text="${#strings.isEmpty(txt) ? '—' : txt}">—</td>
         <td th:text="${i.semesterCode}"></td>
         <td th:text="${i.lecturerCode}"></td>
         <td th:text="${i.lecturerName}"></td>

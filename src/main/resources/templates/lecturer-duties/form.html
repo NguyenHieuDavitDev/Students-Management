@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        (${mode}=='edit'?'Chỉnh sửa chức vụ':'Thêm chức vụ mới'),
+        (${mode}=='edit'?'Chỉnh sửa chức vụ':'Thêm chức vụ mới'),
+        'Form chức vụ giảng viên',
+        'lecturer-duties',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="card border-0 shadow-sm hover-card">
+        <div class="card-body">
+
+            <div class="alert alert-danger"
+                 th:if="${globalError}"
+                 th:text="${globalError}">
+            </div>
+
+            <form method="post"
+                  th:action="${mode}=='edit'
+                    ? @{/admin/lecturer-duties/{id}(id=${lecturerDutyId})}
+                    : @{/admin/lecturer-duties}"
+                  th:object="${lecturerDutyRequest}">
+
+                <div class="mb-3">
+                    <label class="form-label">Mã chức vụ <span class="text-danger">*</span></label>
+                    <input class="form-control"
+                           th:field="*{dutyCode}"
+                           placeholder="Ví dụ: TBM, PK, GV...">
+                    <div class="text-danger small"
+                         th:errors="*{dutyCode}"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Tên chức vụ <span class="text-danger">*</span></label>
+                    <input class="form-control"
+                           th:field="*{dutyName}"
+                           placeholder="Ví dụ: Trưởng bộ môn, Phó trưởng khoa...">
+                    <div class="text-danger small"
+                         th:errors="*{dutyName}"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Mô tả</label>
+                    <textarea class="form-control"
+                              th:field="*{description}"
+                              rows="3"
+                              placeholder="Mô tả ngắn về chức vụ"></textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary">
+                        <i class="fa-solid fa-save me-1"></i> Lưu
+                    </button>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/lecturer-duties}">
+                        Hủy
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .hover-card {
+        transition: all .25s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+
+</body>
+</html>

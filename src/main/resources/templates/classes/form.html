@@ -46,6 +46,23 @@
                         <div class="text-danger small mt-1" th:errors="*{majorId}"></div>
                     </div>
                     <div class="col-md-6 mb-3">
+                        <label class="form-label">Giảng viên cố vấn học tập (CVHT)</label>
+                        <select class="form-select" th:field="*{academicAdvisorLecturerId}">
+                            <option value="">— Chưa phân công CVHT —</option>
+                            <option th:each="gv : ${lecturers}"
+                                    th:value="${gv.lecturerId}"
+                                    th:text="|${gv.lecturerCode} — ${gv.fullName} (${gv.faculty.facultyName})|">
+                            </option>
+                        </select>
+                        <small class="text-muted d-block mt-1">
+                            Theo nghiệp vụ, mỗi lớp hành chính thường được quy định một giảng viên phụ trách cố vấn học tập.
+                            Hệ thống chỉ chấp nhận giảng viên <strong>cùng khoa</strong> với ngành của lớp.
+                        </small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
                         <label class="form-label">Hệ đào tạo <span class="text-danger">*</span></label>
                         <select class="form-select" th:field="*{educationTypeId}">
                             <option value="">-- Chọn hệ đào tạo --</option>
@@ -56,9 +73,6 @@
                         </select>
                         <div class="text-danger small mt-1" th:errors="*{educationTypeId}"></div>
                     </div>
-                </div>
-
-                <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Trình độ đào tạo <span class="text-danger">*</span></label>
                         <select class="form-select" th:field="*{trainingLevelId}">
@@ -70,6 +84,9 @@
                         </select>
                         <div class="text-danger small mt-1" th:errors="*{trainingLevelId}"></div>
                     </div>
+                </div>
+
+                <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Năm học <span class="text-danger">*</span></label>
                         <input class="form-control" th:field="*{academicYear}" placeholder="VD: 2024-2025">

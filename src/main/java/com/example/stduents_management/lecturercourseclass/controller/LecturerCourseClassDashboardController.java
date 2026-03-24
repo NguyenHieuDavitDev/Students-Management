@@ -151,8 +151,12 @@ public class LecturerCourseClassDashboardController {
         try {
             service.importExcel(file);
             redirect.addFlashAttribute("success", "Import phân công giảng viên thành công");
+        } catch (ResponseStatusException e) {
+            redirect.addFlashAttribute("error",
+                    e.getReason() != null ? e.getReason() : "Import không thành công");
         } catch (Exception e) {
-            redirect.addFlashAttribute("error", "Import không thành công: " + e.getMessage());
+            redirect.addFlashAttribute("error",
+                    "Import không thành công: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
         }
         return "redirect:/admin/lecturer-course-classes";
     }
