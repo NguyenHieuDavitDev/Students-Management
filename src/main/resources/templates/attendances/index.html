@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Điểm danh',
+        'Điểm danh sinh viên theo lớp học phần',
+        'Điểm danh sinh viên ở lớp học phần, theo ngày điểm danh (Có mặt/Vắng)',
+        'attendances',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+    <style>
+        .att-card { border-radius: 12px; border: none; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+        .att-card .card-header { background: linear-gradient(135deg,#0ea5e9 0%, #2563eb 100%); color:#fff; border-radius: 12px 12px 0 0; border: none; }
+        .att-table thead th { background: #eff6ff; color: #1d4ed8; font-weight: 600; border-bottom: 2px solid #bfdbfe; white-space: nowrap; }
+        .badge-present { background: rgba(16,185,129,.15); color: #047857; border: 1px solid rgba(16,185,129,.25); }
+        .badge-absent { background: rgba(239,68,68,.12); color: #991b1b; border: 1px solid rgba(239,68,68,.2); }
+        .empty-state { padding: 60px 20px; color: #6c757d; }
+    </style>
+
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show shadow-sm">
+        <i class="fa-solid fa-circle-check me-2"></i><span th:text="${success}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="card att-card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fa-solid fa-filter me-2"></i>Bộ lọc</span>
+            <a class="btn btn-light btn-sm" th:href="@{/admin/attendances/new}">
+                <i class="fa-solid fa-plus me-1"></i>Tạo bản ghi
+            </a>
+        </div>
+        <div class="card-body">
+            <form method="get" th:action="@{/admin/attendances}">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label small text-muted">Lớp học phần</label>
+                        <select name="courseClassId" class="form-select form-select-sm">
+                            <option value="">-- Tất cả lớp học phần --</option>
+                            <option th:each="cs : ${classSections}" th:value="${cs.id}"
+                                    th:text="${cs.classCode + ' - ' + cs.className + ' (' + cs.course.courseCode + ' - ' + cs.course.courseName + ')'}"
+                                    th:selected="${courseClassId != null and courseClassId == cs.id}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Ngày điểm danh</label>
+                        <input type="date" class="form-control form-control-sm" name="attendanceDate"
+                               th:value="${attendanceDate}" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted">Tìm kiếm</label>
+                        <input class="form-control form-control-sm" name="keyword"
+                               placeholder="MSSV, tên SV, mã lớp... hoặc ghi chú"
+                               th:value="${keyword}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Trang</label>
+                        <select class="form-select form-select-sm" name="size">
+                            <option th:each="n : ${#numbers.sequence(10,50,10)}"
+                                    th:value="${n}"
+                                    th:selected="${n == size}" th:text="${n} + ' / trang'"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="btn btn-primary btn-sm w-100">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i>Lọc
+                        </button>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <a class="btn btn-outline-secondary btn-sm w-100" th:href="@{/admin/attendances}">
+                            <i class="fa-solid fa-rotate-left me-1"></i>Reset
+                        </a>
+                    </div>
+                    <div class="col-md-12 d-flex gap-2 flex-wrap">
+                        <form method="post" th:action="@{/admin/attendances/initialize}" class="d-inline">
+                            <input type="hidden" name="courseClassId" th:value="${courseClassId}" />
+                            <input type="hidden" name="attendanceDate" th:value="${attendanceDate}" />
+                            <button type="submit"
+                                    class="btn btn-success btn-sm"
+                                    th:disabled="${courseClassId == null or attendanceDate == null or attendanceDate == ''}">
+                                <i class="fa-solid fa-list-check me-1"></i>Tạo bản ghi điểm danh
+                            </button>
+                        </form>
+
+                        <a class="btn btn-outline-primary btn-sm"
+                           th:href="@{/admin/attendances/export(courseClassId=${courseClassId},attendanceDate=${attendanceDate})}"
+                           target="_blank"
+                           th:if="${courseClassId != null and attendanceDate != null and attendanceDate != ''}">
+                            <i class="fa-solid fa-file-export me-1"></i>Export Excel
+                        </a>
+                        <a class="btn btn-outline-primary btn-sm"
+                           th:href="@{/admin/attendances/print(courseClassId=${courseClassId},attendanceDate=${attendanceDate})}"
+                           target="_blank"
+                           th:if="${courseClassId != null and attendanceDate != null and attendanceDate != ''}">
+                            <i class="fa-solid fa-print me-1"></i>In
+                        </a>
+                        <button class="btn btn-outline-primary btn-sm" type="button"
+                                data-bs-toggle="modal" data-bs-target="#importModal"
+                                th:disabled="${courseClassId == null or attendanceDate == null or attendanceDate == ''}">
+                            <i class="fa-solid fa-file-import me-1"></i>Import Excel
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover att-table align-middle mb-0">
+            <thead>
+            <tr>
+                <th style="width:70px">STT</th>
+                <th>MSSV</th>
+                <th>Họ tên</th>
+                <th>Lớp học phần</th>
+                <th class="text-center" style="width:120px">Ngày</th>
+                <th class="text-center" style="width:130px">Trạng thái</th>
+                <th>Ghi chú</th>
+                <th>GV điểm danh</th>
+                <th class="text-end" style="width:160px">Thao tác</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="a, stat : ${items.content}">
+                <td class="text-muted small" th:text="${items.number * size + stat.count}"></td>
+                <td th:text="${a.studentCode}"></td>
+                <td>
+                    <div class="fw-semibold" th:text="${a.studentName}"></div>
+                </td>
+                <td>
+                    <div th:text="${a.classCode + ' - ' + a.className}"></div>
+                    <div class="text-muted small" th:text="${a.courseCode + ' - ' + a.courseName}"></div>
+                </td>
+                <td class="text-center small"
+                    th:text="${a.attendanceDate != null ? #temporals.format(a.attendanceDate, 'dd/MM/yyyy') : '—'}"></td>
+                <td class="text-center">
+                    <span class="badge"
+                          th:classappend="${a.present} ? ' badge-present' : ' badge-absent'"
+                          th:text="${a.present} ? 'Có mặt' : 'Vắng'"></span>
+                </td>
+                <td class="small text-secondary" th:text="${a.note != null ? a.note : '—'}" style="max-width:340px;"></td>
+                <td class="small" th:text="${a.lecturerName != null ? a.lecturerName : '—'}"></td>
+                <td class="text-end">
+                    <a class="btn btn-sm btn-outline-primary"
+                       th:href="@{/admin/attendances/{id}/edit(id=${a.attendanceId})}">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </a>
+                    <form method="post"
+                          th:action="@{/admin/attendances/{id}/delete(id=${a.attendanceId})}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Xóa bản ghi điểm danh này?');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${items.content.isEmpty()}">
+                <td colspan="9" class="empty-state text-center">
+                    <i class="fa-solid fa-user-check fa-3x d-block mb-3 opacity-40"></i>
+                    Chưa có dữ liệu điểm danh. Nếu bạn đã chọn lớp và ngày, hãy bấm
+                    <strong>Tạo bản ghi điểm danh</strong>.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+        <small class="text-muted">
+            Hiển thị <strong th:text="${items.numberOfElements}">0</strong> /
+            <strong th:text="${items.totalElements}">0</strong> bản ghi
+        </small>
+        <nav th:if="${items.totalPages > 1}">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item" th:classappend="${items.first} ? ' disabled'">
+                    <a class="page-link"
+                       th:href="@{/admin/attendances(page=${items.number - 1}, size=${size}, keyword=${keyword}, courseClassId=${courseClassId}, attendanceDate=${attendanceDate})}">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </a>
+                </li>
+                <li th:each="i : ${#numbers.sequence(0, items.totalPages - 1)}"
+                    class="page-item" th:classappend="${i == items.number} ? ' active'">
+                    <a class="page-link" th:text="${i + 1}"
+                       th:href="@{/admin/attendances(page=${i}, size=${size}, keyword=${keyword}, courseClassId=${courseClassId}, attendanceDate=${attendanceDate})}"></a>
+                </li>
+                <li class="page-item" th:classappend="${items.last} ? ' disabled'">
+                    <a class="page-link"
+                       th:href="@{/admin/attendances(page=${items.number + 1}, size=${size}, keyword=${keyword}, courseClassId=${courseClassId}, attendanceDate=${attendanceDate})}">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="modal fade" id="importModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fa-solid fa-file-import me-2 text-primary"></i>Import điểm danh từ Excel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" th:action="@{/admin/attendances/import}" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <input type="hidden" name="courseClassId" th:value="${courseClassId}"/>
+                        <input type="hidden" name="attendanceDate" th:value="${attendanceDate}"/>
+                        <div class="alert alert-info small py-2">
+                            Cột trong Excel: <strong>Mã SV</strong>, <strong>Có mặt (1/0)</strong>, <strong>Ghi chú</strong>, <strong>Mã GV (tùy chọn)</strong>.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Chọn file Excel (.xlsx)</label>
+                            <input type="file" class="form-control" name="file" accept=".xlsx" required>
+                        </div>
+                        <a th:href="@{/admin/attendances/template}" class="btn btn-outline-primary btn-sm">
+                            <i class="fa-solid fa-download me-1"></i>Tải mẫu
+                        </a>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-upload me-1"></i>Import
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+

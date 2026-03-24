@@ -1,6 +1,7 @@
 package com.example.stduents_management.lecturercourseclass.repository;
 
 import com.example.stduents_management.lecturercourseclass.entity.LecturerCourseClass;
+import com.example.stduents_management.lecturer.entity.Lecturer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,6 +17,14 @@ public interface LecturerCourseClassRepository extends JpaRepository<LecturerCou
     boolean existsByClassSection_IdAndLecturer_LecturerId(Long classSectionId, java.util.UUID lecturerId);
 
     boolean existsByClassSection_IdAndLecturer_LecturerIdAndIdNot(Long classSectionId, java.util.UUID lecturerId, Long id);
+
+    @Query("""
+           SELECT DISTINCT lcc.lecturer
+           FROM LecturerCourseClass lcc
+           WHERE lcc.classSection.id = :classSectionId
+           ORDER BY lcc.lecturer.fullName ASC
+           """)
+    List<Lecturer> findLecturersByClassSectionId(@Param("classSectionId") Long classSectionId);
 
     @Query("""
            select lcc from LecturerCourseClass lcc

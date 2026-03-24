@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        ${mode == 'create' ? 'Thêm điểm danh' : 'Cập nhật điểm danh'},
+        ${mode == 'create' ? 'Ghi nhận điểm danh sinh viên' : 'Chỉnh sửa trạng thái điểm danh'},
+        'Điểm danh sinh viên theo lớp học phần và ngày',
+        'attendances',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+    <style>
+        .att-form-card { border:none; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,.06); }
+        .att-form-header { background: linear-gradient(135deg,#2563eb 0%, #0ea5e9 100%); color:#fff; border-radius:12px 12px 0 0; padding:14px 20px; font-weight:600; }
+        .field-label { font-weight:600; font-size:.85rem; color:#374151; margin-bottom:4px; }
+        .required-star { color:#ef4444; }
+    </style>
+
+    <div th:if="${globalError}" class="alert alert-danger alert-dismissible fade show shadow-sm">
+        <i class="fa-solid fa-triangle-exclamation me-2"></i><span th:text="${globalError}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card att-form-card">
+                <div class="att-form-header">
+                    <i th:class="${mode == 'create' ? 'fa-solid fa-plus me-2' : 'fa-solid fa-pen-to-square me-2'}"></i>
+                    <span th:text="${mode == 'create' ? 'Ghi nhận điểm danh' : 'Cập nhật điểm danh'}"></span>
+                </div>
+                <div class="card-body p-4">
+                    <form th:action="${mode == 'create'
+                            ? '/admin/attendances'
+                            : '/admin/attendances/' + attendanceId}"
+                          method="post"
+                          th:object="${attendanceRequest}"
+                          novalidate>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="field-label">Lớp học phần <span class="required-star">*</span></label>
+                                <select class="form-select" id="courseClassId" th:field="*{courseClassId}"
+                                        th:disabled="${mode == 'edit'}" required>
+                                    <option value="">-- Chọn lớp học phần --</option>
+                                    <option th:each="cs : ${classSections}" th:value="${cs.id}"
+                                            th:text="${cs.classCode + ' - ' + cs.className + ' (' + cs.course.courseCode + ' - ' + cs.course.courseName + ')' }"></option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('courseClassId')}"
+                                     th:errors="*{courseClassId}"></div>
+                                <input type="hidden" th:if="${mode == 'edit'}" th:field="*{courseClassId}"/>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="field-label">Ngày điểm danh <span class="required-star">*</span></label>
+                                <input type="date" class="form-control" th:field="*{attendanceDate}"
+                                       th:disabled="${mode == 'edit'}" required/>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('attendanceDate')}"
+                                     th:errors="*{attendanceDate}"></div>
+                                <input type="hidden" th:if="${mode == 'edit'}" th:field="*{attendanceDate}"/>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="field-label">Sinh viên <span class="required-star">*</span></label>
+                                <select class="form-select" id="studentId" th:field="*{studentId}" required
+                                        th:disabled="${mode == 'edit'}">
+                                    <option value="">-- Chọn sinh viên --</option>
+                                    <th:block th:if="${students != null and !#lists.isEmpty(students)}">
+                                        <option th:each="s : ${students}" th:value="${s.studentId}"
+                                                th:text="${s.studentCode + ' - ' + s.fullName}"></option>
+                                    </th:block>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('studentId')}"
+                                     th:errors="*{studentId}"></div>
+                                <input type="hidden" th:if="${mode == 'edit'}" th:field="*{studentId}"/>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="field-label">Trạng thái <span class="required-star">*</span></label>
+                                <select class="form-select" th:field="*{present}" required
+                                        th:classappend="${#fields.hasErrors('present')} ? ' is-invalid' : ''">
+                                    <option th:value="true">Có mặt</option>
+                                    <option th:value="false">Vắng</option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('present')}"
+                                     th:errors="*{present}"></div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="field-label">Ghi chú</label>
+                                <textarea class="form-control" rows="3"
+                                          th:field="*{note}" maxlength="500"
+                                          th:classappend="${#fields.hasErrors('note')} ? ' is-invalid' : ''"
+                                          placeholder="Nếu có, ghi chú thêm về buổi điểm danh..."></textarea>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('note')}"
+                                     th:errors="*{note}"></div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="field-label">Giảng viên điểm danh <span class="required-star">*</span></label>
+                                <select class="form-select" id="markedByLecturerId" th:field="*{markedByLecturerId}" required>
+                                    <option value="">-- Chọn giảng viên --</option>
+                                    <option th:each="lec : ${lecturers}" th:value="${lec.lecturerId}"
+                                            th:text="${lec.lecturerCode + ' - ' + lec.fullName}"></option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-end pt-3 border-top mt-3">
+                            <a th:href="@{/admin/attendances}" class="btn btn-outline-secondary">
+                                <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
+                            </a>
+                            <button type="submit" class="btn text-white px-4" style="background:#2563eb;">
+                                <i th:class="${mode == 'create' ? 'fa-solid fa-save me-1' : 'fa-solid fa-floppy-disk me-1'}"></i>
+                                <span th:text="${mode == 'create' ? 'Lưu' : 'Cập nhật'}"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 bg-light mb-3 shadow-sm">
+                <div class="card-body small">
+                    <div class="fw-semibold mb-2">
+                        <i class="fa-solid fa-circle-info me-1 text-primary"></i>Gợi ý nghiệp vụ
+                    </div>
+                    <ul class="mb-0 ps-3 text-muted" style="line-height:1.7">
+                        <li>Chọn đúng lớp học phần và ngày điểm danh.</li>
+                        <li>Nếu bạn chưa có bản ghi, hãy dùng nút “Tạo bản ghi điểm danh” ở trang danh sách.</li>
+                        <li>Giảng viên điểm danh phải thuộc lớp học phần tương ứng.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            const courseClassSelect = document.getElementById('courseClassId');
+            const studentSelect = document.getElementById('studentId');
+            const apiUrl = /*[[@{/admin/attendances/api/students-by-class}]]*/ '/admin/attendances/api/students-by-class';
+            const apiLecturersUrl = /*[[@{/admin/attendances/api/lecturers-by-class}]]*/ '/admin/attendances/api/lecturers-by-class';
+            const lecturerSelect = document.getElementById('markedByLecturerId');
+
+            function loadStudents(classId) {
+                if (!classId) {
+                    studentSelect.innerHTML = '<option value=\"\">-- Chọn sinh viên --</option>';
+                    return;
+                }
+                studentSelect.innerHTML = '<option value=\"\">-- Đang tải... --</option>';
+                fetch(apiUrl + '?courseClassId=' + classId)
+                    .then(r => r.json())
+                    .then(list => {
+                        studentSelect.innerHTML = '<option value=\"\">-- Chọn sinh viên --</option>';
+                        list.forEach(s => {
+                            const opt = document.createElement('option');
+                            opt.value = s.studentId;
+                            opt.textContent = s.studentCode + ' - ' + s.fullName;
+                            studentSelect.appendChild(opt);
+                        });
+                    })
+                    .catch(() => {
+                        studentSelect.innerHTML = '<option value=\"\">-- Lỗi tải dữ liệu --</option>';
+                    });
+            }
+
+            function loadLecturers(classId) {
+                if (!lecturerSelect) return;
+                if (!classId) {
+                    lecturerSelect.innerHTML = '<option value=\"\">-- Chọn giảng viên --</option>';
+                    return;
+                }
+                const currentValue = lecturerSelect.value;
+                lecturerSelect.innerHTML = '<option value=\"\">-- Đang tải... --</option>';
+                fetch(apiLecturersUrl + '?courseClassId=' + classId)
+                    .then(r => r.json())
+                    .then(list => {
+                        lecturerSelect.innerHTML = '<option value=\"\">-- Chọn giảng viên --</option>';
+                        if (list.length === 0) return;
+                        list.forEach((lec, idx) => {
+                            const opt = document.createElement('option');
+                            opt.value = lec.lecturerId;
+                            opt.textContent = lec.lecturerCode + ' - ' + lec.fullName;
+                            lecturerSelect.appendChild(opt);
+                            if (idx === 0 && (!currentValue || currentValue === '') && !lecturerSelect.value) {
+                                lecturerSelect.value = lec.lecturerId;
+                            }
+                        });
+                        if (currentValue && currentValue !== '' && list.some(l => l.lecturerId === currentValue)) {
+                            lecturerSelect.value = currentValue;
+                        }
+                    })
+                    .catch(() => {
+                        lecturerSelect.innerHTML = '<option value=\"\">-- Lỗi tải dữ liệu --</option>';
+                    });
+            }
+
+            if (courseClassSelect && !courseClassSelect.disabled && studentSelect) {
+                courseClassSelect.addEventListener('change', function() {
+                    loadStudents(this.value);
+                    loadLecturers(this.value);
+                });
+            }
+        });
+    </script>
+</div>
+</body>
+</html>
+

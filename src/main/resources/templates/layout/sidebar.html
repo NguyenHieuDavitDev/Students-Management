@@ -290,6 +290,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/attendances}" th:classappend="${activeMenu}=='attendances' ? 'active' : ''">
+                    <i class="fa-solid fa-user-check"></i>
+                    <span>Điểm danh</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/feedbacks}" th:classappend="${activeMenu}=='feedbacks' ? 'active' : ''">
                     <i class="fa-solid fa-comments"></i>
                     <span>Phản hồi GV &amp; môn học</span>

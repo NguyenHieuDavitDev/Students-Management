@@ -203,6 +203,25 @@ CREATE TABLE [dbo].[feedbacks] (
     PRIMARY KEY ([feedback_id])
 );
 
+DROP TABLE IF EXISTS [dbo].[attendances];
+CREATE TABLE [dbo].[attendances] (
+    [attendance_id] uniqueidentifier NOT NULL,
+    [student_id] uniqueidentifier NOT NULL,
+    [course_class_id] bigint NOT NULL,
+    [attendance_date] date NOT NULL,
+    [present] bit NOT NULL,
+    [note] nvarchar(500),
+    [marked_by] uniqueidentifier,
+    [marked_at] datetime2(6),
+    [created_at] datetime2(6) NOT NULL,
+    [updated_at] datetime2(6),
+    CONSTRAINT PK_attendances PRIMARY KEY ([attendance_id]),
+    CONSTRAINT FK_attendances_student FOREIGN KEY ([student_id]) REFERENCES [dbo].[students]([student_id]),
+    CONSTRAINT FK_attendances_class_section FOREIGN KEY ([course_class_id]) REFERENCES [dbo].[class_sections]([id]),
+    CONSTRAINT FK_attendances_marked_by FOREIGN KEY ([marked_by]) REFERENCES [dbo].[lecturers]([lecturer_id]),
+    CONSTRAINT UK_attendances_student_class_date UNIQUE ([student_id], [course_class_id], [attendance_date])
+);
+
 DROP TABLE IF EXISTS [dbo].[grade_components];
 CREATE TABLE [dbo].[grade_components] (
     [id] uniqueidentifier,
@@ -630,6 +649,23 @@ CREATE TABLE [dbo].[users] (
     CONSTRAINT [FKc8nfkx91xbh5fv7a02092q1ip] FOREIGN KEY ([student_id]) REFERENCES [dbo].[students]([student_id]),
     PRIMARY KEY ([id])
 );
+DROP TABLE IF EXISTS [dbo].[attendances];
+CREATE TABLE [dbo].[attendances] (
+    [attendance_id] uniqueidentifier,
+    [attendance_date] date,
+    [created_at] datetime2(6),
+    [marked_at] datetime2(6),
+    [note] nvarchar(500),
+    [present] bit,
+    [updated_at] datetime2(6),
+    [course_class_id] bigint,
+    [marked_by] uniqueidentifier,
+    [student_id] uniqueidentifier,
+    CONSTRAINT [FK7bm4q4wptspkenhrsjgatdmk0] FOREIGN KEY ([student_id]) REFERENCES [dbo].[students]([student_id]),
+    CONSTRAINT [FK9gd0t3afusc33hyfufd7apwo] FOREIGN KEY ([marked_by]) REFERENCES [dbo].[lecturers]([lecturer_id]),
+    CONSTRAINT [FKd9bcb0pqw5fj0ianasvb3gdny] FOREIGN KEY ([course_class_id]) REFERENCES [dbo].[class_sections]([id]),
+    PRIMARY KEY ([attendance_id])
+);
 
 INSERT INTO [dbo].[buildings] ([building_id], [address], [building_code], [building_name], [description], [number_of_floors], [total_area]) VALUES
 ('C2F293AD-31C1-4755-8BF0-22822BA7AB3B', N'43 Xô Viết Nghệ Tĩnh, Hải Châu, Đà Nẵng', N'TC01', N'Toà Nhà Chính', N'Toà nhà chính ? Ðà N?ng', '10', '500000');
@@ -813,3 +849,6 @@ INSERT INTO [dbo].[users] ([id], [email], [enabled], [password], [username], [le
 ('C6BC5113-77C3-4A82-801A-C1E07DED8E9B', N'namson@gmail.com', '1', N'$2a$10$TcqwM9P.EEtfCOoBUwTZpeOEEYRjIoVU0bhfy2Z.HjsWtcp6Gvnyu', N'NamSon', NULL, '04B61953-0B82-4571-B905-37D5A11BD112'),
 ('C186C9A4-DCD7-4DC1-9B9C-FF03AEA93100', N'admin1@admin.com', '1', N'$2a$10$jgZBqlM2584MYuwPJ/e0hey3mndh3x2ZUbCUH3LlYL0c90nwqnVRi', N'admin1', NULL, NULL);
 
+
+INSERT INTO [dbo].[attendances] ([attendance_id], [attendance_date], [created_at], [marked_at], [note], [present], [updated_at], [course_class_id], [marked_by], [student_id]) VALUES
+('F4A129B2-4E08-435E-B93B-0D8E3C5D57B0', '2026-03-23', '2026-03-23 19:23:49.368607', '2026-03-23 19:23:49.365551', NULL, '1', '2026-03-23 19:23:49.368607', '1', '1DD48B3E-3D4B-4435-932A-C019E73DFD9A', '04B61953-0B82-4571-B905-37D5A11BD112');

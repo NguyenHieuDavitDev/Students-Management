@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>In danh sách điểm danh</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Times New Roman', serif; font-size: 12pt; color: #000; background: #fff; }
+        .page { max-width: 980px; margin: 0 auto; padding: 18mm 14mm; }
+        .school-header { text-align: center; margin-bottom: 6mm; }
+        .school-name { font-size: 11pt; font-weight: bold; text-transform: uppercase; }
+        .dept-name { font-size: 10pt; }
+        .doc-title { font-size: 16pt; font-weight: bold; text-transform: uppercase; margin: 8mm 0 2mm; }
+        .doc-subtitle { font-size: 11pt; margin-bottom: 6mm; font-style: italic; }
+        .doc-date { font-size: 10pt; color: #555; margin-bottom: 8mm; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 4mm; font-size: 11pt; }
+        thead th {
+            background: #2563eb; color: #fff;
+            border: 1px solid #1d4ed8;
+            padding: 7px 10px; text-align: left; font-weight: bold;
+        }
+        tbody td { border: 1px solid #d1d5db; padding: 6px 10px; vertical-align: middle; }
+        tbody tr:nth-child(even) { background: #eff6ff; }
+
+        .summary { margin-top: 6mm; font-size: 10pt; color: #555; border-top: 1px solid #e5e7eb; padding-top: 4mm; }
+
+        @media print {
+            .no-print { display: none !important; }
+            .page { padding: 10mm; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="no-print" style="text-align:right; margin-bottom:10px;">
+        <button onclick="window.print()"
+                style="background:#2563eb;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;">
+            In ngay
+        </button>
+        <button onclick="window.close()"
+                style="background:#6b7280;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;margin-left:8px;">
+            Đóng
+        </button>
+    </div>
+
+    <div class="school-header">
+        <div class="school-name">TRƯỜNG ĐẠI HỌC [TÊN TRƯỜNG]</div>
+        <div class="dept-name">Phòng Đào tạo / Khảo thí</div>
+        <div class="doc-title">Danh sách điểm danh sinh viên</div>
+        <div class="doc-subtitle" th:text="${attendanceDate} != null ? ('Lớp & ngày: ' + attendanceDate) : 'Theo bộ lọc hiện tại'"></div>
+        <div class="doc-date">
+            Ngày in: <span th:text="${#temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}"></span>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th style="width:40px">STT</th>
+            <th>MSSV</th>
+            <th>Họ tên</th>
+            <th>Trạng thái</th>
+            <th>Ghi chú</th>
+            <th style="width:150px">GV điểm danh</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="a, stat : ${items}">
+            <td style="text-align:center" th:text="${stat.count}"></td>
+            <td th:text="${a.studentCode}"></td>
+            <td th:text="${a.studentName}"></td>
+            <td style="text-align:center"
+                th:text="${a.present == null ? '—' : (a.present ? 'Có mặt' : 'Vắng')}"></td>
+            <td th:text="${a.note != null ? a.note : '—'}" style="font-size:10pt;"></td>
+            <td th:text="${a.lecturerName != null ? a.lecturerName : '—'}"></td>
+        </tr>
+        <tr th:if="${items.isEmpty()}">
+            <td colspan="6" style="text-align:center;padding:18px;color:#888;">
+                Không có dữ liệu
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="summary">
+        Tổng số sinh viên: <strong th:text="${items.size()}"></strong>
+    </div>
+</div>
+</body>
+</html>
+
