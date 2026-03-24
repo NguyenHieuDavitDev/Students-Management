@@ -5058,5 +5058,77 @@ Module lưu metadata tài liệu phục vụ học tập (giáo trình, slide, b
 
 ---
 
-**Phiên bản**: 0.0.1-SNAPSHOT  
-**Cập nhật lần cuối**: 21/03/2026 – Tài liệu học tập: upload file từ máy (PDF, Office, Excel, …), lưu `uploads/documents`, REST multipart
+## Xác Thực & Bảo Mật (Authentication & Security)
+
+Module bảo mật được xây dựng trên **Spring Security**, kiểm soát toàn bộ quá trình xác thực, phân quyền và bảo vệ tài nguyên của hệ thống.
+
+### Các thành phần chính
+
+| Class | Vai trò |
+|-------|---------|
+| `SecurityConfig` | Cấu hình bộ lọc bảo mật (filter chain), phân quyền URL, login/logout, xử lý lỗi |
+| `CustomUserDetailsService` | Tải thông tin user từ DB theo username, ánh xạ roles thành `GrantedAuthority` |
+| `LoginController` | Hiển thị trang đăng nhập `/login` |
+| `RegisterController` | Đăng ký tài khoản sinh viên mới tại `/register` |
+| `ForgotPasswordController` | Xử lý quên mật khẩu (`/forgot-password`) và đặt lại mật khẩu (`/reset-password`) |
+| `PasswordResetService` | Tạo, xác thực và xóa token đặt lại mật khẩu |
+| `DataSeeder` | Tự động khởi tạo các role mặc định và tài khoản admin khi ứng dụng khởi động |
+
+### Phân quyền URL
+
+| URL Pattern | Quyền truy cập |
+|-------------|----------------|
+| `/`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/css/**`, `/js/**` | Công khai (không cần đăng nhập) |
+| `/admin/login` | Công khai |
+| `/admin/roles/**`, `/admin/users/**`, `/admin/permissions/**`, `/admin/settings/**` | Chỉ `ADMIN` |
+| `/admin/**` (còn lại) | `ADMIN`, `MANAGER`, `LECTURER` |
+| Tất cả các URL khác | Phải đăng nhập |
+
+### Luồng đăng nhập & chuyển hướng
+
+Sau khi đăng nhập thành công, hệ thống tự động chuyển hướng dựa trên role:
+
+- **ADMIN / MANAGER / LECTURER** → `/admin` (Dashboard quản trị)
+- **STUDENT** → `/` (Trang chủ sinh viên)
+- **Role không hợp lệ** → `/login?denied`
+
+Khi chưa đăng nhập mà truy cập `/admin/**`:
+- → Chuyển tới `/admin/login`
+
+Khi đăng nhập sai:
+- Từ trang `/admin/login` → redirect về `/admin/login?error`
+- Từ trang khác → redirect về `/?error`
+
+### Đăng ký tài khoản
+
+- Endpoint: `GET/POST /register`
+- Tạo tài khoản với role mặc định **STUDENT**.
+- Validate dữ liệu đầu vào (Bean Validation), hiển thị lỗi trực tiếp trên form.
+- Sau đăng ký thành công → chuyển tới `/login` với thông báo xác nhận.
+
+### Quên & Đặt lại mật khẩu
+
+- `POST /forgot-password`: Nhận email, tạo token UUID (hết hạn sau **24 giờ**, cấu hình qua `app.password-reset.expiry-hours`), lưu vào bảng `password_reset_tokens`.
+- `GET /reset-password?token=...`: Kiểm tra token hợp lệ và còn hạn.
+- `POST /reset-password`: Xác nhận mật khẩu mới (tối thiểu 6 ký tự), mã hóa bằng BCrypt rồi lưu, xóa token sau khi dùng.
+- Bảo mật: không tiết lộ email có tồn tại hay không (phản hồi trung tính).
+
+### Mã hóa mật khẩu
+
+Sử dụng **BCryptPasswordEncoder** – mật khẩu không bao giờ lưu dạng plaintext.
+
+### Khởi tạo dữ liệu mặc định (DataSeeder)
+
+Khi ứng dụng khởi động, `DataSeeder` tự động:
+1. Tạo các role mặc định nếu chưa tồn tại: `ADMIN`, `STUDENT`, `LECTURER`.
+2. Tạo tài khoản quản trị viên mặc định nếu chưa có:
+   - Username: `admin1`
+   - Password: `123456` (được mã hóa BCrypt)
+   - Email: `admin1@example.com`
+
+> **Lưu ý bảo mật**: Thay đổi mật khẩu tài khoản `admin1` ngay sau khi triển khai lên môi trường thực tế.
+
+---
+
+**Phiên bản**: 0.0.1-SNAPSHOT
+**Cập nhật lần cuối**: 24/03/2026 – Bổ sung mô tả module Xác Thực & Bảo Mật

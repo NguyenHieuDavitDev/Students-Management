@@ -33,7 +33,6 @@ public class UserService {
     private final LecturerRepository lecturerRepository;
     private final PasswordEncoder passwordEncoder;
 
-    /* ================= SEARCH ================= */
 
     public Page<UserResponse> search(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("username"));
@@ -51,7 +50,6 @@ public class UserService {
         return toResponse(findUser(id));
     }
 
-    /* ================= CREATE ================= */
 
     @Transactional
     public UserResponse create(UserRequest request) {
@@ -78,7 +76,6 @@ public class UserService {
         return toResponse(user);
     }
 
-    /* ================= UPDATE ================= */
 
     @Transactional
     public UserResponse update(UUID id, UserRequest request) {
@@ -133,7 +130,6 @@ public class UserService {
         userRepository.save(user);
     }
 
-    /* ================= DELETE ================= */
 
     @Transactional
     public void delete(UUID id) {
@@ -143,7 +139,6 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-    /* ================= PRIVATE ================= */
 
     private User findUser(UUID id) {
         return userRepository.findById(id)

@@ -143,6 +143,11 @@
         </section>
     </div>
 </div>
+<div th:if="${systemBranding != null and !#strings.isEmpty(systemBranding.footerText)}"
+     class="text-center text-muted small py-2 px-3 border-top bg-white"
+     style="margin-left: 0;"
+     th:text="${systemBranding.footerText}">
+</div>
 <div th:replace="~{layout/footer :: footer}"></div>
 </body>
 </html>
