@@ -4851,6 +4851,147 @@ feedback/
 
 ---
 
+### 27. Quản Lý Điểm Danh Sinh Viên (Attendance Management)
+
+Module **attendances** cho phép giảng viên và quản trị viên ghi nhận, tra cứu và quản lý điểm danh sinh viên theo từng lớp học phần và ngày học cụ thể. Module cung cấp đồng thời **giao diện Admin** (Thymeleaf) và **REST API**, tích hợp kiểm tra quyền giảng viên và trạng thái đăng ký học phần.
+
+#### 27.1. Mô hình dữ liệu
+
+Bảng `attendances`:
+
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| `attendance_id` | UUID (PK) | Khóa chính, tự sinh |
+| `student_id` | FK → `students` | Sinh viên được điểm danh |
+| `course_class_id` | FK → `class_sections` | Lớp học phần |
+| `attendance_date` | DATE | Ngày điểm danh (bắt buộc) |
+| `present` | BIT | Trạng thái: `true` = có mặt, `false` = vắng |
+| `note` | NVARCHAR(500) | Ghi chú (tùy chọn) |
+| `marked_by` | FK → `lecturers` | Giảng viên thực hiện điểm danh |
+| `marked_at` | DATETIME | Thời điểm điểm danh (tự động) |
+| `created_at` | DATETIME | Tạo lúc (không cập nhật) |
+| `updated_at` | DATETIME | Cập nhật lúc (tự động) |
+
+**Ràng buộc unique**: `(student_id, course_class_id, attendance_date)` — mỗi sinh viên chỉ có một bản ghi điểm danh cho một lớp trong một ngày.
+
+#### 27.2. Tính năng
+
+- **CRUD (upsert)**: Thêm, sửa, xóa bản ghi điểm danh. Phương thức `upsert` tự động **tạo mới hoặc cập nhật** theo khóa tự nhiên `(studentId, courseClassId, attendanceDate)` khi không truyền `id`.
+- **Khởi tạo hàng loạt (Initialize)**: Tạo bản ghi cho **toàn bộ sinh viên đã đăng ký** lớp trong một ngày với `present = false`. Bỏ qua sinh viên đã có bản ghi; ném lỗi nếu lớp không có sinh viên.
+- **Tìm kiếm đa tiêu chí** (case-insensitive):
+  - Lọc theo **lớp học phần** (`courseClassId`) và **ngày** (`attendanceDate`)
+  - Từ khóa: mã/tên sinh viên, mã/tên lớp HP, mã/tên học phần, mã/tên giảng viên, ghi chú
+- **Phân trang**: mặc định 10/trang, sắp xếp `updatedAt` giảm dần.
+- **Kiểm tra quyền điểm danh**:
+  - Sinh viên phải đã **đăng ký** lớp học phần (`course_registrations`) → HTTP 400 nếu chưa.
+  - Giảng viên phải đã được **phân công** lớp học phần (`lecturer_course_class`) → HTTP 400 nếu không được phép.
+- **Tự động nhận diện giảng viên hiện tại**: Dùng `CurrentUserProfileService.getCurrentLecturerId()` — nếu người đang đăng nhập là giảng viên, tự điền `markedByLecturerId`.
+- **Export Excel**: Xuất danh sách điểm danh theo lớp và ngày ra `attendances.xlsx` (10 cột, tiêu đề bold 14pt, header nền xanh nhạt, viền):
+  > Mã SV · Họ tên · Mã lớp HP · Lớp HP · Học phần · Ngày · Trạng thái · Ghi chú · GV điểm danh · Thời gian
+- **Import Excel**: Nhập hàng loạt từ dòng 2, cấu trúc 4 cột:
+  > Mã SV · Có mặt (1/0) · Ghi chú · Mã GV (tùy chọn)
+  - Parse trạng thái đa dạng: `1`/`0`, `true`/`false`, `yes`/`no`, `y`/`n`, `có mặt`/`vắng` (bỏ dấu tiếng Việt qua `Normalizer.NFD`).
+  - Mã GV trong file ưu tiên hơn `defaultMarkedByLecturerId` từ session.
+  - Kiểm tra đăng ký lớp học phần; bỏ qua dòng lỗi; trả về số bản ghi thành công.
+- **Tải mẫu Excel (Template)**: Sinh file `attendances-template.xlsx` với header + 1 dòng ví dụ.
+- **In**: Trang in điểm danh lớp theo ngày — sinh viên chưa có bản ghi vẫn hiển thị với trạng thái trống.
+
+#### 27.3. Service (AttendanceService)
+
+| Phương thức | Mô tả |
+|-------------|-------|
+| `search(keyword, courseClassId, date, page, size)` | Tìm kiếm phân trang đa tiêu chí |
+| `getById(id)` | Lấy chi tiết, ném 404 nếu không tồn tại |
+| `upsert(idOrNull, req, lecturerId)` | Tạo mới hoặc cập nhật; kiểm tra đăng ký SV + quyền GV |
+| `delete(id)` | Xóa, kiểm tra tồn tại |
+| `initializeForClassAndDate(courseClassId, date, lecturerId)` | Tạo hàng loạt `present=false` cho toàn bộ SV đăng ký lớp |
+| `getForPrint(courseClassId, date)` | Danh sách in: ghép SV đăng ký với bản ghi điểm danh (SV chưa điểm danh → trạng thái null) |
+| `exportExcel(response, courseClassId, date)` | Ghi file `.xlsx` vào `HttpServletResponse` |
+| `importExcel(file, courseClassId, date, lecturerId)` | Đọc file, upsert từng dòng hợp lệ, trả về số thành công |
+| `getImportTemplate()` | Sinh file mẫu nhập, trả về `byte[]` |
+| `parseDate(s)` _(static)_ | Parse chuỗi ngày `yyyy-MM-dd` hoặc `dd/MM/yyyy` |
+
+#### 27.4. DTO
+
+**`AttendanceRequest`** (tạo/sửa):
+
+| Trường | Ràng buộc | Mô tả |
+|--------|-----------|-------|
+| `studentId` | `@NotNull` | UUID sinh viên |
+| `courseClassId` | `@NotNull` | ID lớp học phần |
+| `attendanceDate` | `@NotNull` | Ngày điểm danh |
+| `present` | `@NotNull` | `true` = có mặt, `false` = vắng |
+| `note` | `@Size(max=500)` | Ghi chú (tùy chọn) |
+| `markedByLecturerId` | _(tùy chọn)_ | UUID giảng viên điểm danh |
+
+**`AttendanceResponse`** (record): `attendanceId`, `studentId`, `studentCode`, `studentName`, `courseClassId`, `classCode`, `className`, `courseCode`, `courseName`, `attendanceDate`, `present`, `note`, `lecturerId`, `lecturerCode`, `lecturerName`, `markedAt`.
+
+#### 27.5. Giao diện Admin — Thymeleaf (`/admin/attendances`)
+
+| Chức năng | URL |
+|-----------|-----|
+| Danh sách | `GET /admin/attendances?keyword=&courseClassId=&attendanceDate=&page=0&size=10` |
+| Thêm mới | `GET /admin/attendances/new` · `POST /admin/attendances` |
+| Sửa | `GET /admin/attendances/{id}/edit` · `POST /admin/attendances/{id}` |
+| Xóa | `POST /admin/attendances/{id}/delete` |
+| Khởi tạo hàng loạt | `POST /admin/attendances/initialize` (params: `courseClassId`, `attendanceDate`, `markedByLecturerId`) |
+| In | `GET /admin/attendances/print?courseClassId=&attendanceDate=` |
+| Export Excel | `GET /admin/attendances/export?courseClassId=&attendanceDate=` |
+| Import Excel | `POST /admin/attendances/import` (multipart `file` + `courseClassId` + `attendanceDate`) |
+| Tải mẫu Excel | `GET /admin/attendances/template` → `attendances-template.xlsx` |
+
+**AJAX helper** (dùng trong form để load dropdown động):
+
+| URL | Mô tả |
+|-----|-------|
+| `GET /admin/attendances/api/students-by-class?courseClassId=` | Danh sách SV đã đăng ký lớp (JSON) |
+| `GET /admin/attendances/api/lecturers-by-class?courseClassId=` | Danh sách GV được phân công lớp (JSON) |
+
+#### 27.6. REST API (`/api/attendances`)
+
+| Method | URL | Mô tả | Response |
+|--------|-----|-------|----------|
+| `GET` | `/api/attendances` | Tìm kiếm phân trang | `Page<AttendanceResponse>` 200 |
+| `GET` | `/api/attendances/{id}` | Lấy chi tiết | `AttendanceResponse` 200 |
+| `POST` | `/api/attendances` | Tạo/upsert (JSON body) | `AttendanceResponse` 201 |
+| `PUT` | `/api/attendances/{id}` | Cập nhật (JSON body) | `AttendanceResponse` 200 |
+| `DELETE` | `/api/attendances/{id}` | Xóa | 204 No Content |
+| `POST` | `/api/attendances/initialize` | Khởi tạo hàng loạt | chuỗi 200 |
+| `GET` | `/api/attendances/export` | Tải file Excel | file `.xlsx` |
+| `POST` | `/api/attendances/import` | Import file Excel | chuỗi số lượng 200 |
+| `GET` | `/api/attendances/print` | Danh sách JSON theo lớp + ngày | `List<AttendanceResponse>` 200 |
+
+#### 27.7. Repository (StudentAttendanceRepository)
+
+| Method | Mô tả |
+|--------|-------|
+| `search(keyword, courseClassId, attendanceDate, pageable)` | Tìm kiếm phân trang, lọc theo lớp và ngày |
+| `findAllByCourseClassIdAndAttendanceDate(courseClassId, date)` | Lấy toàn bộ điểm danh theo lớp + ngày, `JOIN FETCH` tránh N+1, sắp xếp tên SV |
+| `existsByStudent_StudentIdAndCourseClass_IdAndAttendanceDate(...)` | Kiểm tra bản ghi tồn tại (dùng trong initialize) |
+| `findByStudent_StudentIdAndCourseClass_IdAndAttendanceDate(...)` | Tìm bản ghi theo khóa tự nhiên (dùng trong upsert) |
+
+#### 27.8. Cấu trúc code
+
+```
+attendance/
+├── controller/
+│   ├── AttendanceDashboardController.java   # Thymeleaf Admin (/admin/attendances)
+│   │                                        # + AJAX /api/students-by-class, /api/lecturers-by-class
+│   └── AttendanceRestController.java        # REST API (/api/attendances)
+├── dto/
+│   ├── AttendanceRequest.java               # form/body với @Valid
+│   └── AttendanceResponse.java              # record đầy đủ thông tin
+├── entity/StudentAttendance.java            # bảng attendances
+│                                            # Unique: (student_id, course_class_id, attendance_date)
+│                                            # @ManyToOne: Student, ClassSection, Lecturer (markedBy)
+├── repository/StudentAttendanceRepository.java
+└── service/AttendanceService.java           # upsert, initialize, import/export, template
+```
+
+**Templates**: `attendances/index.html`, `attendances/form.html`, `attendances/print.html`
+
+---
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -4892,11 +5033,10 @@ feedback/
 - [x] Xác thực người dùng (Authentication)
 - [x] Mã hóa mật khẩu (Password Encryption)
 - [ ] Audit Log
-- [ ] Report & Analytics
+- [x] Report & Analytics
 - [x] Quản lý thông báo (Notification Management)
 - [x] Quản lý phản hồi đánh giá giảng viên (Feedback Management)
-- [ ] API Documentation (Swagger)
-
+- [x] Quản lý điểm danh sinh viên (Attendance Management)
 
 ---
 

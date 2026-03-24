@@ -13,12 +13,14 @@
                 <img th:src="${userProfile.avatar}" alt="Avatar" class="rounded-circle"
                      style="width: 32px; height: 32px; object-fit: cover;">
             </th:block>
+            <!-- Avatar mặc định -->
             <th:block th:if="${userProfile.avatar == null or userProfile.avatar.isEmpty()}">
                 <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white"
                      style="width: 32px; height: 32px; font-size: 0.875rem;">
                     <i class="fa-solid fa-user"></i>
                 </div>
             </th:block>
+            <!-- Tên người dùng và vai trò -->
             <div class="flex-grow-1 min-w-0">
                 <div class="text-white text-truncate small fw-semibold" th:text="${userProfile.displayName}">Tên</div>
                 <div class="text-white-50 text-truncate" style="font-size: 0.7rem;" th:text="${userProfile.roleLabel}">Vai trò</div>
@@ -45,19 +47,19 @@
             <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
                 <a class="nav-link" th:href="@{/admin/roles}" th:classappend="${activeMenu}=='roles' ? 'active' : ''">
                     <i class="fa-solid fa-shield-halved"></i>
-                    <span>Roles</span>
+                    <span>Vai trò</span>
                 </a>
             </li>
             <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
                 <a class="nav-link" th:href="@{/admin/users}" th:classappend="${activeMenu}=='users' ? 'active' : ''">
                     <i class="fa-solid fa-users"></i>
-                    <span>Users</span>
+                    <span>Người dùng</span>
                 </a>
             </li>
             <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
                 <a class="nav-link" th:href="@{/admin/permissions}" th:classappend="${activeMenu}=='permissions' ? 'active' : ''">
                     <i class="fa-solid fa-key"></i>
-                    <span>Permissions</span>
+                    <span>Quyền</span>
                 </a>
             </li>
 
@@ -66,37 +68,37 @@
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/faculties}" th:classappend="${activeMenu}=='faculties' ? 'active' : ''">
                     <i class="fa-solid fa-building-columns"></i>
-                    <span>Faculties</span>
+                    <span>Khoa</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/majors}" th:classappend="${activeMenu}=='majors' ? 'active' : ''">
                     <i class="fa-solid fa-layer-group"></i>
-                    <span>Majors</span>
+                    <span>Ngành học</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/classes}" th:classappend="${activeMenu}=='classes' ? 'active' : ''">
                     <i class="fa-solid fa-chalkboard-user"></i>
-                    <span>Classes</span>
+                    <span>Lớp học</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/education-types}" th:classappend="${activeMenu}=='education-types' ? 'active' : ''">
                     <i class="fa-solid fa-graduation-cap"></i>
-                    <span>Education Types</span>
+                    <span>Loại đào tạo</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/training-levels}" th:classappend="${activeMenu}=='trainingLevels' ? 'active' : ''">
                     <i class="fa-solid fa-graduation-cap"></i>
-                    <span>Training Levels</span>
+                    <span>Bậc đào tạo</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/students}" th:classappend="${activeMenu}=='students' ? 'active' : ''">
                     <i class="fa-solid fa-user-graduate"></i>
-                    <span>Students</span>
+                    <span>Sinh viên</span>
                 </a>
             </li>
 
@@ -105,13 +107,13 @@
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/lecturers}" th:classappend="${activeMenu}=='lecturers' ? 'active' : ''">
                     <i class="fa-solid fa-chalkboard-teacher"></i>
-                    <span>Lecturers</span>
+                    <span>Giảng viên</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/positions}" th:classappend="${activeMenu}=='positions' ? 'active' : ''">
                     <i class="fa-solid fa-briefcase"></i>
-                    <span>Positions</span>
+                    <span>Chức danh</span>
                 </a>
             </li>
 
@@ -120,13 +122,13 @@
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/training-programs}" th:classappend="${activeMenu}=='training-programs' ? 'active' : ''">
                     <i class="fa-solid fa-book-open"></i>
-                    <span>Training Programs</span>
+                    <span>Chương trình đào tạo</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/courses}" th:classappend="${activeMenu}=='courses' ? 'active' : ''">
                     <i class="fa-solid fa-book"></i>
-                    <span>Courses</span>
+                    <span>Môn học</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -159,13 +161,13 @@
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/semesters}" th:classappend="${activeMenu}=='semesters' ? 'active' : ''">
                     <i class="fa-solid fa-calendar-days"></i>
-                    <span>Semesters</span>
+                    <span>Học kỳ</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/class-sections}" th:classappend="${activeMenu}=='class-sections' ? 'active' : ''">
                     <i class="fa-solid fa-chalkboard"></i>
-                    <span>Class Sections</span>
+                    <span>Lớp học phần</span>
                 </a>
             </li>
 
@@ -183,19 +185,19 @@
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/buildings}" th:classappend="${activeMenu}=='buildings' ? 'active' : ''">
                     <i class="fa-solid fa-building"></i>
-                    <span>Buildings</span>
+                    <span>Toà nhà</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/room-types}" th:classappend="${activeMenu}=='room-types' ? 'active' : ''">
                     <i class="fa-solid fa-door-open"></i>
-                    <span>Room Types</span>
+                    <span>Loại phòng</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/rooms}" th:classappend="${activeMenu}=='rooms' ? 'active' : ''">
                     <i class="fa-solid fa-door-closed"></i>
-                    <span>Rooms</span>
+                    <span>Phòng học</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -207,13 +209,13 @@
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/time-slots}" th:classappend="${activeMenu}=='time-slots' ? 'active' : ''">
                     <i class="fa-solid fa-clock"></i>
-                    <span>Time Slots</span>
+                    <span>Khung giờ</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/schedules}" th:classappend="${activeMenu}=='schedules' ? 'active' : ''">
                     <i class="fa-solid fa-calendar-check"></i>
-                    <span>Schedules</span>
+                    <span>Lịch học</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -225,13 +227,13 @@
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/lecturer-course-classes}" th:classappend="${activeMenu}=='lecturer-course-classes' ? 'active' : ''">
                     <i class="fa-solid fa-user-tie"></i>
-                    <span>Lecturer Course Classes</span>
+                    <span>Phân công giảng viên</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/equipments}" th:classappend="${activeMenu}=='equipments' ? 'active' : ''">
                     <i class="fa-solid fa-laptop"></i>
-                    <span>Equipments</span>
+                    <span>Thiết bị</span>
                 </a>
             </li>
 
