@@ -8,26 +8,7 @@ Mục tiêu của dự án là áp dụng kiến thức về lập trình Backen
 
 ## Tính Năng
 
-### Mới cập nhật: Quản lý phòng ban (Department)
-
-Module `department` bổ sung đầy đủ luồng quản trị cho phòng ban trong hệ thống.
-
-- **Entity & DB**: `Department` (`departments`) với các cột `department_id` (UUID), `department_code`, `department_name`, `description`.
-- **Ràng buộc dữ liệu**: mã/tên phòng ban là duy nhất; validate bắt buộc khi tạo/sửa.
-- **Web Dashboard** (`/admin/departments`): danh sách, tìm kiếm, phân trang, thêm/sửa/xóa.
-- **REST API** (`/api/departments`): CRUD chuẩn + endpoint hỗ trợ danh sách dropdown (`/all`).
-- **Excel & Print**: import/export Excel (`/import`, `/export`) và in danh sách (`/print`).
-- **Sidebar**: đã thêm mục menu **Phòng ban** trong nhóm quản lý giảng viên - nhân sự.
-
-### Mới cập nhật: Quản lý chức vụ giảng viên (Lecturer Duty)
-
-Module `lecturerduty` được hoàn thiện đầy đủ theo chuẩn CRUD + quản trị dashboard.
-
-- **REST API** (`/api/lecturer-duties`): tìm kiếm có phân trang, tạo/sửa/xóa, import/export/print.
-- **Dashboard** (`/admin/lecturer-duties`): giao diện quản trị đầy đủ với form create/edit và flash message.
-- **Nghiệp vụ bảo toàn dữ liệu**: không cho xóa chức vụ khi đang có giảng viên sử dụng (`409 CONFLICT`).
-- **Excel**: import từ file `.xlsx`, bỏ qua dòng lỗi/trùng mã; export danh sách theo `dutyName`.
-- **In ấn**: hỗ trợ trang in riêng cho danh sách chức vụ.
+> **Mới cập nhật:** Xem mô tả chi tiết tại [mục 28 – Quản Lý Phòng Ban](#28-quản-lý-phòng-ban-department-management) và [mục 29 – Quản Lý Chức Vụ Giảng Viên](#29-quản-lý-chức-vụ-giảng-viên-lecturer-duty-management).
 
 ### 1. Quản Lý Role (Role Management)
 
@@ -5013,6 +4994,181 @@ attendance/
 
 ---
 
+### 28. Quản Lý Phòng Ban (Department Management)
+
+Module **department** cung cấp đầy đủ luồng quản trị thông tin phòng ban trong hệ thống, phục vụ phân loại và tổ chức nhân sự giảng viên theo từng đơn vị.
+
+#### 28.1. Mô hình dữ liệu
+
+Bảng `departments`:
+
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| `department_id` | UUID (PK) | Khóa chính, tự sinh |
+| `department_code` | NVARCHAR(30), UNIQUE, NOT NULL | Mã phòng ban |
+| `department_name` | NVARCHAR(150), UNIQUE, NOT NULL | Tên phòng ban |
+| `description` | NVARCHAR(500) | Mô tả (tùy chọn) |
+
+**Ràng buộc**: `department_code` và `department_name` phải duy nhất trong toàn hệ thống.
+
+#### 28.2. Tính năng
+
+- **CRUD**: Thêm, sửa, xóa phòng ban với validate đầu vào; flash message thông báo kết quả.
+- **Tìm kiếm & phân trang**: Tìm kiếm gần đúng theo từ khóa (`keyword`), hỗ trợ phân trang linh hoạt.
+- **Ràng buộc dữ liệu**: Mã và tên phòng ban không được trùng; không được để trống.
+- **Export Excel**: Xuất toàn bộ danh sách phòng ban ra file `.xlsx`.
+- **Import Excel**: Nhập hàng loạt từ file `.xlsx`; bỏ qua dòng trùng mã hoặc thiếu dữ liệu; trả về số bản ghi import thành công.
+- **In ấn**: Trang in riêng hiển thị toàn bộ danh sách phòng ban.
+- **Dropdown API**: Endpoint `/all` trả về toàn bộ phòng ban (không phân trang) để dùng trong dropdown của các module khác.
+- **Sidebar**: Mục menu **Phòng ban** nằm trong nhóm quản lý giảng viên – nhân sự.
+
+#### 28.3. DTO
+
+**`DepartmentRequest`** (tạo/sửa):
+
+| Trường | Ràng buộc | Mô tả |
+|--------|-----------|-------|
+| `departmentCode` | `@NotBlank`, tối đa 30 ký tự | Mã phòng ban |
+| `departmentName` | `@NotBlank`, tối đa 150 ký tự | Tên phòng ban |
+| `description` | tối đa 500 ký tự | Mô tả (tùy chọn) |
+
+**`DepartmentResponse`**: `departmentId`, `departmentCode`, `departmentName`, `description`.
+
+#### 28.4. REST API (`/api/departments`)
+
+| Method | URL | Mô tả |
+|--------|-----|-------|
+| GET | `/api/departments` | Tìm kiếm phân trang (`keyword`, `page`, `size`) |
+| GET | `/api/departments/{id}` | Lấy chi tiết phòng ban theo ID |
+| POST | `/api/departments` | Tạo phòng ban mới |
+| PUT | `/api/departments/{id}` | Cập nhật thông tin phòng ban |
+| DELETE | `/api/departments/{id}` | Xóa phòng ban |
+| GET | `/api/departments/export` | Xuất danh sách ra file Excel |
+| POST | `/api/departments/import` | Nhập danh sách từ file Excel |
+| GET | `/api/departments/print` | Lấy toàn bộ danh sách để in |
+| GET | `/api/departments/all` | Lấy toàn bộ danh sách (không phân trang, dùng cho dropdown) |
+
+#### 28.5. Giao diện Admin (`/admin/departments`)
+
+| Chức năng | URL |
+|-----------|-----|
+| Danh sách | `GET /admin/departments?keyword=&page=0&size=10` |
+| Thêm mới | `GET /admin/departments/new` · `POST /admin/departments` |
+| Sửa | `GET /admin/departments/{id}/edit` · `POST /admin/departments/{id}` |
+| Xóa | `POST /admin/departments/{id}/delete` |
+| Export Excel | `GET /admin/departments/export` |
+| Import Excel | `POST /admin/departments/import` |
+| In | `GET /admin/departments/print` |
+
+#### 28.6. Cấu trúc code
+
+```
+department/
+├── controller/
+│   ├── DepartmentController.java           # REST API (/api/departments)
+│   └── DepartmentDashboardController.java  # Thymeleaf Admin (/admin/departments)
+├── dto/
+│   ├── DepartmentRequest.java
+│   └── DepartmentResponse.java
+├── entity/
+│   └── Department.java                     # Bảng departments, unique: code & name
+├── repository/
+│   └── DepartmentRepository.java
+└── service/
+    └── DepartmentService.java
+```
+
+**Templates**: `departments/index.html`, `departments/form.html`, `departments/print.html`
+
+---
+
+### 29. Quản Lý Chức Vụ Giảng Viên (Lecturer Duty Management)
+
+Module **lecturerduty** quản lý danh mục chức vụ giảng viên (ví dụ: Giảng viên, Giảng viên chính, Phó Giáo sư, Giáo sư,…), là dữ liệu danh mục được dùng khi khai báo thông tin giảng viên.
+
+#### 29.1. Mô hình dữ liệu
+
+Bảng `lecturer_duties`:
+
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| `lecturer_duty_id` | UUID (PK) | Khóa chính, tự sinh |
+| `duty_code` | NVARCHAR(20), UNIQUE, NOT NULL | Mã chức vụ |
+| `duty_name` | NVARCHAR(150), UNIQUE, NOT NULL | Tên chức vụ |
+| `description` | NVARCHAR(500) | Mô tả (tùy chọn) |
+
+**Ràng buộc**: `duty_code` và `duty_name` phải duy nhất trong toàn hệ thống.
+
+#### 29.2. Tính năng
+
+- **CRUD**: Thêm, sửa, xóa chức vụ với validate đầu vào; flash message thông báo thành công/lỗi.
+- **Tìm kiếm & phân trang**: Tìm kiếm gần đúng theo từ khóa, phân trang linh hoạt.
+- **Bảo toàn dữ liệu**: Không cho xóa chức vụ khi đang có giảng viên sử dụng → trả về HTTP `409 CONFLICT` kèm thông báo lỗi.
+- **Export Excel**: Xuất danh sách chức vụ ra file `.xlsx` (sắp xếp theo `dutyName`).
+- **Import Excel**: Nhập hàng loạt từ file `.xlsx`; bỏ qua dòng lỗi hoặc trùng mã; trả về số bản ghi import thành công.
+- **In ấn**: Trang in riêng cho danh sách chức vụ.
+- **Dropdown API**: Endpoint `/all` trả về toàn bộ chức vụ (không phân trang) để dùng trong dropdown module giảng viên.
+
+#### 29.3. DTO
+
+**`LecturerDutyRequest`** (tạo/sửa):
+
+| Trường | Ràng buộc | Mô tả |
+|--------|-----------|-------|
+| `dutyCode` | `@NotBlank`, tối đa 20 ký tự | Mã chức vụ |
+| `dutyName` | `@NotBlank`, tối đa 150 ký tự | Tên chức vụ |
+| `description` | tối đa 500 ký tự | Mô tả (tùy chọn) |
+
+**`LecturerDutyResponse`**: `lecturerDutyId`, `dutyCode`, `dutyName`, `description`.
+
+#### 29.4. REST API (`/api/lecturer-duties`)
+
+| Method | URL | Mô tả |
+|--------|-----|-------|
+| GET | `/api/lecturer-duties` | Tìm kiếm phân trang (`keyword`, `page`, `size`) |
+| GET | `/api/lecturer-duties/{id}` | Lấy chi tiết chức vụ theo ID |
+| POST | `/api/lecturer-duties` | Tạo chức vụ mới |
+| PUT | `/api/lecturer-duties/{id}` | Cập nhật thông tin chức vụ |
+| DELETE | `/api/lecturer-duties/{id}` | Xóa chức vụ (`409` nếu đang có giảng viên sử dụng) |
+| GET | `/api/lecturer-duties/export` | Xuất danh sách ra file Excel |
+| POST | `/api/lecturer-duties/import` | Nhập danh sách từ file Excel |
+| GET | `/api/lecturer-duties/print` | Lấy toàn bộ danh sách để in |
+| GET | `/api/lecturer-duties/all` | Lấy toàn bộ danh sách (không phân trang, dùng cho dropdown) |
+
+#### 29.5. Giao diện Admin (`/admin/lecturer-duties`)
+
+| Chức năng | URL |
+|-----------|-----|
+| Danh sách | `GET /admin/lecturer-duties?keyword=&page=0&size=10` |
+| Thêm mới | `GET /admin/lecturer-duties/new` · `POST /admin/lecturer-duties` |
+| Sửa | `GET /admin/lecturer-duties/{id}/edit` · `POST /admin/lecturer-duties/{id}` |
+| Xóa | `POST /admin/lecturer-duties/{id}/delete` |
+| Export Excel | `GET /admin/lecturer-duties/export` |
+| Import Excel | `POST /admin/lecturer-duties/import` |
+| In | `GET /admin/lecturer-duties/print` |
+
+#### 29.6. Cấu trúc code
+
+```
+lecturerduty/
+├── controller/
+│   ├── LecturerDutyController.java           # REST API (/api/lecturer-duties)
+│   └── LecturerDutyDashboardController.java  # Thymeleaf Admin (/admin/lecturer-duties)
+├── dto/
+│   ├── LecturerDutyRequest.java
+│   └── LecturerDutyResponse.java
+├── entity/
+│   └── LecturerDuty.java                     # Bảng lecturer_duties, unique: code & name
+├── repository/
+│   └── LecturerDutyRepository.java
+└── service/
+    └── LecturerDutyService.java
+```
+
+**Templates**: `lecturer-duties/index.html`, `lecturer-duties/form.html`, `lecturer-duties/print.html`
+
+---
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -5058,6 +5214,8 @@ attendance/
 - [x] Quản lý thông báo (Notification Management)
 - [x] Quản lý phản hồi đánh giá giảng viên (Feedback Management)
 - [x] Quản lý điểm danh sinh viên (Attendance Management)
+- [x] Quản lý phòng ban (Department Management)
+- [x] Quản lý chức vụ giảng viên (Lecturer Duty Management)
 
 ---
 
