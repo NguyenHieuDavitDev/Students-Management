@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Phòng ban',
+        'Danh sách phòng ban',
+        'Quản lý thông tin phòng ban',
+        'departments',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div th:if="${success}" class="alert alert-success shadow-sm" th:text="${success}"></div>
+    <div th:if="${error}" class="alert alert-danger shadow-sm" th:text="${error}"></div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
+                <form class="d-flex gap-2" method="get" th:action="@{/admin/departments}">
+                    <input class="form-control"
+                           style="min-width:260px"
+                           type="text"
+                           name="keyword"
+                           placeholder="Tìm theo mã hoặc tên phòng ban..."
+                           th:value="${keyword}">
+                    <button class="btn btn-outline-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </form>
+
+                <div class="d-flex gap-2">
+                    <a class="btn btn-outline-secondary" th:href="@{/admin/departments/print}" target="_blank">
+                        <i class="fa-solid fa-print me-1"></i> In
+                    </a>
+                    <a class="btn btn-outline-success" th:href="@{/admin/departments/export}">
+                        <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
+                    </a>
+                    <form method="post" th:action="@{/admin/departments/import}" enctype="multipart/form-data">
+                        <label class="btn btn-outline-warning mb-0">
+                            <i class="fa-solid fa-file-import me-1"></i> Nhập Excel
+                            <input type="file" name="file" hidden accept=".xlsx" onchange="this.form.submit()">
+                        </label>
+                    </form>
+                    <a class="btn btn-primary" th:href="@{/admin/departments/new}">
+                        <i class="fa-solid fa-plus me-1"></i> Thêm mới
+                    </a>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <th>Mã phòng ban</th>
+                        <th>Tên phòng ban</th>
+                        <th>Mô tả</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${departments.content.isEmpty()}">
+                        <td colspan="4" class="text-muted text-center">Không có dữ liệu</td>
+                    </tr>
+                    <tr th:each="d : ${departments.content}">
+                        <td class="fw-semibold" th:text="${d.departmentCode}"></td>
+                        <td th:text="${d.departmentName}"></td>
+                        <td th:text="${d.description != null ? d.description : '-'}"></td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary"
+                               th:href="@{/admin/departments/{id}/edit(id=${d.departmentId})}">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <form class="d-inline"
+                                  th:action="@{/admin/departments/{id}/delete(id=${d.departmentId})}"
+                                  method="post"
+                                  onsubmit="return confirm('Bạn có chắc chắn muốn xoá phòng ban này?')">
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <nav th:if="${departments.totalPages > 1}">
+                <ul class="pagination mb-0">
+                    <li class="page-item" th:classappend="${departments.first} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/departments(page=${departments.number-1},keyword=${keyword})}">Trước</a>
+                    </li>
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, departments.totalPages-1)}"
+                        th:classappend="${i == departments.number} ? 'active'">
+                        <a class="page-link"
+                           th:text="${i+1}"
+                           th:href="@{/admin/departments(page=${i},keyword=${keyword})}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${departments.last} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/departments(page=${departments.number+1},keyword=${keyword})}">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

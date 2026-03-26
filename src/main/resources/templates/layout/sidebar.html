@@ -124,6 +124,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" th:href="@{/admin/departments}" th:classappend="${activeMenu}=='departments' ? 'active' : ''">
+                    <i class="fa-solid fa-building-user"></i>
+                    <span>Phòng ban</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" th:href="@{/admin/lecturer-duties}" th:classappend="${activeMenu}=='lecturer-duties' ? 'active' : ''">
                     <i class="fa-solid fa-id-card-clip"></i>
                     <span>Chức vụ giảng viên</span>

@@ -8,6 +8,27 @@ Mục tiêu của dự án là áp dụng kiến thức về lập trình Backen
 
 ## Tính Năng
 
+### Mới cập nhật: Quản lý phòng ban (Department)
+
+Module `department` bổ sung đầy đủ luồng quản trị cho phòng ban trong hệ thống.
+
+- **Entity & DB**: `Department` (`departments`) với các cột `department_id` (UUID), `department_code`, `department_name`, `description`.
+- **Ràng buộc dữ liệu**: mã/tên phòng ban là duy nhất; validate bắt buộc khi tạo/sửa.
+- **Web Dashboard** (`/admin/departments`): danh sách, tìm kiếm, phân trang, thêm/sửa/xóa.
+- **REST API** (`/api/departments`): CRUD chuẩn + endpoint hỗ trợ danh sách dropdown (`/all`).
+- **Excel & Print**: import/export Excel (`/import`, `/export`) và in danh sách (`/print`).
+- **Sidebar**: đã thêm mục menu **Phòng ban** trong nhóm quản lý giảng viên - nhân sự.
+
+### Mới cập nhật: Quản lý chức vụ giảng viên (Lecturer Duty)
+
+Module `lecturerduty` được hoàn thiện đầy đủ theo chuẩn CRUD + quản trị dashboard.
+
+- **REST API** (`/api/lecturer-duties`): tìm kiếm có phân trang, tạo/sửa/xóa, import/export/print.
+- **Dashboard** (`/admin/lecturer-duties`): giao diện quản trị đầy đủ với form create/edit và flash message.
+- **Nghiệp vụ bảo toàn dữ liệu**: không cho xóa chức vụ khi đang có giảng viên sử dụng (`409 CONFLICT`).
+- **Excel**: import từ file `.xlsx`, bỏ qua dòng lỗi/trùng mã; export danh sách theo `dutyName`.
+- **In ấn**: hỗ trợ trang in riêng cho danh sách chức vụ.
+
 ### 1. Quản Lý Role (Role Management)
 
 Chức năng quản lý role cho phép quản trị viên tạo, sửa, xoá và quản#### Xác Thực & Bảo Mật:
