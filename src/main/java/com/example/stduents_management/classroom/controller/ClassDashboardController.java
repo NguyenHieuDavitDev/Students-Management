@@ -5,6 +5,7 @@ import com.example.stduents_management.classroom.dto.ClassResponse;
 import com.example.stduents_management.classroom.service.ClassService;
 import com.example.stduents_management.educationtype.repository.EducationTypeRepository;
 import com.example.stduents_management.lecturer.repository.LecturerRepository;
+import com.example.stduents_management.lecturercourseclass.service.LecturerCourseClassService;
 import com.example.stduents_management.major.repository.MajorRepository;
 import com.example.stduents_management.traininglevel.repository.TrainingLevelRepository;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,6 +32,7 @@ public class ClassDashboardController {
     private final LecturerRepository lecturerRepository;
     private final EducationTypeRepository educationTypeRepository;
     private final TrainingLevelRepository trainingLevelRepository;
+    private final LecturerCourseClassService lecturerCourseClassService;
 
     /* ================== LIST + SEARCH ================== */
     @GetMapping
@@ -105,6 +107,9 @@ public class ClassDashboardController {
         model.addAttribute("mode", "edit");
         model.addAttribute("classId", id);
         model.addAttribute("classRequest", req);
+        model.addAttribute(
+                "cohortTeachingLecturers",
+                lecturerCourseClassService.listTeachingLecturersForAdministrativeClass(id));
         loadSelectData(model);
         return "classes/form";
     }
@@ -121,6 +126,9 @@ public class ClassDashboardController {
         model.addAttribute("classId", id);
 
         if (bindingResult.hasErrors()) {
+            model.addAttribute(
+                    "cohortTeachingLecturers",
+                    lecturerCourseClassService.listTeachingLecturersForAdministrativeClass(id));
             loadSelectData(model);
             return "classes/form";
         }
@@ -130,6 +138,9 @@ public class ClassDashboardController {
             return "redirect:/admin/classes";
         } catch (ResponseStatusException e) {
             model.addAttribute("globalError", e.getReason());
+            model.addAttribute(
+                    "cohortTeachingLecturers",
+                    lecturerCourseClassService.listTeachingLecturersForAdministrativeClass(id));
             loadSelectData(model);
             return "classes/form";
         }

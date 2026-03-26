@@ -68,6 +68,18 @@
                 <small class="text-danger" th:errors="*{className}"></small>
             </div>
 
+            <div class="col-12">
+                <label class="form-label fw-medium">Lớp hành chính (niên khóa)</label>
+                <select class="form-select" th:field="*{administrativeClassId}">
+                    <option value="">— Không gắn / tự khớp theo mã lớp + năm học kỳ khi lưu —</option>
+                    <option th:each="cl : ${administrativeClasses}"
+                            th:value="${cl.classId}"
+                            th:text="|${cl.classCode} — ${cl.className} (${cl.academicYear})|">
+                    </option>
+                </select>
+                <small class="text-muted">Dùng để đồng bộ phân công giảng viên với lớp trong quản lý lớp hành chính.</small>
+            </div>
+
             <div class="col-md-3">
                 <label class="form-label fw-medium">Sĩ số tối đa <span class="text-danger">*</span></label>
                 <input type="number" min="1" class="form-control" th:field="*{maxStudents}">

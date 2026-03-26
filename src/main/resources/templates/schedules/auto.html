@@ -3,6 +3,7 @@
       th:replace="~{layout/dashboard :: layout(
         'Phân lịch tự động',
         'Phân lịch tự động',
+        'Chọn tiết trong tuần; 3 TC → 15 buổi, 2 TC → 10 buổi, 1 TC → 5 buổi (1 dòng lịch/lớp)',
         'schedules',
         ~{::content}
       )}">
@@ -17,9 +18,10 @@
         </div>
         <div class="card-body">
             <p class="text-muted small">
-                Hệ thống lấy danh sách phân công giảng viên – lớp học phần của học kỳ, tính số buổi lý thuyết/thực hành theo học phần,
-                rồi lần lượt gán mỗi buổi vào ô (thứ, khung giờ, phòng) đầu tiên không trùng giảng viên, phòng hoặc lớp.
-                Chỉ xét lớp học phần đang mở và phòng/khung giờ đang hoạt động.
+                Chọn các <strong>tiết (khung giờ)</strong> được phép dùng trong tuần — hệ thống thử lần lượt <strong>Thứ 2 → Thứ 6</strong>,
+                theo đúng thứ tự tiết bạn chọn, để gán <strong>một dòng lịch cố định</strong> (cùng thứ, cùng tiết mỗi tuần) cho mỗi lớp.
+                <strong>Tổng số buổi học</strong> theo tín chỉ: <strong>3 tín chỉ → 15 buổi</strong>, <strong>2 tín chỉ → 10 buổi</strong>,
+                <strong>1 tín chỉ → 5 buổi</strong> (số tuần lặp = số buổi, từ tuần bắt đầu). Chỉ lớp đang mở; phòng phải hoạt động.
             </p>
 
             <form method="post" th:action="@{/admin/schedules/auto}" th:object="${autoScheduleRequest}" class="mt-4">
@@ -38,10 +40,16 @@
                         <input type="number" min="1" class="form-control" th:field="*{startWeek}">
                         <small class="text-danger" th:errors="*{startWeek}"></small>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Tuần kết thúc</label>
-                        <input type="number" min="1" max="53" class="form-control" th:field="*{endWeek}">
-                        <small class="text-danger" th:errors="*{endWeek}"></small>
+                    <div class="col-12">
+                        <label class="form-label">Tiết trong tuần được phép xếp <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{allowedTimeSlotIds}" multiple size="8">
+                            <option th:each="ts : ${timeSlots}"
+                                    th:value="${ts.id}"
+                                    th:text="${ts.slotCode + ' (' + #temporals.format(ts.startTime, 'HH:mm') + '–' + #temporals.format(ts.endTime, 'HH:mm') + ')'}">
+                            </option>
+                        </select>
+                        <small class="text-danger d-block" th:errors="*{allowedTimeSlotIds}"></small>
+                        <small class="text-muted">Giữ Ctrl/Cmd để chọn nhiều tiết. Thứ tự chọn = độ ưu tiên khi tìm ô trống.</small>
                     </div>
                     <div class="col-12">
                         <div class="form-check">

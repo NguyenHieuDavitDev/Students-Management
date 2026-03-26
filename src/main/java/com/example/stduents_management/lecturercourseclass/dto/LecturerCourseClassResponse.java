@@ -12,6 +12,10 @@ public record LecturerCourseClassResponse(
         String courseName,
         String semesterCode,
 
+        UUID administrativeClassId,
+        String administrativeClassCode,
+        String administrativeClassName,
+
         UUID lecturerId,
         String lecturerCode,
         String lecturerName,

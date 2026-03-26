@@ -134,6 +134,47 @@
         <a class="btn btn-secondary" th:href="@{/admin/lecturers}">Huỷ</a>
     </form>
 
+    <div class="card mt-4" th:if="${mode}=='edit'">
+        <div class="card-header fw-semibold">
+            Phân công giảng dạy (lớp học phần)
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-2">
+                Dữ liệu đồng bộ từ <a th:href="@{/admin/lecturer-course-classes}">Phân công giảng viên</a>.
+                Chỉnh sửa phân công tại đó — không nhập lại ở đây.
+            </p>
+            <div class="table-responsive" th:if="${teachingAssignments != null and !teachingAssignments.isEmpty()}">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Lớp học phần</th>
+                        <th>Môn</th>
+                        <th>Học kỳ</th>
+                        <th>Lớp hành chính</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="a : ${teachingAssignments}">
+                        <td>
+                            <span class="fw-medium" th:text="${a.sectionCode}"></span>
+                            <span class="text-muted small d-block" th:text="${a.sectionName}"></span>
+                        </td>
+                        <td th:text="${a.courseCode != null and a.courseName != null} ? |${a.courseCode} — ${a.courseName}| : '—'"></td>
+                        <td th:text="${a.semesterCode != null ? a.semesterCode : '—'}"></td>
+                        <td>
+                            <span th:if="${a.administrativeClassCode != null}"
+                                  th:text="|${a.administrativeClassCode} — ${a.administrativeClassName}|"></span>
+                            <span class="text-muted" th:if="${a.administrativeClassCode == null}">—</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-muted mb-0" th:if="${teachingAssignments == null or teachingAssignments.isEmpty()}">
+                Chưa có phân công lớp học phần.
+            </p>
+        </div>
+    </div>
 
 </div>
 </body>

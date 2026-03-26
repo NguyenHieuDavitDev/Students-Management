@@ -16,6 +16,18 @@ public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
 
     @Query("""
             SELECT s FROM Schedule s
+            JOIN FETCH s.timeSlot
+            JOIN FETCH s.semester
+            JOIN FETCH s.classSection cs
+            LEFT JOIN FETCH cs.course
+            JOIN FETCH s.lecturer
+            JOIN FETCH s.room
+            WHERE s.semester.id = :semesterId
+            """)
+    List<Schedule> findBySemesterIdWithDetails(@Param("semesterId") Long semesterId);
+
+    @Query("""
+            SELECT s FROM Schedule s
             WHERE (:keyword IS NULL OR :keyword = ''
                 OR LOWER(s.semester.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(s.semester.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -31,6 +43,15 @@ public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
             """)
     Page<Schedule> search(@Param("keyword") String keyword, Pageable pageable);
 
-    @Query("SELECT s FROM Schedule s LEFT JOIN FETCH s.semester LEFT JOIN FETCH s.classSection cs LEFT JOIN FETCH cs.course LEFT JOIN FETCH s.timeSlot ORDER BY s.semester.code, cs.classCode, s.timeSlot.slotCode")
+    @Query("""
+            SELECT s FROM Schedule s
+            LEFT JOIN FETCH s.semester
+            LEFT JOIN FETCH s.classSection cs
+            LEFT JOIN FETCH cs.course
+            LEFT JOIN FETCH s.lecturer
+            LEFT JOIN FETCH s.room
+            LEFT JOIN FETCH s.timeSlot
+            ORDER BY s.semester.code, cs.classCode, s.timeSlot.slotCode
+            """)
     List<Schedule> findAllForDropdown();
 }

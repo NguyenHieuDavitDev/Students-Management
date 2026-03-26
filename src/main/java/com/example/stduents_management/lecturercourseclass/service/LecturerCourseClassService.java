@@ -1,11 +1,15 @@
 package com.example.stduents_management.lecturercourseclass.service;
 
+import com.example.stduents_management.classroom.entity.ClassEntity;
+import com.example.stduents_management.classroom.repository.ClassRepository;
 import com.example.stduents_management.classsection.entity.ClassSection;
 import com.example.stduents_management.classsection.repository.ClassSectionRepository;
 import com.example.stduents_management.lecturer.entity.Lecturer;
 import com.example.stduents_management.lecturer.repository.LecturerRepository;
+import com.example.stduents_management.lecturercourseclass.dto.CohortTeachingLecturerRow;
 import com.example.stduents_management.lecturercourseclass.dto.LecturerCourseClassRequest;
 import com.example.stduents_management.lecturercourseclass.dto.LecturerCourseClassResponse;
+import com.example.stduents_management.lecturercourseclass.dto.LecturerTeachingAssignmentRow;
 import com.example.stduents_management.lecturercourseclass.entity.LecturerCourseClass;
 import com.example.stduents_management.lecturercourseclass.repository.LecturerCourseClassRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,9 +26,14 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayOutputStream;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +41,7 @@ public class LecturerCourseClassService {
 
     private final LecturerCourseClassRepository repository;
     private final ClassSectionRepository classSectionRepository;
+    private final ClassRepository classRepository;
     private final LecturerRepository lecturerRepository;
 
     @Transactional(readOnly = true)
@@ -111,6 +121,8 @@ public class LecturerCourseClassService {
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Dòng " + rowNum + ": Không tìm thấy lớp học phần " + classCode));
 
+                ensureAdministrativeClassLinked(cs);
+
                 Lecturer lecturer = lecturerRepository.findByLecturerCodeIgnoreCase(lecturerCode.trim())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Dòng " + rowNum + ": Không tìm thấy giảng viên " + lecturerCode));
@@ -128,6 +140,61 @@ public class LecturerCourseClassService {
         }
     }
 
+    /**
+     * Phân công hiện có của giảng viên (một nguồn dữ liệu — không nhân bản bảng khác).
+     */
+    @Transactional(readOnly = true)
+    public List<LecturerTeachingAssignmentRow> listTeachingRowsForLecturer(UUID lecturerId) {
+        return repository.findAllWithSectionGraphByLecturerId(lecturerId).stream()
+                .map(lcc -> {
+                    ClassSection cs = lcc.getClassSection();
+                    ClassEntity ac = cs != null ? cs.getAdministrativeClass() : null;
+                    String courseCode = null;
+                    String courseName = null;
+                    if (cs != null && cs.getCourse() != null) {
+                        courseCode = cs.getCourse().getCourseCode();
+                        courseName = cs.getCourse().getCourseName();
+                    }
+                    String semesterCode = (cs != null && cs.getSemester() != null)
+                            ? cs.getSemester().getCode()
+                            : null;
+                    return new LecturerTeachingAssignmentRow(
+                            lcc.getId(),
+                            cs != null ? cs.getId() : null,
+                            cs != null ? cs.getClassCode() : null,
+                            cs != null ? cs.getClassName() : null,
+                            courseCode,
+                            courseName,
+                            semesterCode,
+                            ac != null ? ac.getClassId() : null,
+                            ac != null ? ac.getClassCode() : null,
+                            ac != null ? ac.getClassName() : null
+                    );
+                })
+                .toList();
+    }
+
+    /** Giảng viên có lớp học phần gắn {@link ClassEntity} này (qua administrative_class). */
+    @Transactional(readOnly = true)
+    public List<CohortTeachingLecturerRow> listTeachingLecturersForAdministrativeClass(UUID administrativeClassId) {
+        return repository.findAllWithLecturerByAdministrativeClassId(administrativeClassId).stream()
+                .map(LecturerCourseClass::getLecturer)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(
+                        Lecturer::getLecturerId,
+                        Function.identity(),
+                        (a, b) -> a,
+                        LinkedHashMap::new))
+                .values().stream()
+                .sorted(Comparator.comparing(Lecturer::getLecturerCode,
+                        Comparator.nullsLast(String::compareToIgnoreCase)))
+                .map(l -> new CohortTeachingLecturerRow(
+                        l.getLecturerId(),
+                        l.getLecturerCode(),
+                        l.getFullName()))
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public byte[] exportExcel() throws Exception {
         try (Workbook workbook = new XSSFWorkbook()) {
@@ -138,10 +205,12 @@ public class LecturerCourseClassService {
             header.createCell(2).setCellValue("Course Code");
             header.createCell(3).setCellValue("Course Name");
             header.createCell(4).setCellValue("Semester Code");
-            header.createCell(5).setCellValue("Lecturer Code");
-            header.createCell(6).setCellValue("Lecturer Name");
-            header.createCell(7).setCellValue("Faculty");
-            header.createCell(8).setCellValue("Note");
+            header.createCell(5).setCellValue("Administrative class code");
+            header.createCell(6).setCellValue("Administrative class name");
+            header.createCell(7).setCellValue("Lecturer Code");
+            header.createCell(8).setCellValue("Lecturer Name");
+            header.createCell(9).setCellValue("Faculty");
+            header.createCell(10).setCellValue("Note");
 
             List<LecturerCourseClass> list = repository.findAll(
                     Sort.by(Sort.Direction.ASC, "classSection.classCode")
@@ -157,10 +226,13 @@ public class LecturerCourseClassService {
                 row.createCell(2).setCellValue(cs != null && cs.getCourse() != null ? nullToEmpty(cs.getCourse().getCourseCode()) : "");
                 row.createCell(3).setCellValue(cs != null && cs.getCourse() != null ? nullToEmpty(cs.getCourse().getCourseName()) : "");
                 row.createCell(4).setCellValue(cs != null && cs.getSemester() != null ? nullToEmpty(cs.getSemester().getCode()) : "");
-                row.createCell(5).setCellValue(l != null ? nullToEmpty(l.getLecturerCode()) : "");
-                row.createCell(6).setCellValue(l != null ? nullToEmpty(l.getFullName()) : "");
-                row.createCell(7).setCellValue(l != null && l.getFaculty() != null ? nullToEmpty(l.getFaculty().getFacultyName()) : "");
-                row.createCell(8).setCellValue(nullToEmpty(e.getNote()));
+                ClassEntity ac = cs != null ? cs.getAdministrativeClass() : null;
+                row.createCell(5).setCellValue(ac != null ? nullToEmpty(ac.getClassCode()) : "");
+                row.createCell(6).setCellValue(ac != null ? nullToEmpty(ac.getClassName()) : "");
+                row.createCell(7).setCellValue(l != null ? nullToEmpty(l.getLecturerCode()) : "");
+                row.createCell(8).setCellValue(l != null ? nullToEmpty(l.getFullName()) : "");
+                row.createCell(9).setCellValue(l != null && l.getFaculty() != null ? nullToEmpty(l.getFaculty().getFacultyName()) : "");
+                row.createCell(10).setCellValue(nullToEmpty(e.getNote()));
             }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write(out);
@@ -177,9 +249,31 @@ public class LecturerCourseClassService {
         }
     }
 
+    /**
+     * Nếu lớp học phần chưa gắn lớp hành chính, thử khớp theo mã lớp + năm học của học kỳ (trùng với lớp trong QLĐT).
+     */
+    private void ensureAdministrativeClassLinked(ClassSection cs) {
+        if (cs == null || cs.getAdministrativeClass() != null) {
+            return;
+        }
+        if (cs.getSemester() == null || cs.getClassCode() == null || cs.getClassCode().isBlank()) {
+            return;
+        }
+        String year = cs.getSemester().getAcademicYear();
+        if (year == null || year.isBlank()) {
+            return;
+        }
+        classRepository.findByClassCodeIgnoreCaseAndAcademicYear(cs.getClassCode(), year)
+                .ifPresent(ac -> {
+                    cs.setAdministrativeClass(ac);
+                    classSectionRepository.save(cs);
+                });
+    }
+
     private LecturerCourseClass build(LecturerCourseClass entity, LecturerCourseClassRequest req) {
         ClassSection cs = classSectionRepository.findById(req.getClassSectionId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học phần"));
+        ensureAdministrativeClassLinked(cs);
         Lecturer lecturer = lecturerRepository.findById(req.getLecturerId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giảng viên"));
 
@@ -204,6 +298,7 @@ public class LecturerCourseClassService {
         String facultyName = (l != null && l.getFaculty() != null)
                 ? l.getFaculty().getFacultyName()
                 : null;
+        ClassEntity ac = cs != null ? cs.getAdministrativeClass() : null;
         return new LecturerCourseClassResponse(
                 e.getId(),
                 cs != null ? cs.getId() : null,
@@ -212,6 +307,9 @@ public class LecturerCourseClassService {
                 courseCode,
                 courseName,
                 semesterCode,
+                ac != null ? ac.getClassId() : null,
+                ac != null ? ac.getClassCode() : null,
+                ac != null ? ac.getClassName() : null,
                 l != null ? l.getLecturerId() : null,
                 l != null ? l.getLecturerCode() : null,
                 l != null ? l.getFullName() : null,

@@ -1,5 +1,6 @@
 package com.example.stduents_management.classsection.entity;
 
+import com.example.stduents_management.classroom.entity.ClassEntity;
 import com.example.stduents_management.course.entity.Course;
 import com.example.stduents_management.room.entity.Room;
 import com.example.stduents_management.semester.entity.Semester;
@@ -35,6 +36,13 @@ public class ClassSection {
 
     @Column(name = "class_name", nullable = false, columnDefinition = "NVARCHAR(200)")
     private String className;
+
+    /**
+     * Lớp hành chính (niên khóa) mà lớp học phần này thuộc về — dùng để đồng bộ phân công GV với “lớp” trong QLĐT.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "administrative_class_id")
+    private ClassEntity administrativeClass;
 
     @Column(name = "max_students", nullable = false)
     private Integer maxStudents;

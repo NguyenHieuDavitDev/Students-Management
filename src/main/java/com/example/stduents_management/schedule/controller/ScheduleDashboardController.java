@@ -41,6 +41,11 @@ public class ScheduleDashboardController {
     private final RoomRepository roomRepository;
     private final TimeSlotRepository timeSlotRepository;
 
+    @GetMapping("/calendar")
+    public String calendar() {
+        return "schedules/calendar";
+    }
+
     @GetMapping
     public String index(
             @RequestParam(required = false) String keyword,
@@ -75,7 +80,7 @@ public class ScheduleDashboardController {
             return "schedules/form";
         }
         try {
-            service.create(req);
+            service.create(req); // UUID ignored — redirect danh sách
             redirect.addFlashAttribute("success", "Thêm lịch học thành công");
             return "redirect:/admin/schedules";
         } catch (ResponseStatusException e) {
@@ -162,6 +167,8 @@ public class ScheduleDashboardController {
         try {
             service.importExcel(file);
             redirect.addFlashAttribute("success", "Import lịch học thành công");
+        } catch (ResponseStatusException e) {
+            redirect.addFlashAttribute("error", e.getReason() != null ? e.getReason() : e.getMessage());
         } catch (Exception e) {
             redirect.addFlashAttribute("error", "Import không thành công: " + e.getMessage());
         }
@@ -173,6 +180,7 @@ public class ScheduleDashboardController {
         model.addAttribute("autoScheduleRequest", new AutoScheduleRequest());
         model.addAttribute("semesters", semesterRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate")));
         model.addAttribute("classSections", classSectionRepository.findAll(Sort.by("classCode")));
+        model.addAttribute("timeSlots", timeSlotRepository.findByIsActiveTrueOrderBySlotCode());
         return "schedules/auto";
     }
 
@@ -186,6 +194,7 @@ public class ScheduleDashboardController {
         if (result.hasErrors()) {
             model.addAttribute("semesters", semesterRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate")));
             model.addAttribute("classSections", classSectionRepository.findAll(Sort.by("classCode")));
+            model.addAttribute("timeSlots", timeSlotRepository.findByIsActiveTrueOrderBySlotCode());
             return "schedules/auto";
         }
         try {
@@ -198,6 +207,7 @@ public class ScheduleDashboardController {
             model.addAttribute("autoScheduleRequest", req);
             model.addAttribute("semesters", semesterRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate")));
             model.addAttribute("classSections", classSectionRepository.findAll(Sort.by("classCode")));
+            model.addAttribute("timeSlots", timeSlotRepository.findByIsActiveTrueOrderBySlotCode());
             model.addAttribute("globalError", e.getReason());
             return "schedules/auto";
         }

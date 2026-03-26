@@ -26,7 +26,9 @@ public interface ClassSectionRepository extends JpaRepository<ClassSection, Long
               or lower(cs.className) like lower(concat('%', :keyword, '%'))
               or lower(cs.course.courseCode) like lower(concat('%', :keyword, '%'))
               or lower(cs.course.courseName) like lower(concat('%', :keyword, '%'))
-              or lower(cs.semester.code) like lower(concat('%', :keyword, '%')))
+              or lower(cs.semester.code) like lower(concat('%', :keyword, '%'))
+              or lower(cs.administrativeClass.classCode) like lower(concat('%', :keyword, '%'))
+              or lower(cs.administrativeClass.className) like lower(concat('%', :keyword, '%')))
            """)
     Page<ClassSection> searchByClassCodeOrClassNameOrCourseOrSemester(
             @Param("keyword") String keyword,
@@ -34,4 +36,6 @@ public interface ClassSectionRepository extends JpaRepository<ClassSection, Long
     );
 
     Optional<ClassSection> findByClassCodeIgnoreCase(String classCode);
+
+    Optional<ClassSection> findByClassCodeIgnoreCaseAndSemester_Id(String classCode, Long semesterId);
 }

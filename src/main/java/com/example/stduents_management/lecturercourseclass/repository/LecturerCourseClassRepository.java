@@ -9,10 +9,21 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface LecturerCourseClassRepository extends JpaRepository<LecturerCourseClass, Long> {
 
     List<LecturerCourseClass> findByClassSection_Semester_IdOrderByClassSection_ClassCode(Long semesterId);
+
+    @Query("""
+            SELECT lcc FROM LecturerCourseClass lcc
+            JOIN FETCH lcc.classSection cs
+            JOIN FETCH cs.course
+            JOIN FETCH lcc.lecturer
+            WHERE cs.semester.id = :semesterId
+            ORDER BY cs.classCode ASC
+            """)
+    List<LecturerCourseClass> findWithSectionAndCourseAndLecturerBySemesterId(@Param("semesterId") Long semesterId);
 
     boolean existsByClassSection_IdAndLecturer_LecturerId(Long classSectionId, java.util.UUID lecturerId);
 
@@ -38,6 +49,8 @@ public interface LecturerCourseClassRepository extends JpaRepository<LecturerCou
               or lower(lcc.classSection.course.courseCode) like lower(concat('%', :keyword, '%'))
               or lower(lcc.classSection.course.courseName) like lower(concat('%', :keyword, '%'))
               or lower(lcc.classSection.semester.code) like lower(concat('%', :keyword, '%'))
+              or lower(lcc.classSection.administrativeClass.classCode) like lower(concat('%', :keyword, '%'))
+              or lower(lcc.classSection.administrativeClass.className) like lower(concat('%', :keyword, '%'))
               or lower(lcc.lecturer.lecturerCode) like lower(concat('%', :keyword, '%'))
               or lower(lcc.lecturer.fullName) like lower(concat('%', :keyword, '%'))
            )
@@ -46,5 +59,24 @@ public interface LecturerCourseClassRepository extends JpaRepository<LecturerCou
             @Param("keyword") String keyword,
             Pageable pageable
     );
+
+    @Query("""
+            SELECT lcc FROM LecturerCourseClass lcc
+            JOIN FETCH lcc.classSection cs
+            LEFT JOIN FETCH cs.administrativeClass
+            JOIN FETCH cs.course
+            JOIN FETCH cs.semester
+            WHERE lcc.lecturer.lecturerId = :lecturerId
+            ORDER BY cs.semester.id DESC, cs.classCode ASC
+            """)
+    List<LecturerCourseClass> findAllWithSectionGraphByLecturerId(@Param("lecturerId") UUID lecturerId);
+
+    @Query("""
+            SELECT lcc FROM LecturerCourseClass lcc
+            JOIN FETCH lcc.lecturer
+            WHERE lcc.classSection.administrativeClass.classId = :administrativeClassId
+            """)
+    List<LecturerCourseClass> findAllWithLecturerByAdministrativeClassId(
+            @Param("administrativeClassId") UUID administrativeClassId);
 }
 

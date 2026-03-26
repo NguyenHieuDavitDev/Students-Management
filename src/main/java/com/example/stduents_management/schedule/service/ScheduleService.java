@@ -11,10 +11,12 @@ import com.example.stduents_management.room.entity.Room;
 import com.example.stduents_management.room.repository.RoomRepository;
 import com.example.stduents_management.schedule.dto.AutoScheduleRequest;
 import com.example.stduents_management.schedule.dto.AutoScheduleResult;
+import com.example.stduents_management.schedule.dto.ScheduleCalendarEventResponse;
 import com.example.stduents_management.schedule.dto.ScheduleRequest;
 import com.example.stduents_management.schedule.dto.ScheduleResponse;
 import com.example.stduents_management.schedule.entity.*;
 import com.example.stduents_management.schedule.repository.ScheduleRepository;
+import com.example.stduents_management.scheduleoverride.repository.ScheduleOverrideRepository;
 import com.example.stduents_management.semester.entity.Semester;
 import com.example.stduents_management.semester.repository.SemesterRepository;
 import com.example.stduents_management.timeslot.entity.TimeSlot;
@@ -30,6 +32,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayOutputStream;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.Locale;
 
@@ -44,7 +50,9 @@ public class ScheduleService {
     private final RoomRepository roomRepository;
     private final TimeSlotRepository timeSlotRepository;
     private final LecturerCourseClassRepository lecturerCourseClassRepository;
+    private final ScheduleOverrideRepository scheduleOverrideRepository;
 
+    @Transactional(readOnly = true)
     public Page<ScheduleResponse> search(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("dayOfWeek").and(Sort.by("timeSlot.slotCode")));
         Page<Schedule> data =
@@ -54,6 +62,7 @@ public class ScheduleService {
         return data.map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     public ScheduleResponse getById(UUID id) {
         return repository.findById(id)
                 .map(this::toResponse)
@@ -62,7 +71,7 @@ public class ScheduleService {
     }
 
     @Transactional
-    public void create(ScheduleRequest req) {
+    public UUID create(ScheduleRequest req) {
         Schedule s = new Schedule();
         s.setSemester(semesterRepository.findById(req.getSemesterId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy học kỳ")));
@@ -74,8 +83,10 @@ public class ScheduleService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy phòng")));
         s.setTimeSlot(timeSlotRepository.findById(req.getTimeSlotId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy khung giờ")));
+        assertClassSectionMatchesSemester(s.getClassSection(), s.getSemester());
         setCommon(s, req);
-        repository.save(s);
+        validateWeekRange(s.getStartWeek(), s.getEndWeek());
+        return repository.save(s).getId();
     }
 
     @Transactional
@@ -92,7 +103,10 @@ public class ScheduleService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy phòng")));
         s.setTimeSlot(timeSlotRepository.findById(req.getTimeSlotId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy khung giờ")));
+        assertClassSectionMatchesSemester(s.getClassSection(), s.getSemester());
         setCommon(s, req);
+        validateWeekRange(s.getStartWeek(), s.getEndWeek());
+        repository.save(s);
     }
 
     @Transactional
@@ -100,25 +114,30 @@ public class ScheduleService {
         if (!repository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch học");
         }
+        scheduleOverrideRepository.deleteByScheduleId(id);
         repository.deleteById(id);
     }
 
     /**
-     * Phân lịch tự động bằng thuật toán tham lam: với mỗi cặp (lớp học phần, giảng viên) từ phân công,
-     * gán lần lượt các buổi (lý thuyết/thực hành) vào ô (thứ, khung giờ, phòng) đầu tiên còn trống
-     * (không trùng giảng viên, phòng, lớp).
+     * Phân lịch tự động: mỗi lớp (theo phân công GV) một dòng lịch cố định (thứ + tiết) lặp mỗi tuần.
+     * Tổng số buổi = số tuần liên tiếp: 3 tín chỉ → 15 buổi, 2 TC → 10 buổi, 1 TC → 5 buổi.
+     * Chỉ thử các khung giờ người dùng chọn, theo thứ 2→6 và thứ tự tiết đã chọn.
      */
     @Transactional
     public AutoScheduleResult generateAutoSchedule(AutoScheduleRequest req) {
         Semester semester = semesterRepository.findById(req.getSemesterId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy học kỳ"));
         int startWeek = req.getStartWeek() != null ? req.getStartWeek() : 1;
-        int endWeek = req.getEndWeek() != null ? req.getEndWeek() : 15;
-        if (startWeek > endWeek) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tuần bắt đầu phải <= tuần kết thúc");
+        if (startWeek < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tuần bắt đầu phải >= 1");
+        }
+        List<Integer> allowedIds = req.getAllowedTimeSlotIds();
+        if (allowedIds == null || allowedIds.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chọn ít nhất một tiết (khung giờ) được phép xếp lịch");
         }
 
         if (Boolean.TRUE.equals(req.getClearExisting())) {
+            scheduleOverrideRepository.deleteByScheduleSemesterId(semester.getId());
             List<Schedule> existing = repository.findBySemester_Id(semester.getId());
             repository.deleteAll(existing);
         }
@@ -136,108 +155,301 @@ public class ScheduleService {
         }
 
         List<Room> rooms = roomRepository.findByIsActiveTrue();
-        List<TimeSlot> timeSlots = timeSlotRepository.findByIsActiveTrueOrderBySlotCode();
-        if (rooms.isEmpty() || timeSlots.isEmpty()) {
+        List<TimeSlot> activeSlots = timeSlotRepository.findByIsActiveTrueOrderBySlotCode();
+        if (rooms.isEmpty() || activeSlots.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Cần có ít nhất một phòng và một khung giờ đang hoạt động.");
         }
+        Map<Integer, TimeSlot> timeSlotById = new HashMap<>();
+        for (TimeSlot ts : activeSlots) {
+            timeSlotById.put(ts.getId(), ts);
+        }
+        LinkedHashSet<Integer> allowedUnique = new LinkedHashSet<>(allowedIds);
+        for (Integer sid : allowedUnique) {
+            if (!timeSlotById.containsKey(sid)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Khung giờ id=" + sid + " không tồn tại hoặc không đang hoạt động.");
+            }
+        }
 
-        List<int[]> slotOrder = new ArrayList<>();
+        List<int[]> candidateOrder = new ArrayList<>();
         for (int day = 2; day <= 6; day++) {
-            for (TimeSlot ts : timeSlots) {
-                slotOrder.add(new int[]{day, ts.getId()});
+            for (Integer sid : allowedUnique) {
+                candidateOrder.add(new int[]{day, sid});
             }
         }
 
         List<LecturerCourseClass> assignments = lecturerCourseClassRepository
-                .findByClassSection_Semester_IdOrderByClassSection_ClassCode(semester.getId());
+                .findWithSectionAndCourseAndLecturerBySemesterId(semester.getId());
         List<ClassSection> openSections = classSectionRepository.findBySemester_IdAndStatus(semester.getId(), ClassSectionStatus.OPEN);
         Set<Long> openSectionIds = new HashSet<>();
-        for (ClassSection cs : openSections) openSectionIds.add(cs.getId());
+        for (ClassSection cs : openSections) {
+            openSectionIds.add(cs.getId());
+        }
 
-        // Nếu người dùng chọn một số lớp cụ thể thì chỉ phân lịch cho các lớp đó
         Set<Long> selectedSectionIds = new HashSet<>();
         if (req.getClassSectionIds() != null) {
             selectedSectionIds.addAll(req.getClassSectionIds());
         }
 
-        List<ScheduleTask> tasks = new ArrayList<>();
+        int createdCount = 0;
+        int skippedCount = 0;
         for (LecturerCourseClass lcc : assignments) {
             Long csId = lcc.getClassSection().getId();
-            if (!openSectionIds.contains(csId)) continue;
-            if (!selectedSectionIds.isEmpty() && !selectedSectionIds.contains(csId)) continue;
+            if (!openSectionIds.contains(csId)) {
+                continue;
+            }
+            if (!selectedSectionIds.isEmpty() && !selectedSectionIds.contains(csId)) {
+                continue;
+            }
 
             ClassSection cs = lcc.getClassSection();
             Lecturer lec = lcc.getLecturer();
-            Integer lh = cs.getCourse() != null ? cs.getCourse().getLectureHours() : null;
-            Integer ph = cs.getCourse() != null ? cs.getCourse().getPracticeHours() : null;
-            int theorySlots = (lh != null && lh > 0) ? Math.min(4, (lh + 1) / 2) : 2;
-            int practiceSlots = (ph != null && ph > 0) ? Math.min(2, (ph + 1) / 2) : 1;
-            for (int t = 0; t < theorySlots; t++) {
-                tasks.add(new ScheduleTask(cs, lec, SessionType.THEORY));
+            Integer credits = cs.getCourse() != null ? cs.getCourse().getCredits() : null;
+            int totalSessions = totalSessionsForCredits(credits);
+            int endWeek = startWeek + totalSessions - 1;
+            if (endWeek > 53) {
+                skippedCount++;
+                continue;
             }
-            for (int p = 0; p < practiceSlots; p++) {
-                tasks.add(new ScheduleTask(cs, lec, SessionType.PRACTICE));
-            }
-        }
 
-        int createdCount = 0;
-        int skippedCount = 0;
-        for (ScheduleTask task : tasks) {
             boolean placed = false;
-            for (int[] daySlot : slotOrder) {
+            for (int[] daySlot : candidateOrder) {
                 int day = daySlot[0];
                 int timeSlotId = daySlot[1];
                 String key = day + "_" + timeSlotId;
-                if (lecturerBusy.contains(key + "_" + task.lecturer.getLecturerId())) continue;
-                if (classSectionBusy.contains(key + "_" + task.classSection.getId())) continue;
+                if (lecturerBusy.contains(key + "_" + lec.getLecturerId())) {
+                    continue;
+                }
+                if (classSectionBusy.contains(key + "_" + cs.getId())) {
+                    continue;
+                }
                 for (Room room : rooms) {
-                    if (roomBusy.contains(key + "_" + room.getRoomId())) continue;
-                    TimeSlot slot = timeSlotRepository.findById(timeSlotId).orElse(null);
-                    if (slot == null) continue;
+                    if (roomBusy.contains(key + "_" + room.getRoomId())) {
+                        continue;
+                    }
+                    TimeSlot slot = timeSlotById.get(timeSlotId);
+                    if (slot == null) {
+                        continue;
+                    }
                     Schedule s = new Schedule();
                     s.setSemester(semester);
-                    s.setClassSection(task.classSection);
-                    s.setLecturer(task.lecturer);
+                    s.setClassSection(cs);
+                    s.setLecturer(lec);
                     s.setRoom(room);
                     s.setTimeSlot(slot);
                     s.setDayOfWeek(day);
                     s.setStartWeek(startWeek);
                     s.setEndWeek(endWeek);
                     s.setWeekPattern(WeekPattern.ALL);
-                    s.setSessionType(task.sessionType);
+                    s.setSessionType(SessionType.THEORY);
                     s.setScheduleType(ScheduleType.NORMAL);
                     s.setStatus(ScheduleStatus.ACTIVE);
                     repository.save(s);
-                    lecturerBusy.add(key + "_" + task.lecturer.getLecturerId());
+                    lecturerBusy.add(key + "_" + lec.getLecturerId());
                     roomBusy.add(key + "_" + room.getRoomId());
-                    classSectionBusy.add(key + "_" + task.classSection.getId());
+                    classSectionBusy.add(key + "_" + cs.getId());
                     createdCount++;
                     placed = true;
                     break;
                 }
-                if (placed) break;
+                if (placed) {
+                    break;
+                }
             }
-            if (!placed) skippedCount++;
+            if (!placed) {
+                skippedCount++;
+            }
         }
 
-        String message = String.format("Phân lịch xong: tạo %d buổi, không xếp được %d buổi (thiếu ô trống).",
+        String message = String.format(
+                "Phân lịch xong: đã xếp %d lớp (mỗi lớp 1 dòng lặp theo tuần; 1/2/3 tín chỉ → 5/10/15 buổi), "
+                        + "%d lớp không xếp được (hết ô trống hoặc tuần bắt đầu quá muộn).",
                 createdCount, skippedCount);
         return new AutoScheduleResult(createdCount, skippedCount, message);
     }
 
-    private static class ScheduleTask {
-        final ClassSection classSection;
-        final Lecturer lecturer;
-        final SessionType sessionType;
-
-        ScheduleTask(ClassSection classSection, Lecturer lecturer, SessionType sessionType) {
-            this.classSection = classSection;
-            this.lecturer = lecturer;
-            this.sessionType = sessionType;
+    @Transactional(readOnly = true)
+    public List<ScheduleCalendarEventResponse> listCalendarEvents(Long semesterId, LocalDate from, LocalDate to) {
+        Semester sem = semesterRepository.findById(semesterId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy học kỳ"));
+        LocalDate anchorMonday = semesterAnchorMonday(sem);
+        List<Schedule> list = repository.findBySemesterIdWithDetails(semesterId);
+        List<ScheduleCalendarEventResponse> out = new ArrayList<>();
+        for (Schedule s : list) {
+            TimeSlot slot = s.getTimeSlot();
+            if (slot == null) {
+                continue;
+            }
+            int sw = s.getStartWeek();
+            int ew = s.getEndWeek();
+            for (int w = sw; w <= ew; w++) {
+                LocalDate d = dateForSemesterWeekAndDay(anchorMonday, w, s.getDayOfWeek());
+                if (from != null && d.isBefore(from)) {
+                    continue;
+                }
+                if (to != null && d.isAfter(to)) {
+                    continue;
+                }
+                LocalDateTime start = LocalDateTime.of(d, slot.getStartTime());
+                LocalDateTime end = LocalDateTime.of(d, slot.getEndTime());
+                if (!end.isAfter(start)) {
+                    end = end.plusDays(1);
+                }
+                String eid = s.getId() + "-" + w;
+                Map<String, Object> props = calendarExtendedProps(s);
+                out.add(new ScheduleCalendarEventResponse(
+                        eid,
+                        buildEventTitle(s),
+                        start,
+                        end,
+                        colorForScheduleId(s.getId()),
+                        props
+                ));
+            }
         }
+        return out;
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, Object> getCalendarMeta() {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("semesters", semesterRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate")).stream()
+                .map(s -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", s.getId());
+                    m.put("code", s.getCode());
+                    m.put("name", s.getName());
+                    m.put("startDate", s.getStartDate() != null ? s.getStartDate().toString() : null);
+                    return m;
+                })
+                .toList());
+        map.put("classSections", classSectionRepository.findAll(Sort.by("classCode")).stream()
+                .map(cs -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", cs.getId());
+                    m.put("classCode", cs.getClassCode());
+                    m.put("className", cs.getClassName());
+                    m.put("semesterId", cs.getSemester() != null ? cs.getSemester().getId() : null);
+                    return m;
+                })
+                .toList());
+        map.put("lecturers", lecturerRepository.findAll(Sort.by("lecturerCode")).stream()
+                .map(l -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("lecturerId", l.getLecturerId().toString());
+                    m.put("lecturerCode", l.getLecturerCode());
+                    m.put("fullName", l.getFullName());
+                    return m;
+                })
+                .toList());
+        map.put("rooms", roomRepository.findAll(Sort.by("roomCode")).stream()
+                .map(r -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("roomId", r.getRoomId());
+                    m.put("roomCode", r.getRoomCode());
+                    m.put("roomName", r.getRoomName());
+                    return m;
+                })
+                .toList());
+        map.put("timeSlots", timeSlotRepository.findAll(Sort.by("slotCode")).stream()
+                .map(ts -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", ts.getId());
+                    m.put("slotCode", ts.getSlotCode());
+                    m.put("startTime", ts.getStartTime() != null ? ts.getStartTime().toString() : null);
+                    m.put("endTime", ts.getEndTime() != null ? ts.getEndTime().toString() : null);
+                    return m;
+                })
+                .toList());
+        map.put("weekPatterns", Arrays.stream(WeekPattern.values()).map(Enum::name).toList());
+        map.put("sessionTypes", Arrays.stream(SessionType.values()).map(Enum::name).toList());
+        map.put("scheduleTypes", Arrays.stream(ScheduleType.values()).map(Enum::name).toList());
+        map.put("scheduleStatuses", Arrays.stream(ScheduleStatus.values()).map(Enum::name).toList());
+        return map;
+    }
+
+    private static int totalSessionsForCredits(Integer credits) {
+        if (credits == null) {
+            return 15;
+        }
+        return switch (credits) {
+            case 1 -> 5;
+            case 2 -> 10;
+            case 3 -> 15;
+            default -> 15;
+        };
+    }
+
+    private static LocalDate semesterAnchorMonday(Semester sem) {
+        LocalDate d = sem.getStartDate();
+        if (d == null) {
+            d = LocalDate.now();
+        }
+        return d.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    }
+
+    private static LocalDate dateForSemesterWeekAndDay(LocalDate week1Monday, int weekNumber, int dayModel) {
+        int mondayBasedOffset = (dayModel == 8) ? 6 : (dayModel - 2);
+        return week1Monday.plusWeeks(weekNumber - 1L).plusDays(mondayBasedOffset);
+    }
+
+    private static String buildEventTitle(Schedule s) {
+        ClassSection cs = s.getClassSection();
+        String course = (cs != null && cs.getCourse() != null) ? cs.getCourse().getCourseCode() : "";
+        String cc = cs != null ? cs.getClassCode() : "";
+        String room = s.getRoom() != null ? s.getRoom().getRoomCode() : "";
+        String lec = s.getLecturer() != null ? s.getLecturer().getFullName() : "";
+        StringBuilder sb = new StringBuilder();
+        if (!course.isEmpty()) {
+            sb.append(course);
+        }
+        if (!cc.isEmpty()) {
+            if (sb.length() > 0) {
+                sb.append(" · ");
+            }
+            sb.append(cc);
+        }
+        if (!room.isEmpty()) {
+            if (sb.length() > 0) {
+                sb.append(" · ");
+            }
+            sb.append(room);
+        }
+        if (!lec.isEmpty()) {
+            if (sb.length() > 0) {
+                sb.append(" · ");
+            }
+            sb.append(lec);
+        }
+        return sb.length() > 0 ? sb.toString() : "Lịch học";
+    }
+
+    private static Map<String, Object> calendarExtendedProps(Schedule s) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("scheduleId", s.getId().toString());
+        m.put("semesterId", s.getSemester() != null ? s.getSemester().getId() : null);
+        m.put("classSectionId", s.getClassSection() != null ? s.getClassSection().getId() : null);
+        m.put("lecturerId", s.getLecturer() != null ? s.getLecturer().getLecturerId().toString() : null);
+        m.put("roomId", s.getRoom() != null ? s.getRoom().getRoomId() : null);
+        m.put("timeSlotId", s.getTimeSlot() != null ? s.getTimeSlot().getId() : null);
+        m.put("dayOfWeek", s.getDayOfWeek());
+        m.put("startWeek", s.getStartWeek());
+        m.put("endWeek", s.getEndWeek());
+        m.put("weekPattern", s.getWeekPattern() != null ? s.getWeekPattern().name() : null);
+        m.put("sessionType", s.getSessionType() != null ? s.getSessionType().name() : null);
+        m.put("scheduleType", s.getScheduleType() != null ? s.getScheduleType().name() : null);
+        m.put("status", s.getStatus() != null ? s.getStatus().name() : null);
+        m.put("note", s.getNote());
+        return m;
+    }
+
+    private static String colorForScheduleId(UUID id) {
+        int h = Math.floorMod(id.hashCode(), 0xffffff);
+        return String.format("#%06x", h);
+    }
+
+    @Transactional(readOnly = true)
     public List<ScheduleResponse> getForPrint() {
         return repository.findAll(Sort.by("semester.code").and(Sort.by("dayOfWeek")).and(Sort.by("timeSlot.slotCode")))
                 .stream()
@@ -263,8 +475,10 @@ public class ScheduleService {
                 final int rowNum = i + 1;
                 Semester sem = semesterRepository.findByCodeIgnoreCase(semesterCode.trim())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dòng " + rowNum + ": Không tìm thấy học kỳ " + semesterCode));
-                ClassSection cs = classSectionRepository.findByClassCodeIgnoreCase(classCode.trim())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dòng " + rowNum + ": Không tìm thấy lớp " + classCode));
+                ClassSection cs = classSectionRepository
+                        .findByClassCodeIgnoreCaseAndSemester_Id(classCode.trim(), sem.getId())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Dòng " + rowNum + ": Không tìm thấy lớp " + classCode + " trong học kỳ " + semesterCode));
                 Lecturer lec = lecturerRepository.findByLecturerCodeIgnoreCase(lecturerCode.trim())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dòng " + rowNum + ": Không tìm thấy GV " + lecturerCode));
                 Room room = roomRepository.findByRoomCodeIgnoreCase(roomCode.trim())
@@ -278,6 +492,10 @@ public class ScheduleService {
                 if (dayOfWeek == null || dayOfWeek < 2 || dayOfWeek > 8) dayOfWeek = 2;
                 if (startWeek == null) startWeek = 1;
                 if (endWeek == null) endWeek = 15;
+                if (startWeek > endWeek) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Dòng " + rowNum + ": Tuần bắt đầu phải <= tuần kết thúc");
+                }
 
                 WeekPattern wp = readEnum(row, 8, formatter, WeekPattern.class, WeekPattern.ALL);
                 SessionType st = readEnum(row, 9, formatter, SessionType.class, SessionType.THEORY);
@@ -304,6 +522,7 @@ public class ScheduleService {
         }
     }
 
+    @Transactional(readOnly = true)
     public byte[] exportExcel() throws Exception {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Schedules");
@@ -333,6 +552,19 @@ public class ScheduleService {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write(out);
             return out.toByteArray();
+        }
+    }
+
+    private static void assertClassSectionMatchesSemester(ClassSection cs, Semester semester) {
+        if (cs == null || semester == null) return;
+        if (cs.getSemester() == null || !cs.getSemester().getId().equals(semester.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lớp học phần không thuộc học kỳ đã chọn");
+        }
+    }
+
+    private static void validateWeekRange(Integer startWeek, Integer endWeek) {
+        if (startWeek != null && endWeek != null && startWeek > endWeek) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tuần bắt đầu phải <= tuần kết thúc");
         }
     }
 

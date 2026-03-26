@@ -1,7 +1,7 @@
 package com.example.stduents_management.schedule.dto;
 
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,9 +18,11 @@ public class AutoScheduleRequest {
     @Min(value = 1, message = "Tuần bắt đầu từ 1")
     private Integer startWeek = 1;
 
-    @Min(value = 1, message = "Tuần kết thúc từ 1")
-    @Max(value = 53, message = "Tuần tối đa 53")
-    private Integer endWeek = 15;
+    /**
+     * Các khung giờ (tiết) được phép dùng khi xếp lịch — thứ tự ưu tiên khi thử ô trống.
+     */
+    @NotEmpty(message = "Chọn ít nhất một tiết (khung giờ) trong tuần")
+    private List<Integer> allowedTimeSlotIds;
 
     /**
      * Danh sách lớp học phần cần phân lịch.

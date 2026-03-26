@@ -345,22 +345,24 @@ CREATE TABLE [dbo].[users] (
 -- ── Phụ thuộc vào courses, semesters, rooms ──────────────────
 
 CREATE TABLE [dbo].[class_sections] (
-    [id]               bigint IDENTITY NOT NULL,
-    [class_code]       nvarchar(50),
-    [class_name]       nvarchar(200),
-    [created_at]       datetime2(6),
-    [current_students] int,
-    [max_students]     int,
-    [note]             nvarchar(500),
-    [room]             nvarchar(100),
-    [status]           varchar(30),
-    [updated_at]       datetime2(6),
-    [course_id]        uniqueidentifier,
-    [semester_id]      bigint,
-    [room_id]          bigint,
+    [id]                       bigint IDENTITY NOT NULL,
+    [class_code]               nvarchar(50),
+    [class_name]               nvarchar(200),
+    [created_at]               datetime2(6),
+    [current_students]         int,
+    [max_students]             int,
+    [note]                     nvarchar(500),
+    [room]                     nvarchar(100),
+    [status]                   varchar(30),
+    [updated_at]               datetime2(6),
+    [course_id]                uniqueidentifier,
+    [semester_id]              bigint,
+    [room_id]                  bigint,
+    [administrative_class_id]  uniqueidentifier,
     CONSTRAINT [FK695u7g15n5nfnaskhw3nhnsbw] FOREIGN KEY ([course_id])   REFERENCES [dbo].[courses]([id]),
     CONSTRAINT [FKtamlxyq4rm9ybyevrdtcbdbrb] FOREIGN KEY ([semester_id]) REFERENCES [dbo].[semesters]([id]),
     CONSTRAINT [FK3os9of6f2v5o94rgksgxfn24l] FOREIGN KEY ([room_id])     REFERENCES [dbo].[rooms]([id]),
+    CONSTRAINT [FK_class_sections_admin_class] FOREIGN KEY ([administrative_class_id]) REFERENCES [dbo].[classes]([class_id]),
     PRIMARY KEY ([id])
 );
 

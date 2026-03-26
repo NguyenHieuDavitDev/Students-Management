@@ -80,6 +80,7 @@
                         <th>Lớp học phần</th>
                         <th>Môn học</th>
                         <th>Học kỳ</th>
+                        <th>Lớp hành chính</th>
                         <th>Giảng viên</th>
                         <th>Khoa</th>
                         <th>Ghi chú</th>
@@ -97,6 +98,11 @@
                             <span th:text="${#strings.isEmpty(txt) ? '—' : txt}">—</span>
                         </td>
                         <td th:text="${i.semesterCode}"></td>
+                        <td>
+                            <span th:if="${i.administrativeClassCode != null}"
+                                  th:text="|${i.administrativeClassCode} — ${i.administrativeClassName}|"></span>
+                            <span class="text-muted small" th:if="${i.administrativeClassCode == null}">—</span>
+                        </td>
                         <td>
                             <div class="fw-semibold" th:text="${i.lecturerCode}"></div>
                             <div class="text-muted small" th:text="${i.lecturerName}"></div>
@@ -122,7 +128,7 @@
                     </tr>
 
                     <tr th:if="${items.content.isEmpty()}">
-                        <td colspan="7" class="text-center text-muted">
+                        <td colspan="8" class="text-center text-muted">
                             <i class="fa-solid fa-box-open"></i>
                             Không có dữ liệu phân công giảng viên
                         </td>

@@ -131,6 +131,37 @@
         </div>
     </div>
 
+    <div class="card mt-4" th:if="${mode}=='edit'">
+        <div class="card-header fw-semibold">
+            Giảng viên giảng dạy lớp này (tự động từ phân công lớp học phần)
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-2">
+                Danh sách lấy từ module <strong>Phân công giảng viên</strong>, khi lớp học phần được gắn đúng
+                <strong>lớp hành chính</strong> (mã lớp + năm học khớp, hoặc chọn tay ở lớp học phần).
+            </p>
+            <div class="table-responsive" th:if="${cohortTeachingLecturers != null and !cohortTeachingLecturers.isEmpty()}">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Mã GV</th>
+                        <th>Họ tên</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="g : ${cohortTeachingLecturers}">
+                        <td th:text="${g.lecturerCode}"></td>
+                        <td th:text="${g.lecturerName}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-muted mb-0" th:if="${cohortTeachingLecturers == null or cohortTeachingLecturers.isEmpty()}">
+                Chưa có phân công nào gắn với lớp hành chính này.
+            </p>
+        </div>
+    </div>
+
 </div>
 </body>
 </html>

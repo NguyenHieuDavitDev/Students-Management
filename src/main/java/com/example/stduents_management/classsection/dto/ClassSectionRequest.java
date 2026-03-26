@@ -41,6 +41,9 @@ public class ClassSectionRequest {
 
     private Long roomId;
 
+    /** Lớp hành chính (tùy chọn) — gắn lớp học phần với khóa/lớp niên chế. */
+    private UUID administrativeClassId;
+
     @Size(max = 500)
     private String note;
 }

@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Lịch học — dạng lịch',
+        'Lịch học',
+        'Click ô trống để thêm; click sự kiện để sửa; kéo thả / kéo dài để đổi thứ hoặc tiết',
+        'schedules',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet"/>
+    <style>
+        #scheduleCalendar .fc .fc-button-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        #scheduleCalendar .fc .fc-button-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+        }
+        #scheduleCalendar .fc .fc-button-primary:not(:disabled).fc-button-active,
+        #scheduleCalendar .fc .fc-button-primary:not(:disabled):active {
+            background-color: #0a58ca;
+            border-color: #0a53be;
+        }
+        #scheduleCalendar .fc .fc-daygrid-day.fc-day-today { background: rgba(255, 243, 205, 0.6); }
+        #scheduleCalendar .fc .fc-event { cursor: grab; }
+        #scheduleCalendar .fc .fc-event:active { cursor: grabbing; }
+    </style>
+
+    <div id="calendarPageAlert" class="alert alert-danger d-none mb-3" role="alert"></div>
+    <div id="calendarPageSuccess" class="alert alert-success d-none mb-3" role="alert"></div>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <label class="form-label mb-0 fw-semibold">Học kỳ</label>
+            <select id="semesterSelect" class="form-select form-select-sm" style="min-width: 220px;"></select>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-outline-secondary" th:href="@{/admin/schedules}">
+                <i class="fa-solid fa-table-list"></i> Danh sách
+            </a>
+            <a class="btn btn-sm btn-outline-primary" th:href="@{/admin/schedules/new}">
+                <i class="fa-solid fa-plus"></i> Form thêm
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-2 p-md-3">
+            <div id="scheduleCalendar"></div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="scheduleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="scheduleModalTitle">Lịch học</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="modalGlobalError" class="alert alert-danger d-none"></div>
+                    <input type="hidden" id="f_scheduleId"/>
+                    <div id="scheduleReadPanel" class="card bg-light border mb-3 d-none">
+                        <div class="card-body py-2 px-3 small">
+                            <div class="fw-semibold text-secondary mb-2"><i class="fa-solid fa-circle-info me-1"></i>Thông tin lịch (đọc)</div>
+                            <div class="row g-2">
+                                <div class="col-md-6"><span class="text-muted">Học kỳ</span><br><span id="read_semester"></span></div>
+                                <div class="col-md-6"><span class="text-muted">Lớp HP / Môn</span><br><span id="read_classCourse"></span></div>
+                                <div class="col-md-6"><span class="text-muted">Giảng viên</span><br><span id="read_lecturer"></span></div>
+                                <div class="col-md-6"><span class="text-muted">Phòng · Tiết</span><br><span id="read_roomSlot"></span></div>
+                                <div class="col-md-6"><span class="text-muted">Thứ · Tuần</span><br><span id="read_dayWeeks"></span></div>
+                                <div class="col-md-6"><span class="text-muted">Loại buổi · Trạng thái</span><br><span id="read_typeStatus"></span></div>
+                            </div>
+                            <p class="text-muted mb-0 mt-2"><i class="fa-solid fa-pen me-1"></i>Sửa các trường bên dưới rồi <strong>Lưu</strong>; <strong>Xóa</strong> để xóa cả chuỗi lịch lặp.</p>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Học kỳ <span class="text-danger">*</span></label>
+                            <select id="f_semesterId" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Lớp học phần <span class="text-danger">*</span></label>
+                            <select id="f_classSectionId" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Giảng viên <span class="text-danger">*</span></label>
+                            <select id="f_lecturerId" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Phòng <span class="text-danger">*</span></label>
+                            <select id="f_roomId" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Khung giờ <span class="text-danger">*</span></label>
+                            <select id="f_timeSlotId" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Thứ (2–8)</label>
+                            <input type="number" min="2" max="8" id="f_dayOfWeek" class="form-control form-control-sm"/>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Tuần đầu</label>
+                            <input type="number" min="1" id="f_startWeek" class="form-control form-control-sm"/>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Tuần cuối</label>
+                            <input type="number" min="1" id="f_endWeek" class="form-control form-control-sm"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Kiểu tuần</label>
+                            <select id="f_weekPattern" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Loại buổi</label>
+                            <select id="f_sessionType" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Loại lịch</label>
+                            <select id="f_scheduleType" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Trạng thái</label>
+                            <select id="f_status" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Ghi chú</label>
+                            <input type="text" id="f_note" class="form-control form-control-sm" maxlength="255"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" id="btnDeleteSchedule" class="btn btn-outline-danger d-none">
+                        <i class="fa-solid fa-trash"></i> Xóa
+                    </button>
+                    <div class="ms-auto d-flex gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                        <button type="button" id="btnSaveSchedule" class="btn btn-primary">
+                            <i class="fa-solid fa-save"></i> Lưu
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.15/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales-all.global.min.js"></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const CSRF_TOKEN = /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
+        const CSRF_HEADER = /*[[${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}]]*/ 'X-CSRF-TOKEN';
+        const API_BASE = /*[[@{/admin/schedules/api}]]*/ '/admin/schedules/api';
+        /*]]>*/
+    </script>
+    <script>
+        (function () {
+            let meta = null;
+            let calendar = null;
+            /** Chặn mở modal sửa ngay sau khi kéo / resize (FullCalendar vẫn có thể bắn eventClick). */
+            let blockEventClickUntil = 0;
+            const modalEl = document.getElementById('scheduleModal');
+            const bsModal = new bootstrap.Modal(modalEl);
+            const btnSaveSchedule = document.getElementById('btnSaveSchedule');
+            const btnSaveDefaultHtml = btnSaveSchedule ? btnSaveSchedule.innerHTML : '';
+
+            function showPageError(msg) {
+                const el = document.getElementById('calendarPageAlert');
+                if (!el) return;
+                el.textContent = msg || 'Có lỗi';
+                el.classList.remove('d-none');
+            }
+            function hidePageError() {
+                const el = document.getElementById('calendarPageAlert');
+                if (el) el.classList.add('d-none');
+            }
+            function flashPageSuccess(msg) {
+                const el = document.getElementById('calendarPageSuccess');
+                if (!el) return;
+                el.textContent = msg;
+                el.classList.remove('d-none');
+                setTimeout(() => el.classList.add('d-none'), 3500);
+            }
+
+            function modelDayLabel(d) {
+                const n = {2: 'Thứ 2', 3: 'Thứ 3', 4: 'Thứ 4', 5: 'Thứ 5', 6: 'Thứ 6', 7: 'Thứ 7', 8: 'Chủ nhật'};
+                return n[d] || ('Thứ ' + d);
+            }
+
+            /** Chuẩn hóa sự kiện từ API (ngày giờ + extendedProps) cho FullCalendar. */
+            function normalizeEventInput(row) {
+                if (!row) return row;
+                const ep = Object.assign({}, row.extendedProps || {});
+                if (!ep.scheduleId && row.scheduleId) ep.scheduleId = row.scheduleId;
+                return {
+                    id: row.id,
+                    title: row.title,
+                    start: row.start,
+                    end: row.end,
+                    backgroundColor: row.backgroundColor,
+                    extendedProps: ep
+                };
+            }
+
+            function authHeaders(json) {
+                const h = {};
+                if (json) h['Content-Type'] = 'application/json';
+                if (CSRF_TOKEN) h[CSRF_HEADER] = CSRF_TOKEN;
+                return h;
+            }
+
+            async function readApiError(res) {
+                const t = await res.text();
+                if (!t) return res.statusText || ('HTTP ' + res.status);
+                try {
+                    const j = JSON.parse(t);
+                    return j.message || j.error || t;
+                } catch (e) {
+                    return t;
+                }
+            }
+
+            function eventScheduleId(fcEvent) {
+                const p = fcEvent.extendedProps || {};
+                if (p.scheduleId) return String(p.scheduleId);
+                const eid = String(fcEvent.id);
+                const parts = eid.split('-');
+                const last = parts[parts.length - 1];
+                if (/^\d+$/.test(last)) {
+                    parts.pop();
+                    return parts.join('-');
+                }
+                return eid;
+            }
+
+            function mondayOfDate(d) {
+                const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+                const day = x.getUTCDay();
+                const diff = day === 0 ? -6 : 1 - day;
+                x.setUTCDate(x.getUTCDate() + diff);
+                return x;
+            }
+
+            function parseIsoDate(s) {
+                if (!s) return null;
+                const p = s.split('-');
+                return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+            }
+
+            function weekNumberFromSemester(semesterStartStr, clickedDate) {
+                const sm = parseIsoDate(semesterStartStr);
+                if (!sm) return 1;
+                const cm = mondayOfDate(clickedDate);
+                const smUtc = mondayOfDate(sm);
+                const diffMs = cm.getTime() - smUtc.getTime();
+                return Math.floor(diffMs / (7 * 24 * 3600 * 1000)) + 1;
+            }
+
+            function jsDayToModel(jsDow) {
+                return jsDow === 0 ? 8 : jsDow + 1;
+            }
+
+            function parseTimeToMinutes(t) {
+                if (!t) return null;
+                const p = String(t).split(':');
+                return (+p[0]) * 60 + (+p[1] || 0);
+            }
+
+            function findNearestSlotByStartMinutes(totalMinutes) {
+                if (!meta || !meta.timeSlots || !meta.timeSlots.length) return null;
+                let best = null;
+                for (const ts of meta.timeSlots) {
+                    const sm = parseTimeToMinutes(ts.startTime);
+                    if (sm == null) continue;
+                    const d = Math.abs(sm - totalMinutes);
+                    if (!best || d < best.d) best = {id: ts.id, d};
+                }
+                return best ? best.id : meta.timeSlots[0].id;
+            }
+
+            function findNearestSlotByEndMinutes(totalMinutes) {
+                if (!meta || !meta.timeSlots || !meta.timeSlots.length) return null;
+                let best = null;
+                for (const ts of meta.timeSlots) {
+                    const em = parseTimeToMinutes(ts.endTime);
+                    if (em == null) continue;
+                    const d = Math.abs(em - totalMinutes);
+                    if (!best || d < best.d) best = {id: ts.id, d};
+                }
+                return best ? best.id : null;
+            }
+
+            async function persistScheduleMove(info, useEndForSlot, revertFunc) {
+                const scheduleId = eventScheduleId(info.event);
+                if (!scheduleId) {
+                    revertFunc();
+                    return;
+                }
+                try {
+                    const res = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {headers: authHeaders(false)});
+                    if (!res.ok) throw new Error(await readApiError(res));
+                    const r = await res.json();
+                    const start = info.event.start;
+                    const newDow = jsDayToModel(start.getDay());
+                    const hmStart = start.getHours() * 60 + start.getMinutes();
+                    let newSlotId = findNearestSlotByStartMinutes(hmStart);
+                    if (useEndForSlot && info.event.end) {
+                        const hmEnd = info.event.end.getHours() * 60 + info.event.end.getMinutes();
+                        const byEnd = findNearestSlotByEndMinutes(hmEnd);
+                        if (byEnd != null) {
+                            newSlotId = byEnd;
+                        }
+                    }
+                    if (newSlotId == null) {
+                        newSlotId = r.timeSlotId;
+                    }
+                    const payload = {
+                        semesterId: r.semesterId,
+                        classSectionId: r.classSectionId,
+                        lecturerId: r.lecturerId,
+                        roomId: r.roomId,
+                        timeSlotId: +newSlotId,
+                        dayOfWeek: newDow,
+                        startWeek: r.startWeek,
+                        endWeek: r.endWeek,
+                        weekPattern: r.weekPattern,
+                        sessionType: r.sessionType,
+                        scheduleType: r.scheduleType,
+                        status: r.status,
+                        note: r.note
+                    };
+                    const put = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {
+                        method: 'PUT',
+                        headers: authHeaders(true),
+                        body: JSON.stringify(payload)
+                    });
+                    if (!put.ok) throw new Error(await readApiError(put));
+                    hidePageError();
+                    flashPageSuccess('Đã cập nhật lịch sau khi kéo.');
+                    calendar.refetchEvents();
+                } catch (e) {
+                    showPageError('Không lưu được vị trí mới: ' + (e.message || e));
+                    revertFunc();
+                }
+            }
+
+            function fillSelect(sel, items, valueKey, labelFn, emptyLabel) {
+                sel.innerHTML = '';
+                if (emptyLabel) {
+                    const o = document.createElement('option');
+                    o.value = '';
+                    o.textContent = emptyLabel;
+                    sel.appendChild(o);
+                }
+                (items || []).forEach(it => {
+                    const o = document.createElement('option');
+                    const raw = it[valueKey];
+                    o.value = raw !== undefined && raw !== null ? String(raw) : '';
+                    o.textContent = labelFn(it);
+                    sel.appendChild(o);
+                });
+            }
+
+            function setSelectValue(selectId, value) {
+                const el = document.getElementById(selectId);
+                if (!el) return;
+                const want = value !== undefined && value !== null ? String(value) : '';
+                el.value = want;
+                if (el.value !== want && want !== '') {
+                    for (let i = 0; i < el.options.length; i++) {
+                        if (String(el.options[i].value) === want) {
+                            el.selectedIndex = i;
+                            return;
+                        }
+                    }
+                }
+            }
+
+            function enumSelect(sel, names) {
+                sel.innerHTML = '';
+                names.forEach(n => {
+                    const o = document.createElement('option');
+                    o.value = n;
+                    o.textContent = n;
+                    sel.appendChild(o);
+                });
+            }
+
+            function loadClassSectionsForSemester(semesterId) {
+                const sel = document.getElementById('f_classSectionId');
+                const sid = String(semesterId);
+                const list = (meta.classSections || []).filter(cs => String(cs.semesterId) === sid);
+                fillSelect(sel, list, 'id', cs => cs.classCode + ' — ' + cs.className, null);
+            }
+
+            function openModalCreate(clickedDate, viewType) {
+                document.getElementById('scheduleModalTitle').textContent = 'Thêm lịch học (Create)';
+                document.getElementById('f_scheduleId').value = '';
+                document.getElementById('btnDeleteSchedule').classList.add('d-none');
+                document.getElementById('modalGlobalError').classList.add('d-none');
+                const rp = document.getElementById('scheduleReadPanel');
+                if (rp) rp.classList.add('d-none');
+
+                const semId = document.getElementById('semesterSelect').value;
+                setSelectValue('f_semesterId', semId);
+                loadClassSectionsForSemester(semId);
+
+                const sem = meta.semesters.find(s => String(s.id) === String(semId));
+                const w = weekNumberFromSemester(sem ? sem.startDate : null, clickedDate);
+                document.getElementById('f_dayOfWeek').value = jsDayToModel(clickedDate.getDay());
+                document.getElementById('f_startWeek').value = Math.max(1, w);
+                document.getElementById('f_endWeek').value = Math.max(1, w);
+                document.getElementById('f_weekPattern').value = 'ALL';
+                document.getElementById('f_sessionType').value = 'THEORY';
+                document.getElementById('f_scheduleType').value = 'NORMAL';
+                document.getElementById('f_status').value = 'ACTIVE';
+                document.getElementById('f_note').value = '';
+                if (meta.lecturers && meta.lecturers.length) setSelectValue('f_lecturerId', meta.lecturers[0].lecturerId);
+                if (meta.rooms && meta.rooms.length) setSelectValue('f_roomId', meta.rooms[0].roomId);
+                if (meta.timeSlots && meta.timeSlots.length) {
+                    let slotId = meta.timeSlots[0].id;
+                    if (viewType && viewType !== 'dayGridMonth') {
+                        const hm = clickedDate.getHours() * 60 + clickedDate.getMinutes();
+                        const nearest = findNearestSlotByStartMinutes(hm);
+                        if (nearest != null) slotId = nearest;
+                    }
+                    setSelectValue('f_timeSlotId', slotId);
+                }
+                const csSel = document.getElementById('f_classSectionId');
+                if (csSel && csSel.options.length === 0) {
+                    showModalError('Không có lớp học phần nào cho học kỳ này. Chọn học kỳ khác hoặc tạo lớp HP trước.');
+                }
+                bsModal.show();
+            }
+
+            function payloadFromForm() {
+                return {
+                    semesterId: +document.getElementById('f_semesterId').value,
+                    classSectionId: +document.getElementById('f_classSectionId').value,
+                    lecturerId: document.getElementById('f_lecturerId').value,
+                    roomId: +document.getElementById('f_roomId').value,
+                    timeSlotId: +document.getElementById('f_timeSlotId').value,
+                    dayOfWeek: +document.getElementById('f_dayOfWeek').value,
+                    startWeek: +document.getElementById('f_startWeek').value,
+                    endWeek: +document.getElementById('f_endWeek').value,
+                    weekPattern: document.getElementById('f_weekPattern').value,
+                    sessionType: document.getElementById('f_sessionType').value,
+                    scheduleType: document.getElementById('f_scheduleType').value,
+                    status: document.getElementById('f_status').value,
+                    note: document.getElementById('f_note').value || null
+                };
+            }
+
+            function showModalError(msg) {
+                const el = document.getElementById('modalGlobalError');
+                el.textContent = msg || 'Có lỗi xảy ra';
+                el.classList.remove('d-none');
+            }
+
+            if (btnSaveSchedule) btnSaveSchedule.addEventListener('click', async () => {
+                document.getElementById('modalGlobalError').classList.add('d-none');
+                const id = document.getElementById('f_scheduleId').value;
+                const body = JSON.stringify(payloadFromForm());
+                btnSaveSchedule.disabled = true;
+                btnSaveSchedule.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang lưu...';
+                try {
+                    let res;
+                    if (id) {
+                        res = await fetch(API_BASE + '/' + encodeURIComponent(id), {
+                            method: 'PUT',
+                            headers: authHeaders(true),
+                            body: body
+                        });
+                    } else {
+                        res = await fetch(API_BASE, {method: 'POST', headers: authHeaders(true), body: body});
+                    }
+                    if (!res.ok) {
+                        throw new Error(await readApiError(res));
+                    }
+                    bsModal.hide();
+                    hidePageError();
+                    flashPageSuccess(id ? 'Đã cập nhật lịch.' : 'Đã thêm lịch.');
+                    calendar.refetchEvents();
+                } catch (e) {
+                    showModalError(e.message);
+                } finally {
+                    btnSaveSchedule.disabled = false;
+                    btnSaveSchedule.innerHTML = btnSaveDefaultHtml;
+                }
+            });
+
+            document.getElementById('btnDeleteSchedule').addEventListener('click', async () => {
+                const id = document.getElementById('f_scheduleId').value;
+                if (!id || !confirm('Xóa toàn bộ dòng lịch này (mọi tuần)?')) return;
+                try {
+                    const res = await fetch(API_BASE + '/' + encodeURIComponent(id), {
+                        method: 'DELETE',
+                        headers: authHeaders(false)
+                    });
+                    if (!res.ok) throw new Error(await readApiError(res));
+                    bsModal.hide();
+                    hidePageError();
+                    flashPageSuccess('Đã xóa lịch.');
+                    calendar.refetchEvents();
+                } catch (e) {
+                    showModalError(e.message);
+                }
+            });
+
+            document.getElementById('f_semesterId').addEventListener('change', e => {
+                loadClassSectionsForSemester(e.target.value);
+            });
+
+            function fillReadPanel(r) {
+                const sem = [r.semesterCode, r.semesterName].filter(Boolean).join(' — ') || '—';
+                document.getElementById('read_semester').textContent = sem;
+                const cc = [r.classSectionCode, r.courseCode, r.courseName].filter(Boolean).join(' · ') || '—';
+                document.getElementById('read_classCourse').textContent = cc;
+                const lec = [r.lecturerCode, r.lecturerName].filter(Boolean).join(' — ') || '—';
+                document.getElementById('read_lecturer').textContent = lec;
+                const slotPart = [r.timeSlotCode, r.timeSlotStartTime, r.timeSlotEndTime]
+                    .filter(Boolean).join(' ');
+                const roomPart = r.roomCode ? ('Phòng ' + r.roomCode + (r.roomName ? ' (' + r.roomName + ')' : '')) : '—';
+                document.getElementById('read_roomSlot').textContent = (roomPart + ' · ' + (slotPart || '—')).trim();
+                const dw = (r.dayOfWeek != null ? modelDayLabel(r.dayOfWeek) : '—')
+                    + ' · Tuần ' + (r.startWeek != null ? r.startWeek : '?') + ' — ' + (r.endWeek != null ? r.endWeek : '?');
+                document.getElementById('read_dayWeeks').textContent = dw;
+                document.getElementById('read_typeStatus').textContent =
+                    [r.sessionType, r.status].filter(Boolean).join(' · ') || '—';
+                document.getElementById('scheduleReadPanel').classList.remove('d-none');
+            }
+
+            async function openModalEdit(scheduleId) {
+                document.getElementById('scheduleModalTitle').textContent = 'Sửa / Xóa lịch (Update · Delete)';
+                document.getElementById('f_scheduleId').value = scheduleId;
+                document.getElementById('btnDeleteSchedule').classList.remove('d-none');
+                document.getElementById('modalGlobalError').classList.add('d-none');
+                const res = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {headers: authHeaders(false)});
+                if (!res.ok) {
+                    showModalError(await readApiError(res));
+                    bsModal.show();
+                    return;
+                }
+                const r = await res.json();
+                fillReadPanel(r);
+                setSelectValue('f_semesterId', r.semesterId);
+                loadClassSectionsForSemester(r.semesterId);
+                setSelectValue('f_classSectionId', r.classSectionId);
+                setSelectValue('f_lecturerId', r.lecturerId);
+                setSelectValue('f_roomId', r.roomId);
+                setSelectValue('f_timeSlotId', r.timeSlotId);
+                document.getElementById('f_dayOfWeek').value = r.dayOfWeek != null ? r.dayOfWeek : '';
+                document.getElementById('f_startWeek').value = r.startWeek != null ? r.startWeek : '';
+                document.getElementById('f_endWeek').value = r.endWeek != null ? r.endWeek : '';
+                setSelectValue('f_weekPattern', r.weekPattern);
+                setSelectValue('f_sessionType', r.sessionType);
+                setSelectValue('f_scheduleType', r.scheduleType);
+                setSelectValue('f_status', r.status);
+                document.getElementById('f_note').value = r.note || '';
+                bsModal.show();
+            }
+
+            function initCalendar() {
+                const el = document.getElementById('scheduleCalendar');
+                calendar = new FullCalendar.Calendar(el, {
+                    plugins: [FullCalendar.Interaction],
+                    initialView: 'dayGridMonth',
+                    headerToolbar: {
+                        left: 'prev,today,next',
+                        center: 'title',
+                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    },
+                    height: 'auto',
+                    navLinks: true,
+                    nowIndicator: true,
+                    locale: 'vi',
+                    editable: true,
+                    eventStartEditable: true,
+                    eventDurationEditable: true,
+                    eventDragMinDistance: 6,
+                    eventOverlap: true,
+                    slotEventOverlap: true,
+                    buttonText: {
+                        today: 'Hôm nay',
+                        month: 'Tháng',
+                        week: 'Tuần',
+                        day: 'Ngày'
+                    },
+                    events: function (info, successCallback, failureCallback) {
+                        const sid = document.getElementById('semesterSelect').value;
+                        if (!sid) {
+                            successCallback([]);
+                            return;
+                        }
+                        const start = info.startStr.slice(0, 10);
+                        const end = info.endStr.slice(0, 10);
+                        fetch(API_BASE + '/events?semesterId=' + encodeURIComponent(sid)
+                            + '&start=' + encodeURIComponent(start)
+                            + '&end=' + encodeURIComponent(end), {headers: authHeaders(false)})
+                            .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+                            .then(rows => {
+                                const list = (rows || []).map(normalizeEventInput);
+                                successCallback(list);
+                            })
+                            .catch(err => {
+                                showPageError('Không tải được sự kiện lịch: ' + (err.message || err));
+                                failureCallback(err);
+                            });
+                    },
+                    eventDidMount: function (arg) {
+                        const t = arg.event.title || 'Lịch học';
+                        arg.el.setAttribute('title', t + ' — Click: mở form sửa/xóa · Kéo: đổi thứ · Kéo dài: đổi tiết');
+                    },
+                    dateClick: function (arg) {
+                        arg.jsEvent.preventDefault();
+                        openModalCreate(arg.date, arg.view.type);
+                    },
+                    eventDragStart: function () {
+                        blockEventClickUntil = Date.now() + 500;
+                    },
+                    eventDragStop: function () {
+                        blockEventClickUntil = Date.now() + 400;
+                    },
+                    eventResizeStart: function () {
+                        blockEventClickUntil = Date.now() + 500;
+                    },
+                    eventResizeStop: function () {
+                        blockEventClickUntil = Date.now() + 400;
+                    },
+                    eventDrop: function (info) {
+                        persistScheduleMove(info, false, () => info.revert());
+                    },
+                    eventResize: function (info) {
+                        persistScheduleMove(info, true, () => info.revert());
+                    },
+                    eventClick: function (arg) {
+                        if (Date.now() < blockEventClickUntil) {
+                            return;
+                        }
+                        arg.jsEvent.preventDefault();
+                        arg.jsEvent.stopPropagation();
+                        const sid = eventScheduleId(arg.event);
+                        if (sid) openModalEdit(sid);
+                    }
+                });
+                calendar.render();
+            }
+
+            fetch(API_BASE + '/meta', {headers: authHeaders(false)})
+                .then(r => {
+                    if (!r.ok) return Promise.reject(new Error('HTTP ' + r.status));
+                    return r.json();
+                })
+                .then(m => {
+                    meta = m;
+                    hidePageError();
+                    const top = document.getElementById('semesterSelect');
+                    fillSelect(top, meta.semesters, 'id', s => s.code + ' — ' + s.name, null);
+                    fillSelect(document.getElementById('f_semesterId'), meta.semesters, 'id', s => s.code + ' — ' + s.name, null);
+                    enumSelect(document.getElementById('f_weekPattern'), meta.weekPatterns || []);
+                    enumSelect(document.getElementById('f_sessionType'), meta.sessionTypes || []);
+                    enumSelect(document.getElementById('f_scheduleType'), meta.scheduleTypes || []);
+                    enumSelect(document.getElementById('f_status'), meta.scheduleStatuses || []);
+                    fillSelect(document.getElementById('f_lecturerId'), meta.lecturers, 'lecturerId', l => l.lecturerCode + ' — ' + l.fullName, null);
+                    fillSelect(document.getElementById('f_roomId'), meta.rooms, 'roomId', r => r.roomCode + ' — ' + r.roomName, null);
+                    fillSelect(document.getElementById('f_timeSlotId'), meta.timeSlots, 'id', ts => {
+                        let lab = ts.slotCode || ('Tiết ' + ts.id);
+                        if (ts.startTime && ts.endTime) lab += ' (' + ts.startTime + '–' + ts.endTime + ')';
+                        return lab;
+                    }, null);
+                    if (meta.semesters && meta.semesters.length) {
+                        setSelectValue('semesterSelect', meta.semesters[0].id);
+                    }
+                    initCalendar();
+                    top.addEventListener('change', () => {
+                        hidePageError();
+                        calendar.refetchEvents();
+                    });
+                })
+                .catch(err => {
+                    showPageError('Không tải được cấu hình lịch (meta). ' + (err.message || ''));
+                    document.getElementById('scheduleCalendar').innerHTML =
+                        '<div class="p-3 text-muted">Kiểm tra đăng nhập và quyền truy cập API <code>/admin/schedules/api/meta</code>.</div>';
+                });
+        })();
+    </script>
+
+</div>
+</body>
+</html>

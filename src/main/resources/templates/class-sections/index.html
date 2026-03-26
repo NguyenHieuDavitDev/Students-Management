@@ -28,7 +28,7 @@
                 <form class="d-flex gap-2 flex-grow-1" method="get" th:action="@{/admin/class-sections}" style="min-width: 280px;">
                     <input class="form-control"
                            name="keyword"
-                           placeholder="Tìm theo mã lớp, tên, môn học, học kỳ"
+                           placeholder="Tìm theo mã lớp, tên, môn, học kỳ, lớp hành chính"
                            th:value="${keyword}">
                     <input type="hidden" name="size" th:value="${size}">
                     <button class="btn btn-primary">
@@ -79,6 +79,7 @@
                     <th>Tên lớp</th>
                     <th>Môn học</th>
                     <th>Học kỳ</th>
+                    <th>Lớp HC</th>
                     <th class="text-center">Sĩ số</th>
                     <th class="text-center">Trạng thái</th>
                     <th>Phòng</th>
@@ -91,6 +92,11 @@
                     <td th:text="${s.className}"></td>
                     <td th:text="${s.courseCode + ' - ' + s.courseName}"></td>
                     <td th:text="${s.semesterCode + ' - ' + s.semesterName}"></td>
+                    <td>
+                        <span th:if="${s.administrativeClassCode != null}"
+                              th:text="|${s.administrativeClassCode}|"></span>
+                        <span class="text-muted small" th:if="${s.administrativeClassCode == null}">—</span>
+                    </td>
                     <td class="text-center">
                         <span th:text="${s.currentStudents + '/' + s.maxStudents}"></span>
                     </td>
@@ -119,7 +125,7 @@
                 </tr>
 
                 <tr th:if="${sections.content.isEmpty()}">
-                    <td colspan="8" class="text-center text-muted">
+                    <td colspan="9" class="text-center text-muted">
                         <i class="fa-solid fa-box-open"></i>
                         Không có dữ liệu lớp học phần
                     </td>

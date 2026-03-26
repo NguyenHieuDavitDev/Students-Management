@@ -4,6 +4,7 @@ import com.example.stduents_management.scheduleoverride.entity.ScheduleOverride;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,6 +13,14 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ScheduleOverrideRepository extends JpaRepository<ScheduleOverride, UUID> {
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM ScheduleOverride o WHERE o.schedule.id = :scheduleId")
+    void deleteByScheduleId(@Param("scheduleId") UUID scheduleId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM ScheduleOverride o WHERE o.schedule.semester.id = :semesterId")
+    void deleteByScheduleSemesterId(@Param("semesterId") Long semesterId);
 
     @Query("""
             SELECT DISTINCT o FROM ScheduleOverride o

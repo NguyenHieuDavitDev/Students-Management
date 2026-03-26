@@ -6,12 +6,14 @@ import com.example.stduents_management.schedule.entity.SessionType;
 import com.example.stduents_management.schedule.entity.WeekPattern;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.UUID;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class ScheduleRequest {
 
     @NotNull(message = "Học kỳ không được để trống")

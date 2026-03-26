@@ -1,5 +1,6 @@
 package com.example.stduents_management.classsection.controller;
 
+import com.example.stduents_management.classroom.repository.ClassRepository;
 import com.example.stduents_management.classsection.dto.ClassSectionRequest;
 import com.example.stduents_management.classsection.dto.ClassSectionResponse;
 import com.example.stduents_management.classsection.entity.ClassSectionStatus;
@@ -27,6 +28,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class ClassSectionDashboardController {
 
     private final ClassSectionService service;
+    private final ClassRepository classRepository;
     private final CourseRepository courseRepository;
     private final SemesterRepository semesterRepository;
     private final RoomRepository roomRepository;
@@ -56,6 +58,7 @@ public class ClassSectionDashboardController {
         model.addAttribute("courses", courseRepository.findAll(Sort.by("courseCode")));
         model.addAttribute("semesters", semesterRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate")));
         model.addAttribute("rooms", roomRepository.findAll(Sort.by("roomCode")));
+        model.addAttribute("administrativeClasses", classRepository.findAll(Sort.by("classCode")));
         model.addAttribute("statuses", ClassSectionStatus.values());
         return "class-sections/form";
     }
@@ -72,6 +75,7 @@ public class ClassSectionDashboardController {
             model.addAttribute("courses", courseRepository.findAll(Sort.by("courseCode")));
             model.addAttribute("semesters", semesterRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate")));
             model.addAttribute("rooms", roomRepository.findAll(Sort.by("roomCode")));
+            model.addAttribute("administrativeClasses", classRepository.findAll(Sort.by("classCode")));
             model.addAttribute("statuses", ClassSectionStatus.values());
             return "class-sections/form";
         }
@@ -84,6 +88,7 @@ public class ClassSectionDashboardController {
             model.addAttribute("courses", courseRepository.findAll(Sort.by("courseCode")));
             model.addAttribute("semesters", semesterRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate")));
             model.addAttribute("rooms", roomRepository.findAll(Sort.by("roomCode")));
+            model.addAttribute("administrativeClasses", classRepository.findAll(Sort.by("classCode")));
             model.addAttribute("statuses", ClassSectionStatus.values());
             return "class-sections/form";
         }
@@ -102,6 +107,7 @@ public class ClassSectionDashboardController {
         req.setCurrentStudents(r.currentStudents());
         req.setStatus(r.status());
         req.setRoomId(r.roomId());
+        req.setAdministrativeClassId(r.administrativeClassId());
         req.setNote(r.note());
         model.addAttribute("mode", "edit");
         model.addAttribute("sectionId", id);
@@ -109,6 +115,7 @@ public class ClassSectionDashboardController {
         model.addAttribute("courses", courseRepository.findAll(Sort.by("courseCode")));
         model.addAttribute("semesters", semesterRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate")));
         model.addAttribute("rooms", roomRepository.findAll(Sort.by("roomCode")));
+        model.addAttribute("administrativeClasses", classRepository.findAll(Sort.by("classCode")));
         model.addAttribute("statuses", ClassSectionStatus.values());
         return "class-sections/form";
     }
@@ -127,6 +134,7 @@ public class ClassSectionDashboardController {
             model.addAttribute("courses", courseRepository.findAll(Sort.by("courseCode")));
             model.addAttribute("semesters", semesterRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate")));
             model.addAttribute("rooms", roomRepository.findAll(Sort.by("roomCode")));
+            model.addAttribute("administrativeClasses", classRepository.findAll(Sort.by("classCode")));
             model.addAttribute("statuses", ClassSectionStatus.values());
             return "class-sections/form";
         }
@@ -140,6 +148,7 @@ public class ClassSectionDashboardController {
             model.addAttribute("courses", courseRepository.findAll(Sort.by("courseCode")));
             model.addAttribute("semesters", semesterRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate")));
             model.addAttribute("rooms", roomRepository.findAll(Sort.by("roomCode")));
+            model.addAttribute("administrativeClasses", classRepository.findAll(Sort.by("classCode")));
             model.addAttribute("statuses", ClassSectionStatus.values());
             return "class-sections/form";
         }

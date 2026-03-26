@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ClassRepository extends JpaRepository<ClassEntity, UUID> {
@@ -31,4 +32,6 @@ public interface ClassRepository extends JpaRepository<ClassEntity, UUID> {
             String code,
             Pageable pageable
     );
+
+    Optional<ClassEntity> findByClassCodeIgnoreCaseAndAcademicYear(String classCode, String academicYear);
 }

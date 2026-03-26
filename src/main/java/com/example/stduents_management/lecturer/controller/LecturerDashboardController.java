@@ -5,6 +5,7 @@ import com.example.stduents_management.lecturer.dto.LecturerRequest;
 import com.example.stduents_management.lecturer.dto.LecturerResponse;
 import com.example.stduents_management.lecturer.service.LecturerService;
 import com.example.stduents_management.lecturerduty.repository.LecturerDutyRepository;
+import com.example.stduents_management.lecturercourseclass.service.LecturerCourseClassService;
 import com.example.stduents_management.position.repository.PositionRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class LecturerDashboardController {
     private final FacultyRepository facultyRepository;
     private final PositionRepository positionRepository;
     private final LecturerDutyRepository lecturerDutyRepository;
+    private final LecturerCourseClassService lecturerCourseClassService;
 
     /* ===================== LIST + SEARCH + PAGING ===================== */
     @GetMapping
@@ -106,6 +108,9 @@ public class LecturerDashboardController {
         model.addAttribute("faculties", facultyRepository.findAll());
         model.addAttribute("positions", positionRepository.findAll());
         model.addAttribute("lecturerDuties", lecturerDutyRepository.findAll());
+        model.addAttribute(
+                "teachingAssignments",
+                lecturerCourseClassService.listTeachingRowsForLecturer(id));
 
         return "lecturers/form";
     }
@@ -125,6 +130,9 @@ public class LecturerDashboardController {
             model.addAttribute("faculties", facultyRepository.findAll());
             model.addAttribute("positions", positionRepository.findAll());
             model.addAttribute("lecturerDuties", lecturerDutyRepository.findAll());
+            model.addAttribute(
+                    "teachingAssignments",
+                    lecturerCourseClassService.listTeachingRowsForLecturer(id));
             return "lecturers/form";
         }
 

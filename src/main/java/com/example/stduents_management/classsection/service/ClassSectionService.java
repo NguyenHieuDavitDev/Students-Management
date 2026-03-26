@@ -1,5 +1,7 @@
 package com.example.stduents_management.classsection.service;
 
+import com.example.stduents_management.classroom.entity.ClassEntity;
+import com.example.stduents_management.classroom.repository.ClassRepository;
 import com.example.stduents_management.classsection.dto.ClassSectionRequest;
 import com.example.stduents_management.classsection.dto.ClassSectionResponse;
 import com.example.stduents_management.classsection.entity.ClassSection;
@@ -31,6 +33,7 @@ import java.util.UUID;
 public class ClassSectionService {
 
     private final ClassSectionRepository repository;
+    private final ClassRepository classRepository;
     private final CourseRepository courseRepository;
     private final SemesterRepository semesterRepository;
     private final RoomRepository roomRepository;
@@ -57,7 +60,9 @@ public class ClassSectionService {
         if (repository.existsByClassCode(req.getClassCode())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mã lớp đã tồn tại");
         }
-        repository.save(build(new ClassSection(), req));
+        ClassSection cs = build(new ClassSection(), req);
+        applyAutoAdministrativeClassIfUnset(cs);
+        repository.save(cs);
     }
 
     @Transactional
@@ -70,6 +75,7 @@ public class ClassSectionService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mã lớp đã tồn tại");
         }
         build(cs, req);
+        repository.save(cs);
     }
 
     @Transactional
@@ -163,6 +169,7 @@ public class ClassSectionService {
                 cs.setStatus(status);
                 cs.setRoom(roomEntity);
                 cs.setNote(note != null ? note.trim() : null);
+                applyAutoAdministrativeClassIfUnset(cs);
                 repository.save(cs);
             }
         }
@@ -202,6 +209,22 @@ public class ClassSectionService {
         }
     }
 
+    /** Khớp lớp hành chính theo mã lớp học phần + năm học học kỳ khi chưa chọn tay. */
+    private void applyAutoAdministrativeClassIfUnset(ClassSection cs) {
+        if (cs.getAdministrativeClass() != null) {
+            return;
+        }
+        if (cs.getSemester() == null || cs.getClassCode() == null || cs.getClassCode().isBlank()) {
+            return;
+        }
+        String year = cs.getSemester().getAcademicYear();
+        if (year == null || year.isBlank()) {
+            return;
+        }
+        classRepository.findByClassCodeIgnoreCaseAndAcademicYear(cs.getClassCode(), year)
+                .ifPresent(cs::setAdministrativeClass);
+    }
+
     private void validateBusinessRules(ClassSectionRequest req) {
         Integer max = req.getMaxStudents();
         Integer current = req.getCurrentStudents();
@@ -232,6 +255,15 @@ public class ClassSectionService {
         cs.setStatus(req.getStatus() != null ? req.getStatus() : ClassSectionStatus.OPEN);
         cs.setRoom(room);
         cs.setNote(req.getNote() != null ? req.getNote().trim() : null);
+
+        if (req.getAdministrativeClassId() != null) {
+            ClassEntity ac = classRepository.findById(req.getAdministrativeClassId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "Không tìm thấy lớp hành chính"));
+            cs.setAdministrativeClass(ac);
+        } else {
+            cs.setAdministrativeClass(null);
+        }
         return cs;
     }
 
@@ -239,6 +271,7 @@ public class ClassSectionService {
         Course c = cs.getCourse();
         Semester s = cs.getSemester();
         Room r = cs.getRoom();
+        ClassEntity ac = cs.getAdministrativeClass();
         return new ClassSectionResponse(
                 cs.getId(),
                 c != null ? c.getId() : null,
@@ -249,6 +282,9 @@ public class ClassSectionService {
                 s != null ? s.getName() : null,
                 cs.getClassCode(),
                 cs.getClassName(),
+                ac != null ? ac.getClassId() : null,
+                ac != null ? ac.getClassCode() : null,
+                ac != null ? ac.getClassName() : null,
                 cs.getMaxStudents(),
                 cs.getCurrentStudents(),
                 cs.getStatus(),
