@@ -37,4 +37,6 @@ public class LecturerRequest {
 
     @NotNull
     private UUID facultyId;
+
+    private UUID departmentId;
 }

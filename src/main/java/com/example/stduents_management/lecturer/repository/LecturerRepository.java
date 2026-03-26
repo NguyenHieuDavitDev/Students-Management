@@ -30,4 +30,6 @@ public interface LecturerRepository extends JpaRepository<Lecturer, UUID> {
     boolean existsByPosition_PositionId(UUID positionId);
 
     boolean existsByLecturerDuty_LecturerDutyId(UUID lecturerDutyId);
+
+    boolean existsByDepartment_DepartmentId(UUID departmentId);
 }

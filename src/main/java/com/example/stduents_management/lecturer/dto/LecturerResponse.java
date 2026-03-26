@@ -20,6 +20,8 @@ public record LecturerResponse(
         UUID lecturerDutyId,
         String lecturerDutyName,
         UUID facultyId,
-        String facultyName
+        String facultyName,
+        UUID departmentId,
+        String departmentName
 ) {
 }

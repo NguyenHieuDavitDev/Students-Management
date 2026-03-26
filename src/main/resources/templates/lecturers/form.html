@@ -130,6 +130,17 @@
             <small class="text-danger" th:errors="*{facultyId}"></small>
         </div>
 
+        <div class="mb-3">
+            <label>Phòng ban</label>
+            <select class="form-select" th:field="*{departmentId}">
+                <option value="">-- Chọn phòng ban --</option>
+                <option th:each="d : ${departments}"
+                        th:value="${d.departmentId}"
+                        th:text="${d.departmentName}">
+                </option>
+            </select>
+        </div>
+
         <button class="btn btn-primary">Lưu</button>
         <a class="btn btn-secondary" th:href="@{/admin/lecturers}">Huỷ</a>
     </form>

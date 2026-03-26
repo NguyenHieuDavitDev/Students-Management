@@ -1,5 +1,6 @@
 package com.example.stduents_management.lecturer.controller;
 
+import com.example.stduents_management.department.repository.DepartmentRepository;
 import com.example.stduents_management.faculty.repository.FacultyRepository;
 import com.example.stduents_management.lecturer.dto.LecturerRequest;
 import com.example.stduents_management.lecturer.dto.LecturerResponse;
@@ -25,6 +26,7 @@ public class LecturerDashboardController {
 
     private final LecturerService lecturerService;
     private final FacultyRepository facultyRepository;
+    private final DepartmentRepository departmentRepository;
     private final PositionRepository positionRepository;
     private final LecturerDutyRepository lecturerDutyRepository;
     private final LecturerCourseClassService lecturerCourseClassService;
@@ -53,6 +55,7 @@ public class LecturerDashboardController {
         model.addAttribute("mode", "create");
         model.addAttribute("lecturerRequest", new LecturerRequest());
         model.addAttribute("faculties", facultyRepository.findAll());
+        model.addAttribute("departments", departmentRepository.findAll());
         model.addAttribute("positions", positionRepository.findAll());
         model.addAttribute("lecturerDuties", lecturerDutyRepository.findAll());
         return "lecturers/form";
@@ -69,6 +72,7 @@ public class LecturerDashboardController {
         if (result.hasErrors()) {
             model.addAttribute("mode", "create");
             model.addAttribute("faculties", facultyRepository.findAll());
+            model.addAttribute("departments", departmentRepository.findAll());
             model.addAttribute("positions", positionRepository.findAll());
             model.addAttribute("lecturerDuties", lecturerDutyRepository.findAll());
             return "lecturers/form";
@@ -101,11 +105,13 @@ public class LecturerDashboardController {
         req.setLecturerDutyId(l.lecturerDutyId());
         req.setAcademicTitle(l.academicTitle());
         req.setFacultyId(l.facultyId());
+        req.setDepartmentId(l.departmentId());
 
         model.addAttribute("mode", "edit");
         model.addAttribute("lecturerId", id);
         model.addAttribute("lecturerRequest", req);
         model.addAttribute("faculties", facultyRepository.findAll());
+        model.addAttribute("departments", departmentRepository.findAll());
         model.addAttribute("positions", positionRepository.findAll());
         model.addAttribute("lecturerDuties", lecturerDutyRepository.findAll());
         model.addAttribute(
@@ -128,6 +134,7 @@ public class LecturerDashboardController {
             model.addAttribute("mode", "edit");
             model.addAttribute("lecturerId", id);
             model.addAttribute("faculties", facultyRepository.findAll());
+            model.addAttribute("departments", departmentRepository.findAll());
             model.addAttribute("positions", positionRepository.findAll());
             model.addAttribute("lecturerDuties", lecturerDutyRepository.findAll());
             model.addAttribute(

@@ -4,6 +4,7 @@ import com.example.stduents_management.department.dto.DepartmentRequest;
 import com.example.stduents_management.department.dto.DepartmentResponse;
 import com.example.stduents_management.department.entity.Department;
 import com.example.stduents_management.department.repository.DepartmentRepository;
+import com.example.stduents_management.lecturer.repository.LecturerRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Row;
@@ -28,6 +29,7 @@ import java.util.UUID;
 public class DepartmentService {
 
     private final DepartmentRepository departmentRepository;
+    private final LecturerRepository lecturerRepository;
 
     private String normalize(String s) {
         return s == null ? null : s.trim();
@@ -98,6 +100,12 @@ public class DepartmentService {
     public void delete(UUID id) {
         if (!departmentRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy phòng ban");
+        }
+        if (lecturerRepository.existsByDepartment_DepartmentId(id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Không thể xóa phòng ban này vì đang có giảng viên sử dụng"
+            );
         }
         departmentRepository.deleteById(id);
     }

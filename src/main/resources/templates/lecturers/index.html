@@ -69,6 +69,7 @@
                     <th>Học hàm</th>
                     <th>Chức vụ</th>
                     <th>Khoa</th>
+                    <th>Phòng ban</th>
                     <th>Email</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
@@ -95,6 +96,7 @@
                     <td th:text="${l.academicTitle}"></td>
                     <td th:text="${l.lecturerDutyName}"></td>
                     <td th:text="${l.facultyName}"></td>
+                    <td th:text="${l.departmentName != null ? l.departmentName : '-'}"></td>
                     <td th:text="${l.email}"></td>
                     <td class="text-end">
                         <a class="btn btn-sm btn-outline-primary"
@@ -115,7 +117,7 @@
                 </tr>
 
                 <tr th:if="${lecturers.content.isEmpty()}">
-                    <td colspan="10" class="text-center text-muted">
+                    <td colspan="12" class="text-center text-muted">
                         <i class="fa-solid fa-box-open"></i>
                         Không có dữ liệu giảng viên
                     </td>

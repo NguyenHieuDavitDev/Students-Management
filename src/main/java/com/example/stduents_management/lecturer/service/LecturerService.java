@@ -1,6 +1,8 @@
 package com.example.stduents_management.lecturer.service;
 
 import com.example.stduents_management.common.service.FileStorageService;
+import com.example.stduents_management.department.entity.Department;
+import com.example.stduents_management.department.repository.DepartmentRepository;
 import com.example.stduents_management.faculty.entity.Faculty;
 import com.example.stduents_management.faculty.repository.FacultyRepository;
 import com.example.stduents_management.lecturer.dto.LecturerRequest;
@@ -27,6 +29,7 @@ public class LecturerService {
 
     private final LecturerRepository lecturerRepository;
     private final FacultyRepository facultyRepository;
+    private final DepartmentRepository departmentRepository;
     private final PositionRepository positionRepository;
     private final LecturerDutyRepository lecturerDutyRepository;
     private final FileStorageService fileStorageService;
@@ -104,6 +107,13 @@ public class LecturerService {
                             new ResponseStatusException(HttpStatus.NOT_FOUND, "Chức vụ không tồn tại"));
         }
 
+        Department department = null;
+        if (req.getDepartmentId() != null) {
+            department = departmentRepository.findById(req.getDepartmentId())
+                    .orElseThrow(() ->
+                            new ResponseStatusException(HttpStatus.NOT_FOUND, "Phòng ban không tồn tại"));
+        }
+
         l.setLecturerCode(req.getLecturerCode());
         l.setFullName(req.getFullName());
         l.setDateOfBirth(req.getDateOfBirth());
@@ -114,6 +124,7 @@ public class LecturerService {
         l.setAddress(req.getAddress());
         l.setPosition(position);
         l.setLecturerDuty(lecturerDuty);
+        l.setDepartment(department);
         l.setAcademicTitle(req.getAcademicTitle());
 
         if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
@@ -142,7 +153,9 @@ public class LecturerService {
                 l.getLecturerDuty() != null ? l.getLecturerDuty().getLecturerDutyId() : null,
                 l.getLecturerDuty() != null ? l.getLecturerDuty().getDutyName() : null,
                 l.getFaculty().getFacultyId(),
-                l.getFaculty().getFacultyName()
+                l.getFaculty().getFacultyName(),
+                l.getDepartment() != null ? l.getDepartment().getDepartmentId() : null,
+                l.getDepartment() != null ? l.getDepartment().getDepartmentName() : null
         );
     }
 }
