@@ -5169,6 +5169,103 @@ lecturerduty/
 
 ---
 
+### 30. Nhật Ký Hoạt Động (Audit Log)
+
+Tính năng ghi lại toàn bộ hành động thay đổi dữ liệu (CREATE / UPDATE / DELETE) của người dùng trong hệ thống, giúp quản trị viên tra cứu lịch sử thao tác, phát hiện bất thường và kiểm toán bảo mật.
+
+#### 30.1. Mô hình dữ liệu
+
+Bảng `audit_logs` — mỗi hành động ghi dữ liệu tạo ra một bản ghi độc lập:
+
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| `id` | UUID | Khoá chính, tự sinh |
+| `action` | VARCHAR(20) | Loại hành động: `CREATE`, `UPDATE`, `DELETE` |
+| `module_name` | NVARCHAR(100) | Tên module bị tác động (ví dụ: `students`, `lecturers`) |
+| `target_id` | NVARCHAR(100) | ID đối tượng bị tác động (nullable) |
+| `description` | NVARCHAR(1000) | Mô tả ngắn về hành động |
+| `username` | NVARCHAR(100) | Tài khoản thực hiện hành động |
+| `http_method` | VARCHAR(10) | Phương thức HTTP: `POST`, `PUT`, `PATCH`, `DELETE` |
+| `request_path` | NVARCHAR(300) | Đường dẫn request |
+| `ip_address` | VARCHAR(64) | Địa chỉ IP client (hỗ trợ `X-Forwarded-For`) |
+| `user_agent` | NVARCHAR(255) | Trình duyệt / client |
+| `status_code` | INT | HTTP status code phản hồi |
+| `created_at` | DATETIME | Thời điểm ghi log (tự động) |
+
+Index được đánh trên: `created_at`, `action`, `module_name`, `username` để tối ưu truy vấn.
+
+#### 30.2. Tính năng
+
+| Tính năng | Mô tả |
+|-----------|-------|
+| **Tự động ghi log** | Mọi request `POST / PUT / PATCH / DELETE` tới `/admin/**` và `/api/**` đều được ghi log tự động qua interceptor, không cần sửa code nghiệp vụ. |
+| **Tránh đệ quy** | Các request tới chính `/admin/audit-logs` và `/api/audit-logs` bị loại trừ để không tạo log vô hạn. |
+| **Hiển thị realtime** | Bảng danh sách tự động làm mới mỗi **5 giây** qua API `/admin/audit-logs/api/latest`, không cần F5 trang. |
+| **Bật / Tắt realtime** | Nút "Tắt realtime / Bật realtime" cho phép tắt polling khi không cần. |
+| **Tìm kiếm & lọc** | Lọc theo từ khoá (username, path, description, targetId), loại action, tên module, khoảng ngày. |
+| **Phân trang** | Mặc định 20 bản ghi / trang, sắp xếp mới nhất lên đầu. |
+| **Phát hiện IP** | Đọc header `X-Forwarded-For` để lấy IP thực khi có reverse proxy / load balancer. |
+
+#### 30.3. Cơ chế hoạt động — Interceptor
+
+`AuditLogInterceptor` implements `HandlerInterceptor`, chạy trong `afterCompletion` (sau khi response đã gửi):
+
+1. Kiểm tra method có phải write-method (`POST / PUT / PATCH / DELETE`) không.
+2. Kiểm tra path bắt đầu bằng `/admin/` hoặc `/api/` và không phải đường dẫn audit-logs.
+3. Trích xuất `moduleName` từ phần tử thứ 3 của path (ví dụ `/admin/students/...` → `students`).
+4. Trích xuất `targetId` từ path segment cuối (bỏ qua các từ khoá `delete`, `edit`, `new`).
+5. Gọi `AuditLogService.log(...)` để lưu vào DB.
+
+Interceptor được đăng ký qua `AuditLogWebConfig` (implements `WebMvcConfigurer`), áp dụng cho pattern `/admin/**` và `/api/**`, loại trừ static resources.
+
+#### 30.4. Service (AuditLogService)
+
+| Method | Mô tả |
+|--------|-------|
+| `log(...)` | Lưu một bản ghi audit mới. Tự động lấy `username` từ `SecurityContextHolder`; nếu chưa đăng nhập ghi là `anonymous`. |
+| `search(keyword, action, moduleName, fromDate, toDate, page, size)` | Tìm kiếm có phân trang, trả về `Page<AuditLogResponse>`. |
+| `latest(limit)` | Trả về tối đa `limit` bản ghi mới nhất (tối đa 300, mặc định 100) dùng cho realtime polling. |
+
+#### 30.5. REST API
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `GET` | `/admin/audit-logs` | Trang dashboard — tìm kiếm, lọc, phân trang |
+| `GET` | `/admin/audit-logs/api/latest?limit=100` | JSON danh sách log mới nhất (dùng cho realtime) |
+
+Query params trang dashboard: `keyword`, `action`, `moduleName`, `fromDate` (ISO date), `toDate` (ISO date), `page`, `size`.
+
+#### 30.6. Giao diện Admin (`/admin/audit-logs`)
+
+- Bảng hiển thị: Thời gian, User, Action (badge màu), Module, Target, Path, IP, Status Code.
+- Badge màu: `CREATE` → xanh lá, `UPDATE` → xanh dương, `DELETE` → đỏ.
+- Form lọc gồm: ô tìm kiếm tự do, dropdown action, ô module, chọn ngày từ–đến.
+- Phân trang với nút Trước / Sau và số trang.
+- Khu vực realtime tự làm mới mỗi 5 giây với nút bật/tắt.
+
+#### 30.7. Cấu trúc code
+
+```
+auditlog/
+├── entity/
+│   └── AuditLog.java                  # Bảng audit_logs, index trên created_at, action, module_name, username
+├── dto/
+│   └── AuditLogResponse.java          # Record DTO trả về cho controller và API
+├── repository/
+│   └── AuditLogRepository.java        # JPQL search có lọc đa tiêu chí + findTop100
+├── service/
+│   └── AuditLogService.java           # log(), search(), latest(); tự lấy username từ SecurityContext
+├── web/
+│   ├── AuditLogInterceptor.java       # HandlerInterceptor ghi log tự động sau mỗi write-request
+│   └── AuditLogWebConfig.java         # Đăng ký interceptor cho /admin/**, /api/**
+└── controller/
+    └── AuditLogDashboardController.java  # GET /admin/audit-logs + GET /admin/audit-logs/api/latest
+```
+
+**Template**: `audit-logs/index.html`
+
+---
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -5209,7 +5306,7 @@ lecturerduty/
 - [x] Quản lý điểm sinh viên (Student Grades)
 - [x] Xác thực người dùng (Authentication)
 - [x] Mã hóa mật khẩu (Password Encryption)
-- [ ] Audit Log
+- [x] Audit Log
 - [x] Report & Analytics
 - [x] Quản lý thông báo (Notification Management)
 - [x] Quản lý phản hồi đánh giá giảng viên (Feedback Management)

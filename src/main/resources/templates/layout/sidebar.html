@@ -46,6 +46,12 @@
                 </a>
             </li>
             <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
+                <a class="nav-link" th:href="@{/admin/audit-logs}" th:classappend="${activeMenu}=='audit-logs' ? 'active' : ''">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span>Nhật ký hoạt động</span>
+                </a>
+            </li>
+            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
                 <a class="nav-link" th:href="@{/admin/roles}" th:classappend="${activeMenu}=='roles' ? 'active' : ''">
                     <i class="fa-solid fa-shield-halved"></i>
                     <span>Vai trò</span>

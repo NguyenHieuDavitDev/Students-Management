@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Nhật ký hoạt động',
+        'Nhật ký hoạt động (Audit)',
+        'Truy vết người tạo/chỉnh sửa theo thời gian thực',
+        'audit-logs',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form class="row g-2 mb-3" method="get" th:action="@{/admin/audit-logs}">
+                <div class="col-md-3">
+                    <input class="form-control" name="keyword" th:value="${keyword}" placeholder="Tìm user, path, target...">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" name="action">
+                        <option value="">Tất cả action</option>
+                        <option value="CREATE" th:selected="${action == 'CREATE'}">CREATE</option>
+                        <option value="UPDATE" th:selected="${action == 'UPDATE'}">UPDATE</option>
+                        <option value="DELETE" th:selected="${action == 'DELETE'}">DELETE</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input class="form-control" name="moduleName" th:value="${moduleName}" placeholder="Module (lecturers, ... )">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control" name="fromDate" th:value="${fromDate}">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control" name="toDate" th:value="${toDate}">
+                </div>
+                <div class="col-md-1 d-grid">
+                    <button class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i></button>
+                </div>
+            </form>
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="small text-muted">
+                    Auto refresh mỗi 5 giây cho trang hiện tại.
+                </div>
+                <button id="toggleRefreshBtn" type="button" class="btn btn-sm btn-outline-secondary">
+                    Tắt realtime
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <th>Thời gian</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Module</th>
+                        <th>Target</th>
+                        <th>Path</th>
+                        <th>IP</th>
+                        <th>Status</th>
+                    </tr>
+                    </thead>
+                    <tbody id="auditLogBody">
+                    <tr th:if="${logs.content.isEmpty()}">
+                        <td colspan="8" class="text-center text-muted">Chưa có log</td>
+                    </tr>
+                    <tr th:each="l : ${logs.content}">
+                        <td th:text="${#temporals.format(l.createdAt, 'dd/MM/yyyy HH:mm:ss')}"></td>
+                        <td th:text="${l.username}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${l.action == 'CREATE'} ? 'bg-success' : (${l.action == 'UPDATE'} ? 'bg-primary' : 'bg-danger')"
+                                  th:text="${l.action}"></span>
+                        </td>
+                        <td th:text="${l.moduleName}"></td>
+                        <td th:text="${l.targetId != null ? l.targetId : '-'}"></td>
+                        <td class="text-muted small" th:text="${l.requestPath}"></td>
+                        <td th:text="${l.ipAddress}"></td>
+                        <td th:text="${l.statusCode}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <nav th:if="${logs.totalPages > 1}">
+                <ul class="pagination mb-0">
+                    <li class="page-item" th:classappend="${logs.first} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/audit-logs(page=${logs.number - 1},keyword=${keyword},action=${action},moduleName=${moduleName},fromDate=${fromDate},toDate=${toDate})}">
+                            Trước
+                        </a>
+                    </li>
+                    <li class="page-item"
+                        th:each="i : ${#numbers.sequence(0, logs.totalPages - 1)}"
+                        th:classappend="${i == logs.number} ? 'active'">
+                        <a class="page-link"
+                           th:text="${i + 1}"
+                           th:href="@{/admin/audit-logs(page=${i},keyword=${keyword},action=${action},moduleName=${moduleName},fromDate=${fromDate},toDate=${toDate})}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${logs.last} ? 'disabled'">
+                        <a class="page-link"
+                           th:href="@{/admin/audit-logs(page=${logs.number + 1},keyword=${keyword},action=${action},moduleName=${moduleName},fromDate=${fromDate},toDate=${toDate})}">
+                            Sau
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const tbody = document.getElementById('auditLogBody');
+            const btn = document.getElementById('toggleRefreshBtn');
+            let enabled = true;
+
+            function esc(v) {
+                return String(v ?? '').replace(/[&<>"]/g, function (m) {
+                    return ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'})[m];
+                });
+            }
+
+            function actionBadge(action) {
+                const color = action === 'CREATE' ? 'bg-success' : (action === 'UPDATE' ? 'bg-primary' : 'bg-danger');
+                return '<span class="badge ' + color + '">' + esc(action || 'UNKNOWN') + '</span>';
+            }
+
+            async function refreshLatest() {
+                if (!enabled) return;
+                try {
+                    const res = await fetch('/admin/audit-logs/api/latest?limit=100');
+                    if (!res.ok) return;
+                    const rows = await res.json();
+                    if (!Array.isArray(rows)) return;
+                    tbody.innerHTML = rows.map(r => {
+                        const created = r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : '';
+                        return '<tr>'
+                            + '<td>' + esc(created) + '</td>'
+                            + '<td>' + esc(r.username) + '</td>'
+                            + '<td>' + actionBadge(r.action) + '</td>'
+                            + '<td>' + esc(r.moduleName) + '</td>'
+                            + '<td>' + esc(r.targetId || '-') + '</td>'
+                            + '<td class="text-muted small">' + esc(r.requestPath || '') + '</td>'
+                            + '<td>' + esc(r.ipAddress || '') + '</td>'
+                            + '<td>' + esc(r.statusCode ?? '') + '</td>'
+                            + '</tr>';
+                    }).join('');
+                } catch (e) {
+                    // ignore polling errors
+                }
+            }
+
+            btn.addEventListener('click', function () {
+                enabled = !enabled;
+                btn.textContent = enabled ? 'Tắt realtime' : 'Bật realtime';
+            });
+
+            setInterval(refreshLatest, 5000);
+        })();
+    </script>
+
+</div>
+</body>
+</html>

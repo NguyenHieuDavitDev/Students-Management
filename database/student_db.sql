@@ -1008,3 +1008,24 @@ SET IDENTITY_INSERT [dbo].[payments] OFF;
 -- attendances (phụ thuộc students, lecturers, class_sections)
 INSERT INTO [dbo].[attendances] ([attendance_id],[attendance_date],[created_at],[marked_at],[note],[present],[updated_at],[course_class_id],[marked_by],[student_id]) VALUES
 ('F4A129B2-4E08-435E-B93B-0D8E3C5D57B0','2026-03-23','2026-03-23 19:23:49.368607','2026-03-23 19:23:49.365551',NULL,'1','2026-03-23 19:23:49.368607','1','1DD48B3E-3D4B-4435-932A-C019E73DFD9A','04B61953-0B82-4571-B905-37D5A11BD112');
+
+DROP TABLE IF EXISTS [dbo].[audit_logs];
+CREATE TABLE [dbo].[audit_logs] (
+    [id] uniqueidentifier,
+    [action] varchar(20),
+    [created_at] datetime2(6),
+    [description] nvarchar(1000),
+    [http_method] varchar(10),
+    [ip_address] varchar(64),
+    [module_name] nvarchar(100),
+    [request_path] nvarchar(300),
+    [status_code] int,
+    [target_id] nvarchar(100),
+    [user_agent] nvarchar(255),
+    [username] nvarchar(100),
+    PRIMARY KEY ([id])
+);
+
+INSERT INTO [dbo].[audit_logs] ([id], [action], [created_at], [description], [http_method], [ip_address], [module_name], [request_path], [status_code], [target_id], [user_agent], [username]) VALUES
+('86DE3E6A-4BDD-4D2B-8408-1F7790B33964', N'CREATE', '2026-03-27 11:00:49.044186', N'CREATE faculties (302) path=/admin/faculties', N'POST', N'0:0:0:0:0:0:0:1', N'faculties', N'/admin/faculties', '302', NULL, N'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', N'admin1');
+
