@@ -1,6 +1,7 @@
 package com.example.stduents_management.employee.controller;
 
 import com.example.stduents_management.department.repository.DepartmentRepository;
+import com.example.stduents_management.faculty.repository.FacultyRepository;
 import com.example.stduents_management.employee.dto.EmployeeRequest;
 import com.example.stduents_management.employee.dto.EmployeeResponse;
 import com.example.stduents_management.employee.entity.EmployeeType;
@@ -33,6 +34,7 @@ public class EmployeeDashboardController {
     private final EmployeeService employeeService;
     private final PositionRepository positionRepository;
     private final DepartmentRepository departmentRepository;
+    private final FacultyRepository facultyRepository;
 
     @GetMapping
     public String index(
@@ -57,6 +59,7 @@ public class EmployeeDashboardController {
         model.addAttribute("types", EmployeeType.values());
         model.addAttribute("positions", positionRepository.findAll());
         model.addAttribute("departments", departmentRepository.findAll());
+        model.addAttribute("faculties", facultyRepository.findAll());
         return "employees/form";
     }
 
@@ -72,6 +75,7 @@ public class EmployeeDashboardController {
             model.addAttribute("types", EmployeeType.values());
             model.addAttribute("positions", positionRepository.findAll());
             model.addAttribute("departments", departmentRepository.findAll());
+            model.addAttribute("faculties", facultyRepository.findAll());
             return "employees/form";
         }
 
@@ -85,6 +89,7 @@ public class EmployeeDashboardController {
             model.addAttribute("types", EmployeeType.values());
             model.addAttribute("positions", positionRepository.findAll());
             model.addAttribute("departments", departmentRepository.findAll());
+            model.addAttribute("faculties", facultyRepository.findAll());
             return "employees/form";
         }
     }
@@ -106,6 +111,7 @@ public class EmployeeDashboardController {
         req.setStatus(e.status());
         req.setPositionId(e.positionId());
         req.setDepartmentId(e.departmentId());
+        req.setFacultyId(e.lecturerFacultyId());
 
         model.addAttribute("mode", "edit");
         model.addAttribute("employeeId", id);
@@ -113,6 +119,7 @@ public class EmployeeDashboardController {
         model.addAttribute("types", EmployeeType.values());
         model.addAttribute("positions", positionRepository.findAll());
         model.addAttribute("departments", departmentRepository.findAll());
+        model.addAttribute("faculties", facultyRepository.findAll());
         return "employees/form";
     }
 
@@ -130,6 +137,7 @@ public class EmployeeDashboardController {
             model.addAttribute("types", EmployeeType.values());
             model.addAttribute("positions", positionRepository.findAll());
             model.addAttribute("departments", departmentRepository.findAll());
+            model.addAttribute("faculties", facultyRepository.findAll());
             return "employees/form";
         }
 
@@ -144,6 +152,7 @@ public class EmployeeDashboardController {
             model.addAttribute("types", EmployeeType.values());
             model.addAttribute("positions", positionRepository.findAll());
             model.addAttribute("departments", departmentRepository.findAll());
+            model.addAttribute("faculties", facultyRepository.findAll());
             return "employees/form";
         }
     }

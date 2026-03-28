@@ -110,6 +110,24 @@
                         </select>
                     </div>
 
+                    <div class="col-md-6" id="facultyRow">
+                        <label class="form-label">Khoa (khi là giảng viên) <span class="text-danger faculty-required d-none">*</span></label>
+                        <select class="form-select" th:field="*{facultyId}">
+                            <option value="">-- Chọn khoa --</option>
+                            <option th:each="f : ${faculties}"
+                                    th:value="${f.facultyId}"
+                                    th:text="${f.facultyName}">
+                            </option>
+                        </select>
+                        <p class="text-muted small mb-0">Bắt buộc khi loại nhân sự là LECTURER (tạo mới hoặc chưa có khoa trên hồ sơ GV).</p>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Số QĐ / ghi chú thay đổi</label>
+                        <input class="form-control" th:field="*{decisionNo}" placeholder="VD: 123/QĐ-ĐH ngày ...">
+                        <p class="text-muted small mb-0">Ghi khi đổi phòng ban, chức danh hoặc loại nhân sự (lưu lịch sử).</p>
+                    </div>
+
                     <div class="col-md-6">
                         <label class="form-label">Ảnh đại diện</label>
                         <input type="file" class="form-control" th:field="*{avatarFile}" accept="image/*">
@@ -129,6 +147,24 @@
             </form>
         </div>
     </div>
+
+    <script th:inline="javascript">
+        (function () {
+            var typeSel = document.querySelector('select[name="employeeType"]');
+            var facultyRow = document.getElementById('facultyRow');
+            if (!typeSel || !facultyRow) return;
+            function sync() {
+                var v = typeSel.value;
+                var isLec = v === 'LECTURER';
+                facultyRow.classList.toggle('opacity-50', !isLec);
+                facultyRow.querySelectorAll('.faculty-required').forEach(function (el) {
+                    el.classList.toggle('d-none', !isLec);
+                });
+            }
+            typeSel.addEventListener('change', sync);
+            sync();
+        })();
+    </script>
 
 </div>
 </body>

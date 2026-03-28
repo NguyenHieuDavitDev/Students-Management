@@ -51,6 +51,13 @@ public class EmployeeRequest {
     private UUID positionId;
     private UUID departmentId;
 
+    /** Bắt buộc khi tạo mới loại LECTURER (hoặc khi chưa có hồ sơ GV và cần gắn khoa). */
+    private UUID facultyId;
+
+    /** Số quyết định / ghi chú khi ghi nhận thay đổi phòng ban–chức danh–loại NS. */
+    @Size(max = 100)
+    private String decisionNo;
+
     @Size(max = 20)
     private String status; // ACTIVE/INACTIVE
 }

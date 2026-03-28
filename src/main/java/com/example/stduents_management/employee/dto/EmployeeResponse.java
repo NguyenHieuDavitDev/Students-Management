@@ -24,7 +24,9 @@ public record EmployeeResponse(
         UUID departmentId,
         String departmentName,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        UUID lecturerFacultyId,
+        String lecturerFacultyName
 ) {
 }
 

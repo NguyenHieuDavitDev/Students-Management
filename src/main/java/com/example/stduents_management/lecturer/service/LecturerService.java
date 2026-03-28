@@ -40,14 +40,8 @@ public class LecturerService {
 
     public Page<LecturerResponse> search(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("lecturerCode"));
-
-        Page<Lecturer> data = (keyword == null || keyword.isBlank())
-                ? lecturerRepository.findAll(pageable)
-                : lecturerRepository
-                .findByLecturerCodeContainingIgnoreCaseOrFullNameContainingIgnoreCase(
-                        keyword, keyword, pageable
-                );
-
+        String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+        Page<Lecturer> data = lecturerRepository.pageTeachingLecturers(kw, EmployeeType.LECTURER, pageable);
         return data.map(this::toResponse);
     }
 
@@ -85,7 +79,7 @@ public class LecturerService {
     }
 
     public List<LecturerResponse> getForPrint() {
-        return lecturerRepository.findAll(Sort.by("lecturerCode"))
+        return lecturerRepository.findTeachingLecturersOrderByCode(EmployeeType.LECTURER)
                 .stream()
                 .map(this::toResponse)
                 .toList();

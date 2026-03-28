@@ -6,8 +6,14 @@ import com.example.stduents_management.department.repository.DepartmentRepositor
 import com.example.stduents_management.employee.dto.EmployeeRequest;
 import com.example.stduents_management.employee.dto.EmployeeResponse;
 import com.example.stduents_management.employee.entity.Employee;
+import com.example.stduents_management.employee.entity.EmployeePositionHistory;
 import com.example.stduents_management.employee.entity.EmployeeType;
+import com.example.stduents_management.employee.repository.EmployeePositionHistoryRepository;
 import com.example.stduents_management.employee.repository.EmployeeRepository;
+import com.example.stduents_management.faculty.entity.Faculty;
+import com.example.stduents_management.faculty.repository.FacultyRepository;
+import com.example.stduents_management.lecturer.entity.Lecturer;
+import com.example.stduents_management.lecturer.repository.LecturerRepository;
 import com.example.stduents_management.position.entity.Position;
 import com.example.stduents_management.position.repository.PositionRepository;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,7 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -36,6 +44,9 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final PositionRepository positionRepository;
     private final DepartmentRepository departmentRepository;
+    private final FacultyRepository facultyRepository;
+    private final LecturerRepository lecturerRepository;
+    private final EmployeePositionHistoryRepository employeePositionHistoryRepository;
     private final FileStorageService fileStorageService;
 
     private String normalize(String s) {
@@ -62,6 +73,8 @@ public class EmployeeService {
         Employee e = new Employee();
         build(e, req);
         employeeRepository.save(e);
+        recordInitialHistory(e, req.getDecisionNo());
+        syncLecturerExtension(e, req);
         return toResponse(e);
     }
 
@@ -73,7 +86,15 @@ public class EmployeeService {
         if (employeeRepository.existsByEmployeeCodeIgnoreCaseAndEmployeeIdNot(code, id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mã nhân sự đã tồn tại");
         }
+
+        EmployeeType oldType = e.getEmployeeType();
+        UUID oldPositionId = e.getPosition() != null ? e.getPosition().getPositionId() : null;
+        UUID oldDepartmentId = e.getDepartment() != null ? e.getDepartment().getDepartmentId() : null;
+
         build(e, req);
+        employeeRepository.save(e);
+        recordPositionHistoryIfChanged(e, oldType, oldPositionId, oldDepartmentId, req.getDecisionNo());
+        syncLecturerExtension(e, req);
         return toResponse(e);
     }
 
@@ -82,7 +103,100 @@ public class EmployeeService {
         if (!employeeRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy nhân sự");
         }
+        if (lecturerRepository.existsByEmployee_EmployeeId(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Không thể xóa nhân sự đã có hồ sơ giảng viên (còn liên kết lịch dạy/tài khoản). Hãy gỡ các liên kết trước.");
+        }
         employeeRepository.deleteById(id);
+    }
+
+    private void recordInitialHistory(Employee e, String decisionNo) {
+        EmployeePositionHistory h = new EmployeePositionHistory();
+        h.setEmployee(e);
+        h.setPosition(e.getPosition());
+        h.setDepartment(e.getDepartment());
+        h.setEmployeeType(e.getEmployeeType());
+        h.setEffectiveFrom(LocalDate.now());
+        h.setEffectiveTo(null);
+        h.setDecisionNo(normalize(decisionNo));
+        employeePositionHistoryRepository.save(h);
+    }
+
+    private void recordPositionHistoryIfChanged(
+            Employee e,
+            EmployeeType oldType,
+            UUID oldPositionId,
+            UUID oldDepartmentId,
+            String decisionNo) {
+        UUID newPos = e.getPosition() != null ? e.getPosition().getPositionId() : null;
+        UUID newDept = e.getDepartment() != null ? e.getDepartment().getDepartmentId() : null;
+        EmployeeType newType = e.getEmployeeType();
+        if (Objects.equals(oldType, newType)
+                && Objects.equals(oldPositionId, newPos)
+                && Objects.equals(oldDepartmentId, newDept)) {
+            return;
+        }
+        LocalDate today = LocalDate.now();
+        employeePositionHistoryRepository
+                .findFirstByEmployee_EmployeeIdAndEffectiveToIsNullOrderByEffectiveFromDesc(e.getEmployeeId())
+                .ifPresent(open -> open.setEffectiveTo(today.minusDays(1)));
+
+        EmployeePositionHistory h = new EmployeePositionHistory();
+        h.setEmployee(e);
+        h.setPosition(e.getPosition());
+        h.setDepartment(e.getDepartment());
+        h.setEmployeeType(e.getEmployeeType());
+        h.setEffectiveFrom(today);
+        h.setEffectiveTo(null);
+        h.setDecisionNo(normalize(decisionNo));
+        employeePositionHistoryRepository.save(h);
+    }
+
+    /**
+     * Khi loại nhân sự là LECTURER: tạo/cập nhật một dòng lecturers (1–1) đồng bộ với employees.
+     */
+    private void syncLecturerExtension(Employee e, EmployeeRequest req) {
+        if (e.getEmployeeType() != EmployeeType.LECTURER) {
+            return;
+        }
+
+        Lecturer l = lecturerRepository.findByEmployee_EmployeeId(e.getEmployeeId()).orElseGet(Lecturer::new);
+        boolean isNew = l.getLecturerId() == null;
+
+        if (isNew) {
+            if (lecturerRepository.existsByLecturerCodeIgnoreCase(e.getEmployeeCode())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Mã nhân sự trùng với mã giảng viên đã có. Đổi mã nhân sự hoặc xử lý trùng trong danh mục giảng viên.");
+            }
+            l.setEmployee(e);
+        } else {
+            if (lecturerRepository.existsByLecturerCodeAndLecturerIdNot(e.getEmployeeCode(), l.getLecturerId())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Mã giảng viên (theo mã nhân sự) đã tồn tại");
+            }
+        }
+
+        l.setLecturerCode(e.getEmployeeCode());
+        l.setFullName(e.getFullName());
+        l.setDateOfBirth(e.getDateOfBirth());
+        l.setGender(e.getGender());
+        l.setCitizenId(e.getCitizenId());
+        l.setEmail(e.getEmail());
+        l.setPhoneNumber(e.getPhoneNumber());
+        l.setAddress(e.getAddress());
+        l.setAvatar(e.getAvatar());
+        l.setPosition(e.getPosition());
+        l.setDepartment(e.getDepartment());
+
+        if (req.getFacultyId() != null) {
+            Faculty faculty = facultyRepository.findById(req.getFacultyId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Khoa không tồn tại"));
+            l.setFaculty(faculty);
+        } else if (isNew || l.getFaculty() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Loại giảng viên cần chọn khoa (faculty).");
+        }
+
+        lecturerRepository.save(l);
     }
 
     private void build(Employee e, EmployeeRequest req) {
@@ -116,7 +230,6 @@ public class EmployeeService {
         } else if (normalize(req.getAvatar()) != null) {
             e.setAvatar(normalize(req.getAvatar()));
         }
-        // updatedAt handled by @UpdateTimestamp
     }
 
     public List<EmployeeResponse> getForPrint() {
@@ -185,6 +298,7 @@ public class EmployeeService {
                 }
                 e.setStatus("ACTIVE");
                 employeeRepository.save(e);
+                recordInitialHistory(e, null);
                 count++;
             }
         } catch (Exception ex) {
@@ -194,6 +308,13 @@ public class EmployeeService {
     }
 
     private EmployeeResponse toResponse(Employee e) {
+        var lec = lecturerRepository.findByEmployee_EmployeeId(e.getEmployeeId());
+        UUID lecturerFacultyId = null;
+        String lecturerFacultyName = null;
+        if (lec.isPresent() && lec.get().getFaculty() != null) {
+            lecturerFacultyId = lec.get().getFaculty().getFacultyId();
+            lecturerFacultyName = lec.get().getFaculty().getFacultyName();
+        }
         return new EmployeeResponse(
                 e.getEmployeeId(),
                 e.getEmployeeCode(),
@@ -212,8 +333,9 @@ public class EmployeeService {
                 e.getDepartment() != null ? e.getDepartment().getDepartmentId() : null,
                 e.getDepartment() != null ? e.getDepartment().getDepartmentName() : null,
                 e.getCreatedAt(),
-                e.getUpdatedAt()
+                e.getUpdatedAt(),
+                lecturerFacultyId,
+                lecturerFacultyName
         );
     }
 }
-
