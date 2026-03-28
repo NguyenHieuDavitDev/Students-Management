@@ -1,6 +1,7 @@
 package com.example.stduents_management.lecturer.entity;
 
 import com.example.stduents_management.department.entity.Department;
+import com.example.stduents_management.employee.entity.Employee;
 import com.example.stduents_management.faculty.entity.Faculty;
 import com.example.stduents_management.lecturerduty.entity.LecturerDuty;
 import com.example.stduents_management.position.entity.Position;
@@ -28,6 +29,14 @@ public class Lecturer {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "uniqueidentifier")
     private UUID lecturerId;
+
+    /**
+     * Refactor: lecturers là bảng con của employees (1-1) qua khóa ngoại employee_id.
+     * Không dùng @MapsId để tránh thay đổi PK hiện có của lecturers.
+     */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id", unique = true, columnDefinition = "uniqueidentifier")
+    private Employee employee;
 
     @Column(name = "lecturer_code", nullable = false, columnDefinition = "VARCHAR(20)")
     private String lecturerCode;

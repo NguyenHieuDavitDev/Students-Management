@@ -3,6 +3,9 @@ package com.example.stduents_management.lecturer.service;
 import com.example.stduents_management.common.service.FileStorageService;
 import com.example.stduents_management.department.entity.Department;
 import com.example.stduents_management.department.repository.DepartmentRepository;
+import com.example.stduents_management.employee.entity.Employee;
+import com.example.stduents_management.employee.entity.EmployeeType;
+import com.example.stduents_management.employee.repository.EmployeeRepository;
 import com.example.stduents_management.faculty.entity.Faculty;
 import com.example.stduents_management.faculty.repository.FacultyRepository;
 import com.example.stduents_management.lecturer.dto.LecturerRequest;
@@ -33,6 +36,7 @@ public class LecturerService {
     private final PositionRepository positionRepository;
     private final LecturerDutyRepository lecturerDutyRepository;
     private final FileStorageService fileStorageService;
+    private final EmployeeRepository employeeRepository;
 
     public Page<LecturerResponse> search(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("lecturerCode"));
@@ -114,6 +118,27 @@ public class LecturerService {
                             new ResponseStatusException(HttpStatus.NOT_FOUND, "Phòng ban không tồn tại"));
         }
 
+        // Đồng bộ bảng cha employees (không xóa lecturers hiện tại; chỉ gắn employee_id)
+        Employee e = l.getEmployee();
+        if (e == null) {
+            e = new Employee();
+            e.setEmployeeType(EmployeeType.LECTURER);
+            e.setStatus("ACTIVE");
+        }
+        // Dùng lecturerCode làm employeeCode để dễ migration/tra cứu
+        e.setEmployeeCode(req.getLecturerCode());
+        e.setFullName(req.getFullName());
+        e.setDateOfBirth(req.getDateOfBirth());
+        e.setGender(req.getGender());
+        e.setCitizenId(req.getCitizenId());
+        e.setEmail(req.getEmail());
+        e.setPhoneNumber(req.getPhoneNumber());
+        e.setAddress(req.getAddress());
+        e.setAvatar(req.getAvatar());
+        e.setPosition(position);
+        e.setDepartment(department);
+        employeeRepository.save(e);
+
         l.setLecturerCode(req.getLecturerCode());
         l.setFullName(req.getFullName());
         l.setDateOfBirth(req.getDateOfBirth());
@@ -126,9 +151,12 @@ public class LecturerService {
         l.setLecturerDuty(lecturerDuty);
         l.setDepartment(department);
         l.setAcademicTitle(req.getAcademicTitle());
+        l.setEmployee(e);
 
         if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
             l.setAvatar(fileStorageService.store(req.getAvatarFile()));
+            e.setAvatar(l.getAvatar());
+            employeeRepository.save(e);
         }
 
         l.setFaculty(faculty);

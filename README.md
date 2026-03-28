@@ -5266,6 +5266,114 @@ auditlog/
 
 ---
 
+### 31. Quản Lý Nhân Viên (Employee Management)
+
+Module quản lý hồ sơ toàn bộ nhân viên trong nhà trường, bao gồm giảng viên, nhân viên hành chính, bảo vệ, vệ sinh, IT và các loại khác. Hỗ trợ đầy đủ CRUD, upload ảnh đại diện, import/export Excel và in danh sách.
+
+#### 31.1. Mô hình dữ liệu
+
+Bảng `employees` — mỗi bản ghi đại diện cho một nhân viên:
+
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| `employee_id` | UUID | Khoá chính, tự sinh |
+| `employee_code` | VARCHAR | Mã nhân viên, duy nhất (unique, không phân biệt hoa/thường) |
+| `full_name` | NVARCHAR | Họ và tên |
+| `date_of_birth` | DATE | Ngày sinh (phải là ngày trong quá khứ) |
+| `gender` | VARCHAR | Giới tính |
+| `citizen_id` | VARCHAR | Số CCCD/CMND |
+| `email` | VARCHAR | Email (định dạng hợp lệ) |
+| `phone_number` | VARCHAR | Số điện thoại |
+| `address` | NVARCHAR | Địa chỉ |
+| `avatar` | VARCHAR | Đường dẫn ảnh đại diện |
+| `employee_type` | ENUM | Loại nhân viên (xem bên dưới) |
+| `position_id` | FK → positions | Chức danh (nullable) |
+| `department_id` | FK → departments | Phòng ban (nullable) |
+| `status` | VARCHAR | Trạng thái, mặc định `ACTIVE` |
+| `created_at` | DATETIME | Thời điểm tạo (tự động) |
+| `updated_at` | DATETIME | Thời điểm cập nhật (tự động) |
+
+**Enum EmployeeType** — 6 loại nhân viên:
+
+| Giá trị | Mô tả |
+|---------|-------|
+| `LECTURER` | Giảng viên |
+| `ADMIN_STAFF` | Nhân viên hành chính |
+| `SECURITY` | Bảo vệ |
+| `CLEANER` | Vệ sinh |
+| `IT` | Nhân viên IT |
+| `OTHER` | Khác |
+
+#### 31.2. Tính năng
+
+| Tính năng | Mô tả |
+|-----------|-------|
+| **Thêm nhân viên** | Form tạo mới với validation đầy đủ: mã không trùng, email hợp lệ, ngày sinh quá khứ, tối đa 50 ký tự họ tên. |
+| **Sửa nhân viên** | Cập nhật thông tin, kiểm tra trùng mã trừ chính bản ghi đang sửa. |
+| **Xoá nhân viên** | Xoá bản ghi khỏi DB (kèm xoá file avatar nếu có). |
+| **Upload ảnh đại diện** | Upload file ảnh khi tạo/sửa, lưu qua `FileStorageService`. |
+| **Tìm kiếm** | Lọc theo từ khoá (mã, tên, email, SĐT) và loại nhân viên (`EmployeeType`), có phân trang. |
+| **Import Excel** | Nhập hàng loạt nhân viên từ file `.xlsx`. |
+| **Export Excel** | Xuất danh sách ra file `employees.xlsx` (6 cột: mã, họ tên, loại, phòng ban, chức danh, trạng thái). |
+| **In danh sách** | Trang in tất cả nhân viên sắp xếp theo mã (`/admin/employees/print`). |
+
+#### 31.3. Service (EmployeeService)
+
+| Method | Mô tả |
+|--------|-------|
+| `search(keyword, type, page, size)` | Tìm kiếm phân trang theo từ khoá và loại nhân viên |
+| `getById(id)` | Lấy nhân viên theo UUID, ném `ResourceNotFoundException` nếu không tồn tại |
+| `create(request)` | Tạo mới: kiểm tra trùng mã, lưu avatar, persist entity |
+| `update(id, request)` | Cập nhật: kiểm tra trùng mã (trừ chính nó), xử lý avatar mới |
+| `delete(id)` | Xoá nhân viên và file avatar liên quan |
+| `exportExcel()` | Trả về `byte[]` file Excel |
+| `importExcel(file)` | Đọc file Excel, tạo hàng loạt nhân viên |
+| `getForPrint()` | Lấy toàn bộ danh sách sắp xếp theo mã để in |
+
+#### 31.4. REST API (`/api/employees`)
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `GET` | `/api/employees` | Tìm kiếm, phân trang (`keyword`, `type`, `page`, `size`) |
+| `GET` | `/api/employees/{id}` | Lấy theo ID |
+| `POST` | `/api/employees` | Tạo mới (multipart/form-data) |
+| `PUT` | `/api/employees/{id}` | Cập nhật (multipart/form-data) |
+| `DELETE` | `/api/employees/{id}` | Xoá |
+| `GET` | `/api/employees/export` | Tải file Excel |
+| `POST` | `/api/employees/import` | Upload file Excel để nhập |
+| `GET` | `/api/employees/print` | Lấy tất cả để in |
+| `GET` | `/api/employees/all` | Lấy tất cả (không phân trang) |
+
+#### 31.5. Giao diện Admin (`/admin/employees`)
+
+- **Danh sách** (`/admin/employees`): Bảng nhân viên với tìm kiếm theo từ khoá và lọc loại nhân viên, phân trang. Nút thêm mới, xuất Excel, nhập Excel.
+- **Form tạo/sửa** (`/admin/employees/new`, `/admin/employees/{id}/edit`): Form nhập thông tin với dropdown chọn chức danh, phòng ban, loại nhân viên; upload ảnh đại diện.
+- **Trang in** (`/admin/employees/print`): Danh sách toàn bộ nhân viên dạng in ấn.
+- Flash message thông báo thành công / lỗi sau mỗi thao tác.
+
+#### 31.6. Cấu trúc code
+
+```
+employee/
+├── entity/
+│   ├── Employee.java          # Bảng employees, FK → positions, departments; enum EmployeeType
+│   └── EmployeeType.java      # Enum: LECTURER, ADMIN_STAFF, SECURITY, CLEANER, IT, OTHER
+├── dto/
+│   ├── EmployeeRequest.java   # Validation: NotBlank, Email, Past, Size; avatarFile MultipartFile
+│   └── EmployeeResponse.java  # Record DTO trả về kèm tên chức danh, phòng ban
+├── repository/
+│   └── EmployeeRepository.java  # Tìm kiếm theo code/name/email/phone + lọc type
+├── service/
+│   └── EmployeeService.java   # CRUD, upload avatar, import/export Excel
+└── controller/
+    ├── EmployeeController.java           # REST API /api/employees
+    └── EmployeeDashboardController.java  # Web UI /admin/employees
+```
+
+**Templates**: `employees/index.html`, `employees/form.html`, `employees/print.html`
+
+---
+
 ## Tác Giả
 
 **NguyenNgocMinhHieu** - [GitHub](https://github.com/NguyenHieuDavitDev)
@@ -5313,6 +5421,7 @@ auditlog/
 - [x] Quản lý điểm danh sinh viên (Attendance Management)
 - [x] Quản lý phòng ban (Department Management)
 - [x] Quản lý chức vụ giảng viên (Lecturer Duty Management)
+- [x] Quản lý nhân viên (Employee Management)
 
 ---
 

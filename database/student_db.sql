@@ -1029,3 +1029,29 @@ CREATE TABLE [dbo].[audit_logs] (
 INSERT INTO [dbo].[audit_logs] ([id], [action], [created_at], [description], [http_method], [ip_address], [module_name], [request_path], [status_code], [target_id], [user_agent], [username]) VALUES
 ('86DE3E6A-4BDD-4D2B-8408-1F7790B33964', N'CREATE', '2026-03-27 11:00:49.044186', N'CREATE faculties (302) path=/admin/faculties', N'POST', N'0:0:0:0:0:0:0:1', N'faculties', N'/admin/faculties', '302', NULL, N'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', N'admin1');
 
+DROP TABLE IF EXISTS [dbo].[employees];
+CREATE TABLE [dbo].[employees] (
+    [employee_id] uniqueidentifier,
+    [address] nvarchar(255),
+    [avatar] varchar(255),
+    [citizen_id] varchar(20),
+    [created_at] datetime2(6),
+    [date_of_birth] date,
+    [email] nvarchar(150),
+    [employee_code] varchar(30),
+    [employee_type] varchar(30),
+    [full_name] nvarchar(150),
+    [gender] nvarchar(10),
+    [phone_number] varchar(30),
+    [status] varchar(20),
+    [updated_at] datetime2(6),
+    [department_id] uniqueidentifier,
+    [position_id] uniqueidentifier,
+    CONSTRAINT [FKgy4qe3dnqrm3ktd76sxp7n4c2] FOREIGN KEY ([department_id]) REFERENCES [dbo].[departments]([department_id]),
+    CONSTRAINT [FKngcpgx7fx5kednw3m7u0u8of3] FOREIGN KEY ([position_id]) REFERENCES [dbo].[positions]([position_id]),
+    PRIMARY KEY ([employee_id])
+);
+
+INSERT INTO [dbo].[employees] ([employee_id], [address], [avatar], [citizen_id], [created_at], [date_of_birth], [email], [employee_code], [employee_type], [full_name], [gender], [phone_number], [status], [updated_at], [department_id], [position_id]) VALUES
+('AAC73B27-15D3-4DCA-B22C-F34C0C165704', N'73 Nam Kỳ Khởi Nghĩa, Đà Nẵng', N'/uploads/avatars/860da9d6-eda8-4e1b-bb34-f0275c205327_hinh4.jpg', N'1999888777', '2026-03-27 20:19:27.686701', '1992-01-01', N'ngochoang@gmail.com', N'BV001', N'SECURITY', N'Ngọc Hoàng Thượng Đế', N'Nam', N'0123321123', N'ACTIVE', '2026-03-27 20:27:20.427878', '6A665253-8817-4C24-81FE-A1770AA9EB97', 'FE5D059E-9B11-4EE0-AE48-EC3D6347A917');
+
