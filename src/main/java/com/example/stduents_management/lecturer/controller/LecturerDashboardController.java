@@ -15,6 +15,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.UUID;
@@ -78,9 +79,19 @@ public class LecturerDashboardController {
             return "lecturers/form";
         }
 
-        lecturerService.create(req);
-        redirect.addFlashAttribute("success", "Thêm giảng viên thành công");
-        return "redirect:/admin/lecturers";
+        try {
+            lecturerService.create(req);
+            redirect.addFlashAttribute("success", "Thêm giảng viên thành công");
+            return "redirect:/admin/lecturers";
+        } catch (ResponseStatusException ex) {
+            model.addAttribute("mode", "create");
+            model.addAttribute("globalError", ex.getReason());
+            model.addAttribute("faculties", facultyRepository.findAll());
+            model.addAttribute("departments", departmentRepository.findAll());
+            model.addAttribute("positions", positionRepository.findAll());
+            model.addAttribute("lecturerDuties", lecturerDutyRepository.findAll());
+            return "lecturers/form";
+        }
     }
 
     /* ===================== EDIT FORM ===================== */
@@ -143,9 +154,23 @@ public class LecturerDashboardController {
             return "lecturers/form";
         }
 
-        lecturerService.update(id, req);
-        redirect.addFlashAttribute("success", "Cập nhật giảng viên thành công");
-        return "redirect:/admin/lecturers";
+        try {
+            lecturerService.update(id, req);
+            redirect.addFlashAttribute("success", "Cập nhật giảng viên thành công");
+            return "redirect:/admin/lecturers";
+        } catch (ResponseStatusException ex) {
+            model.addAttribute("mode", "edit");
+            model.addAttribute("lecturerId", id);
+            model.addAttribute("globalError", ex.getReason());
+            model.addAttribute("faculties", facultyRepository.findAll());
+            model.addAttribute("departments", departmentRepository.findAll());
+            model.addAttribute("positions", positionRepository.findAll());
+            model.addAttribute("lecturerDuties", lecturerDutyRepository.findAll());
+            model.addAttribute(
+                    "teachingAssignments",
+                    lecturerCourseClassService.listTeachingRowsForLecturer(id));
+            return "lecturers/form";
+        }
     }
 
     /* ===================== DELETE ===================== */
@@ -154,8 +179,12 @@ public class LecturerDashboardController {
             @PathVariable UUID id,
             RedirectAttributes redirect
     ) {
-        lecturerService.delete(id);
-        redirect.addFlashAttribute("success", "Xóa giảng viên thành công");
+        try {
+            lecturerService.delete(id);
+            redirect.addFlashAttribute("success", "Xóa giảng viên thành công");
+        } catch (ResponseStatusException ex) {
+            redirect.addFlashAttribute("error", ex.getReason());
+        }
         return "redirect:/admin/lecturers";
     }
 

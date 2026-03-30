@@ -7,7 +7,6 @@ import com.example.stduents_management.user.dto.UserRequest;
 import com.example.stduents_management.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -59,8 +58,8 @@ public class UserDashboardController {
         model.addAttribute("mode", "create");
         model.addAttribute("userRequest", new UserRequest());
         model.addAttribute("roles", roleService.getAll());
-        model.addAttribute("students", studentRepository.findAll(Sort.by("studentCode")));
-        model.addAttribute("lecturers", lecturerRepository.findAll(Sort.by("lecturerCode")));
+        model.addAttribute("students", studentRepository.findByUserIsNullOrderByStudentCodeAsc());
+        model.addAttribute("lecturers", lecturerRepository.findByUserIsNullOrderByLecturerCodeAsc());
         return "users/form";
     }
 
@@ -75,8 +74,8 @@ public class UserDashboardController {
 
         if (bindingResult.hasErrors()) {
             model.addAttribute("roles", roleService.getAll());
-            model.addAttribute("students", studentRepository.findAll(Sort.by("studentCode")));
-            model.addAttribute("lecturers", lecturerRepository.findAll(Sort.by("lecturerCode")));
+            model.addAttribute("students", studentRepository.findByUserIsNullOrderByStudentCodeAsc());
+            model.addAttribute("lecturers", lecturerRepository.findByUserIsNullOrderByLecturerCodeAsc());
             return "users/form";
         }
 
@@ -86,8 +85,8 @@ public class UserDashboardController {
         } catch (ResponseStatusException ex) {
             model.addAttribute("globalError", ex.getReason());
             model.addAttribute("roles", roleService.getAll());
-            model.addAttribute("students", studentRepository.findAll(Sort.by("studentCode")));
-            model.addAttribute("lecturers", lecturerRepository.findAll(Sort.by("lecturerCode")));
+            model.addAttribute("students", studentRepository.findByUserIsNullOrderByStudentCodeAsc());
+            model.addAttribute("lecturers", lecturerRepository.findByUserIsNullOrderByLecturerCodeAsc());
             return "users/form";
         }
     }
@@ -114,8 +113,8 @@ public class UserDashboardController {
         model.addAttribute("userId", id);
         model.addAttribute("userRequest", req);
         model.addAttribute("roles", roleService.getAll());
-        model.addAttribute("students", studentRepository.findAll(Sort.by("studentCode")));
-        model.addAttribute("lecturers", lecturerRepository.findAll(Sort.by("lecturerCode")));
+        model.addAttribute("students", studentRepository.findByUserIsNullOrStudentIdOrderByStudentCodeAsc(user.getStudentId()));
+        model.addAttribute("lecturers", lecturerRepository.findByUserIsNullOrLecturerIdOrderByLecturerCodeAsc(user.getLecturerId()));
         return "users/form";
     }
 
@@ -131,8 +130,8 @@ public class UserDashboardController {
 
         if (bindingResult.hasErrors()) {
             model.addAttribute("roles", roleService.getAll());
-            model.addAttribute("students", studentRepository.findAll(Sort.by("studentCode")));
-            model.addAttribute("lecturers", lecturerRepository.findAll(Sort.by("lecturerCode")));
+            model.addAttribute("students", studentRepository.findByUserIsNullOrStudentIdOrderByStudentCodeAsc(userRequest.getStudentId()));
+            model.addAttribute("lecturers", lecturerRepository.findByUserIsNullOrLecturerIdOrderByLecturerCodeAsc(userRequest.getLecturerId()));
             return "users/form";
         }
 
@@ -142,8 +141,8 @@ public class UserDashboardController {
         } catch (ResponseStatusException ex) {
             model.addAttribute("globalError", ex.getReason());
             model.addAttribute("roles", roleService.getAll());
-            model.addAttribute("students", studentRepository.findAll(Sort.by("studentCode")));
-            model.addAttribute("lecturers", lecturerRepository.findAll(Sort.by("lecturerCode")));
+            model.addAttribute("students", studentRepository.findByUserIsNullOrStudentIdOrderByStudentCodeAsc(userRequest.getStudentId()));
+            model.addAttribute("lecturers", lecturerRepository.findByUserIsNullOrLecturerIdOrderByLecturerCodeAsc(userRequest.getLecturerId()));
             return "users/form";
         }
     }

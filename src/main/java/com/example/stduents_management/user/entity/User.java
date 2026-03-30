@@ -48,8 +48,11 @@ public class User {
     @JoinColumn(name = "student_id", unique = true, columnDefinition = "uniqueidentifier")
     private Student student;
 
-    /** Liên kết 1-1: User (1) -------- (1) Lecturer. Khóa ngoại lecturer_id trên bảng users. */
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lecturer_id", unique = true, columnDefinition = "uniqueidentifier")
+    @JoinColumn(
+            name = "lecturer_id",
+            unique = true,
+            columnDefinition = "uniqueidentifier"
+    )
     private Lecturer lecturer;
 }

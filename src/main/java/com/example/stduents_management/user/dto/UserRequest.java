@@ -1,6 +1,7 @@
 package com.example.stduents_management.user.dto;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -20,7 +21,6 @@ public class UserRequest {
     private String email;
 
     // dùng cho đăng nhập
-    @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
     private boolean enabled = true;
@@ -31,4 +31,9 @@ public class UserRequest {
     private UUID studentId;
     /** ID giảng viên gắn với tài khoản (1-1). Null = không gắn. */
     private UUID lecturerId;
+
+    @AssertTrue(message = "Password must be at least 6 characters")
+    public boolean isPasswordValidForCreateOrUpdate() {
+        return password == null || password.isBlank() || password.length() >= 6;
+    }
 }

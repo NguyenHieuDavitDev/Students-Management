@@ -1,6 +1,5 @@
 package com.example.stduents_management.lecturer.dto;
 
-import com.example.stduents_management.employee.entity.DecisionType;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,9 +40,4 @@ public class LecturerRequest {
 
     private UUID departmentId;
 
-    /** Lưu vào lịch sử nhân sự khi tạo giảng viên từ form giảng viên. */
-    @Size(max = 100)
-    private String decisionNo;
-
-    private DecisionType decisionType;
 }

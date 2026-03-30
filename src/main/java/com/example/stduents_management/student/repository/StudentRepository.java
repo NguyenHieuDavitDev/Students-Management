@@ -34,4 +34,8 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
     default Optional<Student> findByStudentCode(String studentCode) {
         return findByStudentCodeIgnoreCase(studentCode);
     }
+
+    List<Student> findByUserIsNullOrderByStudentCodeAsc();
+
+    List<Student> findByUserIsNullOrStudentIdOrderByStudentCodeAsc(UUID studentId);
 }

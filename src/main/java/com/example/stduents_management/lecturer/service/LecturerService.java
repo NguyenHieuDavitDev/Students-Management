@@ -3,12 +3,6 @@ package com.example.stduents_management.lecturer.service;
 import com.example.stduents_management.common.service.FileStorageService;
 import com.example.stduents_management.department.entity.Department;
 import com.example.stduents_management.department.repository.DepartmentRepository;
-import com.example.stduents_management.employee.entity.DecisionType;
-import com.example.stduents_management.employee.entity.Employee;
-import com.example.stduents_management.employee.entity.EmployeePositionHistory;
-import com.example.stduents_management.employee.entity.EmployeeType;
-import com.example.stduents_management.employee.repository.EmployeePositionHistoryRepository;
-import com.example.stduents_management.employee.repository.EmployeeRepository;
 import com.example.stduents_management.faculty.entity.Faculty;
 import com.example.stduents_management.faculty.repository.FacultyRepository;
 import com.example.stduents_management.lecturer.dto.LecturerRequest;
@@ -20,13 +14,13 @@ import com.example.stduents_management.lecturerduty.repository.LecturerDutyRepos
 import com.example.stduents_management.position.entity.Position;
 import com.example.stduents_management.position.repository.PositionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,13 +34,11 @@ public class LecturerService {
     private final PositionRepository positionRepository;
     private final LecturerDutyRepository lecturerDutyRepository;
     private final FileStorageService fileStorageService;
-    private final EmployeeRepository employeeRepository;
-    private final EmployeePositionHistoryRepository employeePositionHistoryRepository;
 
     public Page<LecturerResponse> search(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("lecturerCode"));
         String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
-        Page<Lecturer> data = lecturerRepository.pageTeachingLecturers(kw, EmployeeType.LECTURER, pageable);
+        Page<Lecturer> data = lecturerRepository.pageTeachingLecturers(kw, pageable);
         return data.map(this::toResponse);
     }
 
@@ -59,12 +51,13 @@ public class LecturerService {
 
     @Transactional
     public void create(LecturerRequest req) {
-        if (lecturerRepository.existsByLecturerCode(req.getLecturerCode())) {
+        String lecturerCode = normalize(req.getLecturerCode());
+        if (lecturerRepository.existsByLecturerCodeIgnoreCase(lecturerCode)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mã giảng viên đã tồn tại");
         }
+        req.setLecturerCode(lecturerCode);
         Lecturer l = build(new Lecturer(), req);
         lecturerRepository.save(l);
-        recordLecturerCreateHistory(l.getEmployee(), req);
     }
 
     @Transactional
@@ -73,43 +66,36 @@ public class LecturerService {
                 .orElseThrow(() ->
                         new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giảng viên"));
 
-        if (lecturerRepository.existsByLecturerCodeAndLecturerIdNot(req.getLecturerCode(), id)) {
+        String lecturerCode = normalize(req.getLecturerCode());
+        if (lecturerRepository.existsByLecturerCodeIgnoreCaseAndLecturerIdNot(lecturerCode, id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mã giảng viên đã tồn tại");
         }
+        req.setLecturerCode(lecturerCode);
 
         build(l, req);
     }
 
     @Transactional
     public void delete(UUID id) {
-        lecturerRepository.deleteById(id);
+        if (!lecturerRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giảng viên");
+        }
+        try {
+            lecturerRepository.deleteById(id);
+            lecturerRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Không thể xóa giảng viên vì đang được sử dụng ở dữ liệu khác"
+            );
+        }
     }
 
     public List<LecturerResponse> getForPrint() {
-        return lecturerRepository.findTeachingLecturersOrderByCode(EmployeeType.LECTURER)
+        return lecturerRepository.findTeachingLecturersOrderByCode()
                 .stream()
                 .map(this::toResponse)
                 .toList();
-    }
-
-    private void recordLecturerCreateHistory(Employee e, LecturerRequest req) {
-        if (e == null || e.getEmployeeId() == null) {
-            return;
-        }
-        EmployeePositionHistory h = new EmployeePositionHistory();
-        h.setEmployee(e);
-        h.setPosition(e.getPosition());
-        h.setDepartment(e.getDepartment());
-        h.setEmployeeType(e.getEmployeeType());
-        h.setEffectiveFrom(LocalDate.now());
-        h.setEffectiveTo(null);
-        h.setDecisionNo(normalize(req.getDecisionNo()));
-        h.setDecisionType(req.getDecisionType() != null ? req.getDecisionType() : DecisionType.LECTURER_APPOINTMENT);
-        employeePositionHistoryRepository.save(h);
-    }
-
-    private static String normalize(String s) {
-        return s == null ? null : s.trim();
     }
 
     private Lecturer build(Lecturer l, LecturerRequest req) {
@@ -139,49 +125,29 @@ public class LecturerService {
                             new ResponseStatusException(HttpStatus.NOT_FOUND, "Phòng ban không tồn tại"));
         }
 
-        // Đồng bộ bảng cha employees (không xóa lecturers hiện tại; chỉ gắn employee_id)
-        Employee e = l.getEmployee();
-        if (e == null) {
-            e = new Employee();
-            e.setEmployeeType(EmployeeType.LECTURER);
-            e.setStatus("ACTIVE");
-        }
-        // Dùng lecturerCode làm employeeCode để dễ migration/tra cứu
-        e.setEmployeeCode(req.getLecturerCode());
-        e.setFullName(req.getFullName());
-        e.setDateOfBirth(req.getDateOfBirth());
-        e.setGender(req.getGender());
-        e.setCitizenId(req.getCitizenId());
-        e.setEmail(req.getEmail());
-        e.setPhoneNumber(req.getPhoneNumber());
-        e.setAddress(req.getAddress());
-        e.setAvatar(req.getAvatar());
-        e.setPosition(position);
-        e.setDepartment(department);
-        employeeRepository.save(e);
-
-        l.setLecturerCode(req.getLecturerCode());
-        l.setFullName(req.getFullName());
+        l.setLecturerCode(normalize(req.getLecturerCode()));
+        l.setFullName(normalize(req.getFullName()));
         l.setDateOfBirth(req.getDateOfBirth());
-        l.setGender(req.getGender());
-        l.setCitizenId(req.getCitizenId());
-        l.setEmail(req.getEmail());
-        l.setPhoneNumber(req.getPhoneNumber());
-        l.setAddress(req.getAddress());
+        l.setGender(normalize(req.getGender()));
+        l.setCitizenId(normalize(req.getCitizenId()));
+        l.setEmail(normalize(req.getEmail()));
+        l.setPhoneNumber(normalize(req.getPhoneNumber()));
+        l.setAddress(normalize(req.getAddress()));
         l.setPosition(position);
         l.setLecturerDuty(lecturerDuty);
         l.setDepartment(department);
-        l.setAcademicTitle(req.getAcademicTitle());
-        l.setEmployee(e);
+        l.setAcademicTitle(normalize(req.getAcademicTitle()));
 
         if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
             l.setAvatar(fileStorageService.store(req.getAvatarFile()));
-            e.setAvatar(l.getAvatar());
-            employeeRepository.save(e);
         }
 
         l.setFaculty(faculty);
         return l;
+    }
+
+    private String normalize(String s) {
+        return s == null ? null : s.trim();
     }
 
     private LecturerResponse toResponse(Lecturer l) {

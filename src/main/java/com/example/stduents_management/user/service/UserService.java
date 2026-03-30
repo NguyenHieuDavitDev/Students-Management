@@ -1,10 +1,8 @@
 package com.example.stduents_management.user.service;
 
-import com.example.stduents_management.lecturer.entity.Lecturer;
 import com.example.stduents_management.lecturer.repository.LecturerRepository;
 import com.example.stduents_management.role.entity.Role;
 import com.example.stduents_management.role.repository.RoleRepository;
-import com.example.stduents_management.student.entity.Student;
 import com.example.stduents_management.student.repository.StudentRepository;
 import com.example.stduents_management.user.dto.RegisterRequest;
 import com.example.stduents_management.user.dto.UserRequest;
@@ -63,6 +61,7 @@ public class UserService {
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password is required");
         }
+        validateStudentAndLecturerAssignment(null, request);
 
         User user = new User();
         user.setUsername(request.getUsername().trim());
@@ -87,6 +86,7 @@ public class UserService {
         if (userRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
+        validateStudentAndLecturerAssignment(id, request);
 
         user.setUsername(request.getUsername().trim());
         user.setEmail(request.getEmail().trim());
@@ -155,11 +155,44 @@ public class UserService {
 
     private void setStudentAndLecturer(User user, UserRequest request) {
         user.setStudent(request.getStudentId() != null
-                ? studentRepository.findById(request.getStudentId()).orElse(null)
+                ? studentRepository.findById(request.getStudentId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found"))
                 : null);
-        user.setLecturer(request.getLecturerId() != null
-                ? lecturerRepository.findById(request.getLecturerId()).orElse(null)
-                : null);
+        if (request.getLecturerId() == null) {
+            user.setLecturer(null);
+            return;
+        }
+
+        var lecturer = lecturerRepository.findById(request.getLecturerId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lecturer not found"));
+        user.setLecturer(lecturer);
+    }
+
+    private void validateStudentAndLecturerAssignment(UUID userId, UserRequest request) {
+        if (request.getStudentId() != null && request.getLecturerId() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "A user can only be assigned to either a student or a lecturer"
+            );
+        }
+
+        if (request.getStudentId() != null) {
+            boolean assigned = userId == null
+                    ? userRepository.existsByStudent_StudentId(request.getStudentId())
+                    : userRepository.existsByStudent_StudentIdAndIdNot(request.getStudentId(), userId);
+            if (assigned) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Student already has an account");
+            }
+        }
+
+        if (request.getLecturerId() != null) {
+            boolean assigned = userId == null
+                    ? userRepository.existsByLecturer_LecturerId(request.getLecturerId())
+                    : userRepository.existsByLecturer_LecturerIdAndIdNot(request.getLecturerId(), userId);
+            if (assigned) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Lecturer already has an account");
+            }
+        }
     }
 
     private UserResponse toResponse(User user) {
