@@ -123,6 +123,22 @@
                     </div>
 
                     <div class="col-md-6">
+                        <label class="form-label">Loại quyết định</label>
+                        <select class="form-select" th:field="*{decisionType}" id="decisionTypeSelect">
+                            <option value="">-- Không chọn --</option>
+                            <option value="LECTURER_APPOINTMENT">Bổ nhiệm / tuyển dụng giảng viên</option>
+                            <option value="STAFF_APPOINTMENT">Bổ nhiệm / tuyển dụng nhân viên</option>
+                            <option value="TRANSFER">Điều chuyển</option>
+                            <option value="PROMOTION">Thăng chức / nâng bậc</option>
+                            <option value="DISCIPLINE">Kỷ luật</option>
+                            <option value="TERMINATION">Chấm dứt / nghỉ việc</option>
+                            <option value="OTHER">Khác</option>
+                        </select>
+                        <p class="text-muted small mb-0">
+                            Nếu chọn <strong>bổ nhiệm giảng viên</strong>, hệ thống đặt loại nhân sự thành giảng viên và ghi vào danh mục giảng viên (cần chọn khoa).
+                        </p>
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label">Số QĐ / ghi chú thay đổi</label>
                         <input class="form-control" th:field="*{decisionNo}" placeholder="VD: 123/QĐ-ĐH ngày ...">
                         <p class="text-muted small mb-0">Ghi khi đổi phòng ban, chức danh hoặc loại nhân sự (lưu lịch sử).</p>
@@ -151,17 +167,20 @@
     <script th:inline="javascript">
         (function () {
             var typeSel = document.querySelector('select[name="employeeType"]');
+            var decSel = document.getElementById('decisionTypeSelect');
             var facultyRow = document.getElementById('facultyRow');
             if (!typeSel || !facultyRow) return;
             function sync() {
                 var v = typeSel.value;
-                var isLec = v === 'LECTURER';
+                var dec = decSel ? decSel.value : '';
+                var isLec = v === 'LECTURER' || dec === 'LECTURER_APPOINTMENT';
                 facultyRow.classList.toggle('opacity-50', !isLec);
                 facultyRow.querySelectorAll('.faculty-required').forEach(function (el) {
                     el.classList.toggle('d-none', !isLec);
                 });
             }
             typeSel.addEventListener('change', sync);
+            if (decSel) decSel.addEventListener('change', sync);
             sync();
         })();
     </script>

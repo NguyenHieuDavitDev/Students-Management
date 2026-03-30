@@ -52,6 +52,10 @@ public class EmployeePositionHistory {
     @Column(name = "employee_type", nullable = false, length = 30)
     private EmployeeType employeeType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "decision_type", length = 40)
+    private DecisionType decisionType;
+
     @Column(name = "effective_from", nullable = false)
     private LocalDate effectiveFrom;
 

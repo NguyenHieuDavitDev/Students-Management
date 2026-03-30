@@ -1487,7 +1487,7 @@ Chức năng quản lý giảng viên cho phép quản trị viên tạo, sửa,
 - **Danh sách Giảng Viên**: Xem toàn bộ danh sách giảng viên trong hệ thống
 - **Tìm kiếm**: Tìm kiếm giảng viên theo mã giảng viên hoặc tên (hỗ trợ tìm kiếm gần đúng)
 - **Phân trang**: Hỗ trợ phân trang để dễ dàng xem danh sách
-- **Thêm mới**: Tạo giảng viên mới và liên kết với khoa
+- **Thêm mới**: Tạo giảng viên mới và liên kết với khoa; đồng thời tạo bản ghi `employees` (loại `LECTURER`) và **một dòng** `employee_position_history` với loại quyết định (form admin: tùy chọn; mặc định hệ thống `LECTURER_APPOINTMENT` nếu không chọn) và số quyết định tùy chọn
 - **Sửa**: Chỉnh sửa thông tin giảng viên đã tồn tại
 - **Xoá**: Xoá giảng viên khỏi hệ thống
 - **Liên kết Khoa**: Mỗi giảng viên được liên kết với một khoa cụ thể
@@ -1553,7 +1553,8 @@ public class Lecturer {
 
 #### Request/Response Model:
 
-**LecturerRequest** (Tạo/Cập nhật giảng viên):
+**LecturerRequest** (Tạo/Cập nhật giảng viên) — có thể kèm các trường tùy chọn **`decisionNo`**, **`decisionType`** (enum `DecisionType`, ví dụ `LECTURER_APPOINTMENT`) để lưu lịch sử nhân sự khi **tạo mới** qua API:
+
 ```json
 {
   "lecturerCode": "GV001",
@@ -1567,7 +1568,9 @@ public class Lecturer {
   "avatar": "avatar_url",
   "academicDegree": "Tiến sĩ",
   "academicTitle": "Phó Giáo Sư",
-  "facultyId": "uuid-faculty-1"
+  "facultyId": "uuid-faculty-1",
+  "decisionNo": "12/QĐ-ĐH-2025",
+  "decisionType": "LECTURER_APPOINTMENT"
 }
 ```
 
@@ -1596,7 +1599,7 @@ public class Lecturer {
 Class `LecturerService` cung cấp các phương thức:
 - `search(keyword, page, size)`: Tìm kiếm giảng viên với phân trang
 - `getById(id)`: Lấy giảng viên theo ID
-- `create(request)`: Tạo giảng viên mới
+- `create(request)`: Tạo giảng viên mới (đồng bộ `employees`, ghi `employee_position_history` khi tạo nhân sự mới)
 - `update(id, request)`: Cập nhật giảng viên
 - `delete(id)`: Xoá giảng viên
 - `getForPrint()`: Lấy tất cả giảng viên (dành cho print)
@@ -5270,6 +5273,8 @@ auditlog/
 
 Module quản lý hồ sơ toàn bộ nhân viên trong nhà trường, bao gồm giảng viên, nhân viên hành chính, bảo vệ, vệ sinh, IT và các loại khác. Hỗ trợ đầy đủ CRUD, upload ảnh đại diện, import/export Excel và in danh sách.
 
+**Bổ sung:** Form nhân sự có **loại quyết định** (`DecisionType`) và **số quyết định** (`decisionNo`), lưu vào bảng lịch sử `employee_position_history`. Khi loại quyết định là **bổ nhiệm / tuyển dụng giảng viên** (`LECTURER_APPOINTMENT`), hệ thống tự đặt `employee_type = LECTURER` và **tạo hoặc cập nhật** bản ghi tương ứng trong bảng `lecturers` (đồng bộ 1–1 với `employees`, bắt buộc chọn khoa khi cần). Migration SQL Server: `database/migration_employee_position_history_decision_type.sql` (thêm cột `decision_type` nếu bảng đã tồn tại từ trước).
+
 #### 31.1. Mô hình dữ liệu
 
 Bảng `employees` — mỗi bản ghi đại diện cho một nhân viên:
@@ -5304,6 +5309,32 @@ Bảng `employees` — mỗi bản ghi đại diện cho một nhân viên:
 | `IT` | Nhân viên IT |
 | `OTHER` | Khác |
 
+Bảng **`employee_position_history`** — lịch sử thay đổi phòng ban / chức danh / loại nhân sự theo thời gian:
+
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| `history_id` | UUID | Khoá chính |
+| `employee_id` | FK → employees | Nhân sự |
+| `position_id` | FK → positions | Chức danh tại thời điểm ghi nhận (nullable) |
+| `department_id` | FK → departments | Phòng ban (nullable) |
+| `employee_type` | VARCHAR | Giá trị `EmployeeType` tại thời điểm đó |
+| `effective_from` / `effective_to` | DATE | Khoảng hiệu lực (dòng mở: `effective_to` null) |
+| `decision_no` | NVARCHAR(100) | Số / ghi chú quyết định (nullable) |
+| `decision_type` | VARCHAR(40) | Loại quyết định — enum `DecisionType` (nullable) |
+| `created_at` | DATETIME | Thời điểm tạo bản ghi lịch sử |
+
+**Enum `DecisionType`** — phân loại quyết định nhân sự:
+
+| Giá trị | Ý nghĩa (gợi ý sử dụng) |
+|---------|-------------------------|
+| `LECTURER_APPOINTMENT` | Bổ nhiệm / tuyển dụng giảng viên → ép loại NS thành `LECTURER` và đồng bộ bảng `lecturers` |
+| `STAFF_APPOINTMENT` | Bổ nhiệm / tuyển dụng nhân viên (không GV) |
+| `TRANSFER` | Điều chuyển |
+| `PROMOTION` | Thăng chức / nâng bậc |
+| `DISCIPLINE` | Kỷ luật |
+| `TERMINATION` | Chấm dứt / nghỉ việc |
+| `OTHER` | Khác |
+
 #### 31.2. Tính năng
 
 | Tính năng | Mô tả |
@@ -5316,6 +5347,8 @@ Bảng `employees` — mỗi bản ghi đại diện cho một nhân viên:
 | **Import Excel** | Nhập hàng loạt nhân viên từ file `.xlsx`. |
 | **Export Excel** | Xuất danh sách ra file `employees.xlsx` (6 cột: mã, họ tên, loại, phòng ban, chức danh, trạng thái). |
 | **In danh sách** | Trang in tất cả nhân viên sắp xếp theo mã (`/admin/employees/print`). |
+| **Loại quyết định & số QĐ** | Form có dropdown loại quyết định và ô số quyết định; dữ liệu ghi vào `employee_position_history` khi tạo mới hoặc khi đổi phòng ban / chức danh / loại nhân sự. |
+| **Đồng bộ giảng viên** | Nếu `employee_type` là `LECTURER` hoặc loại quyết định là `LECTURER_APPOINTMENT`, `EmployeeService` tạo/cập nhật một dòng `lecturers` trùng khớp nhân sự (mã, họ tên, khoa…). |
 
 #### 31.3. Service (EmployeeService)
 
@@ -5323,8 +5356,8 @@ Bảng `employees` — mỗi bản ghi đại diện cho một nhân viên:
 |--------|-------|
 | `search(keyword, type, page, size)` | Tìm kiếm phân trang theo từ khoá và loại nhân viên |
 | `getById(id)` | Lấy nhân viên theo UUID, ném `ResourceNotFoundException` nếu không tồn tại |
-| `create(request)` | Tạo mới: kiểm tra trùng mã, lưu avatar, persist entity |
-| `update(id, request)` | Cập nhật: kiểm tra trùng mã (trừ chính nó), xử lý avatar mới |
+| `create(request)` | Tạo mới: kiểm tra trùng mã, lưu avatar; nếu `decisionType == LECTURER_APPOINTMENT` thì gán `employee_type = LECTURER`; ghi lịch sử ban đầu; đồng bộ `lecturers` khi là giảng viên |
+| `update(id, request)` | Cập nhật: kiểm tra trùng mã (trừ chính nó), xử lý avatar; khi thay đổi loại/chức danh/phòng ban thì khóa dòng lịch sử mở và thêm dòng mới (kèm `decisionNo` / `decisionType`); đồng bộ `lecturers` nếu áp dụng |
 | `delete(id)` | Xoá nhân viên và file avatar liên quan |
 | `exportExcel()` | Trả về `byte[]` file Excel |
 | `importExcel(file)` | Đọc file Excel, tạo hàng loạt nhân viên |
@@ -5344,10 +5377,12 @@ Bảng `employees` — mỗi bản ghi đại diện cho một nhân viên:
 | `GET` | `/api/employees/print` | Lấy tất cả để in |
 | `GET` | `/api/employees/all` | Lấy tất cả (không phân trang) |
 
+**Payload `POST` / `PUT`:** `EmployeeRequest` có thể kèm `decisionType` (chuỗi enum, tùy chọn) và `decisionNo` để lưu lịch sử và kích hoạt luồng đồng bộ giảng viên khi giá trị là `LECTURER_APPOINTMENT`.
+
 #### 31.5. Giao diện Admin (`/admin/employees`)
 
 - **Danh sách** (`/admin/employees`): Bảng nhân viên với tìm kiếm theo từ khoá và lọc loại nhân viên, phân trang. Nút thêm mới, xuất Excel, nhập Excel.
-- **Form tạo/sửa** (`/admin/employees/new`, `/admin/employees/{id}/edit`): Form nhập thông tin với dropdown chọn chức danh, phòng ban, loại nhân viên; upload ảnh đại diện.
+- **Form tạo/sửa** (`/admin/employees/new`, `/admin/employees/{id}/edit`): Form nhập thông tin với dropdown chọn chức danh, phòng ban, loại nhân viên; **loại quyết định** và **số QĐ**; trường **Khoa** bắt buộc khi loại nhân sự là `LECTURER` hoặc khi chọn loại quyết định bổ nhiệm giảng viên (gợi ý hiển thị qua script phía client). Upload ảnh đại diện. Chuỗi rỗng cho loại quyết định được chuyển thành `null` nhờ converter trong `WebConfig`.
 - **Trang in** (`/admin/employees/print`): Danh sách toàn bộ nhân viên dạng in ấn.
 - Flash message thông báo thành công / lỗi sau mỗi thao tác.
 
@@ -5356,19 +5391,24 @@ Bảng `employees` — mỗi bản ghi đại diện cho một nhân viên:
 ```
 employee/
 ├── entity/
-│   ├── Employee.java          # Bảng employees, FK → positions, departments; enum EmployeeType
-│   └── EmployeeType.java      # Enum: LECTURER, ADMIN_STAFF, SECURITY, CLEANER, IT, OTHER
+│   ├── Employee.java                 # Bảng employees, FK → positions, departments; enum EmployeeType
+│   ├── EmployeeType.java             # Enum: LECTURER, ADMIN_STAFF, SECURITY, CLEANER, IT, OTHER
+│   ├── DecisionType.java             # Enum loại quyết định (LECTURER_APPOINTMENT, …)
+│   └── EmployeePositionHistory.java  # Bảng employee_position_history (+ decision_type, decision_no)
 ├── dto/
-│   ├── EmployeeRequest.java   # Validation: NotBlank, Email, Past, Size; avatarFile MultipartFile
-│   └── EmployeeResponse.java  # Record DTO trả về kèm tên chức danh, phòng ban
+│   ├── EmployeeRequest.java   # + decisionType, decisionNo; validation; avatarFile MultipartFile
+│   └── EmployeeResponse.java  # Record DTO kèm lecturerFacultyId / lecturerFacultyName nếu có hồ sơ GV
 ├── repository/
-│   └── EmployeeRepository.java  # Tìm kiếm theo code/name/email/phone + lọc type
+│   ├── EmployeeRepository.java
+│   └── EmployeePositionHistoryRepository.java
 ├── service/
-│   └── EmployeeService.java   # CRUD, upload avatar, import/export Excel
+│   └── EmployeeService.java   # CRUD, lịch sử thay đổi, đồng bộ lecturers, import/export Excel
 └── controller/
     ├── EmployeeController.java           # REST API /api/employees
     └── EmployeeDashboardController.java  # Web UI /admin/employees
 ```
+
+**Liên quan:** `lecturer/LecturerService` khi **tạo mới** giảng viên ghi thêm một dòng `employee_position_history` (mặc định `LECTURER_APPOINTMENT` nếu không gửi `decisionType`). File migration: `database/migration_employee_position_history_decision_type.sql` và bản tạo bảng đầy đủ trong `database/migration_employee_position_history.sql`.
 
 **Templates**: `employees/index.html`, `employees/form.html`, `employees/print.html`
 

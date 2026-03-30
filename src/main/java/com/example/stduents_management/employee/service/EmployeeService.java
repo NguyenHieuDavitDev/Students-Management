@@ -5,6 +5,7 @@ import com.example.stduents_management.department.entity.Department;
 import com.example.stduents_management.department.repository.DepartmentRepository;
 import com.example.stduents_management.employee.dto.EmployeeRequest;
 import com.example.stduents_management.employee.dto.EmployeeResponse;
+import com.example.stduents_management.employee.entity.DecisionType;
 import com.example.stduents_management.employee.entity.Employee;
 import com.example.stduents_management.employee.entity.EmployeePositionHistory;
 import com.example.stduents_management.employee.entity.EmployeeType;
@@ -73,7 +74,7 @@ public class EmployeeService {
         Employee e = new Employee();
         build(e, req);
         employeeRepository.save(e);
-        recordInitialHistory(e, req.getDecisionNo());
+        recordInitialHistory(e, req.getDecisionNo(), req.getDecisionType());
         syncLecturerExtension(e, req);
         return toResponse(e);
     }
@@ -93,7 +94,8 @@ public class EmployeeService {
 
         build(e, req);
         employeeRepository.save(e);
-        recordPositionHistoryIfChanged(e, oldType, oldPositionId, oldDepartmentId, req.getDecisionNo());
+        recordPositionHistoryIfChanged(
+                e, oldType, oldPositionId, oldDepartmentId, req.getDecisionNo(), req.getDecisionType());
         syncLecturerExtension(e, req);
         return toResponse(e);
     }
@@ -110,7 +112,7 @@ public class EmployeeService {
         employeeRepository.deleteById(id);
     }
 
-    private void recordInitialHistory(Employee e, String decisionNo) {
+    private void recordInitialHistory(Employee e, String decisionNo, DecisionType decisionType) {
         EmployeePositionHistory h = new EmployeePositionHistory();
         h.setEmployee(e);
         h.setPosition(e.getPosition());
@@ -119,6 +121,7 @@ public class EmployeeService {
         h.setEffectiveFrom(LocalDate.now());
         h.setEffectiveTo(null);
         h.setDecisionNo(normalize(decisionNo));
+        h.setDecisionType(decisionType);
         employeePositionHistoryRepository.save(h);
     }
 
@@ -127,7 +130,8 @@ public class EmployeeService {
             EmployeeType oldType,
             UUID oldPositionId,
             UUID oldDepartmentId,
-            String decisionNo) {
+            String decisionNo,
+            DecisionType decisionType) {
         UUID newPos = e.getPosition() != null ? e.getPosition().getPositionId() : null;
         UUID newDept = e.getDepartment() != null ? e.getDepartment().getDepartmentId() : null;
         EmployeeType newType = e.getEmployeeType();
@@ -149,11 +153,13 @@ public class EmployeeService {
         h.setEffectiveFrom(today);
         h.setEffectiveTo(null);
         h.setDecisionNo(normalize(decisionNo));
+        h.setDecisionType(decisionType);
         employeePositionHistoryRepository.save(h);
     }
 
     /**
-     * Khi loại nhân sự là LECTURER: tạo/cập nhật một dòng lecturers (1–1) đồng bộ với employees.
+     * Khi loại nhân sự là LECTURER (trực tiếp hoặc do QĐ {@link DecisionType#LECTURER_APPOINTMENT}):
+     * tạo/cập nhật một dòng lecturers (1–1) đồng bộ với employees.
      */
     private void syncLecturerExtension(Employee e, EmployeeRequest req) {
         if (e.getEmployeeType() != EmployeeType.LECTURER) {
@@ -220,7 +226,11 @@ public class EmployeeService {
         e.setEmail(normalize(req.getEmail()));
         e.setPhoneNumber(normalize(req.getPhoneNumber()));
         e.setAddress(normalize(req.getAddress()));
-        e.setEmployeeType(req.getEmployeeType() != null ? req.getEmployeeType() : EmployeeType.OTHER);
+        EmployeeType resolvedType = req.getEmployeeType() != null ? req.getEmployeeType() : EmployeeType.OTHER;
+        if (req.getDecisionType() == DecisionType.LECTURER_APPOINTMENT) {
+            resolvedType = EmployeeType.LECTURER;
+        }
+        e.setEmployeeType(resolvedType);
         e.setStatus(normalize(req.getStatus()) != null ? normalize(req.getStatus()) : "ACTIVE");
         e.setPosition(position);
         e.setDepartment(department);
@@ -298,7 +308,7 @@ public class EmployeeService {
                 }
                 e.setStatus("ACTIVE");
                 employeeRepository.save(e);
-                recordInitialHistory(e, null);
+                recordInitialHistory(e, null, null);
                 count++;
             }
         } catch (Exception ex) {

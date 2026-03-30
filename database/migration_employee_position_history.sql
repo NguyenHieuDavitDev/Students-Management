@@ -12,6 +12,7 @@ BEGIN
         effective_from DATE NOT NULL,
         effective_to DATE NULL,
         decision_no NVARCHAR(100) NULL,
+        decision_type VARCHAR(40) NULL,
         created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
         CONSTRAINT FK_eph_employee FOREIGN KEY (employee_id) REFERENCES dbo.employees(employee_id),
         CONSTRAINT FK_eph_position FOREIGN KEY (position_id) REFERENCES dbo.positions(position_id),

@@ -1,5 +1,6 @@
 package com.example.stduents_management.employee.dto;
 
+import com.example.stduents_management.employee.entity.DecisionType;
 import com.example.stduents_management.employee.entity.EmployeeType;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -57,6 +58,9 @@ public class EmployeeRequest {
     /** Số quyết định / ghi chú khi ghi nhận thay đổi phòng ban–chức danh–loại NS. */
     @Size(max = 100)
     private String decisionNo;
+
+    /** Loại quyết định; {@link DecisionType#LECTURER_APPOINTMENT} → loại NS thành giảng viên và ghi bảng lecturers. */
+    private DecisionType decisionType;
 
     @Size(max = 20)
     private String status; // ACTIVE/INACTIVE

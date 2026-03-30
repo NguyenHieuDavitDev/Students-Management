@@ -3,8 +3,11 @@ package com.example.stduents_management.lecturer.service;
 import com.example.stduents_management.common.service.FileStorageService;
 import com.example.stduents_management.department.entity.Department;
 import com.example.stduents_management.department.repository.DepartmentRepository;
+import com.example.stduents_management.employee.entity.DecisionType;
 import com.example.stduents_management.employee.entity.Employee;
+import com.example.stduents_management.employee.entity.EmployeePositionHistory;
 import com.example.stduents_management.employee.entity.EmployeeType;
+import com.example.stduents_management.employee.repository.EmployeePositionHistoryRepository;
 import com.example.stduents_management.employee.repository.EmployeeRepository;
 import com.example.stduents_management.faculty.entity.Faculty;
 import com.example.stduents_management.faculty.repository.FacultyRepository;
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,6 +41,7 @@ public class LecturerService {
     private final LecturerDutyRepository lecturerDutyRepository;
     private final FileStorageService fileStorageService;
     private final EmployeeRepository employeeRepository;
+    private final EmployeePositionHistoryRepository employeePositionHistoryRepository;
 
     public Page<LecturerResponse> search(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("lecturerCode"));
@@ -57,7 +62,9 @@ public class LecturerService {
         if (lecturerRepository.existsByLecturerCode(req.getLecturerCode())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Mã giảng viên đã tồn tại");
         }
-        lecturerRepository.save(build(new Lecturer(), req));
+        Lecturer l = build(new Lecturer(), req);
+        lecturerRepository.save(l);
+        recordLecturerCreateHistory(l.getEmployee(), req);
     }
 
     @Transactional
@@ -83,6 +90,26 @@ public class LecturerService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    private void recordLecturerCreateHistory(Employee e, LecturerRequest req) {
+        if (e == null || e.getEmployeeId() == null) {
+            return;
+        }
+        EmployeePositionHistory h = new EmployeePositionHistory();
+        h.setEmployee(e);
+        h.setPosition(e.getPosition());
+        h.setDepartment(e.getDepartment());
+        h.setEmployeeType(e.getEmployeeType());
+        h.setEffectiveFrom(LocalDate.now());
+        h.setEffectiveTo(null);
+        h.setDecisionNo(normalize(req.getDecisionNo()));
+        h.setDecisionType(req.getDecisionType() != null ? req.getDecisionType() : DecisionType.LECTURER_APPOINTMENT);
+        employeePositionHistoryRepository.save(h);
+    }
+
+    private static String normalize(String s) {
+        return s == null ? null : s.trim();
     }
 
     private Lecturer build(Lecturer l, LecturerRequest req) {

@@ -141,6 +141,18 @@
             </select>
         </div>
 
+        <div class="mb-3 border-top pt-3" th:if="${mode}=='create'">
+            <label class="form-label">Loại quyết định (lưu lịch sử nhân sự)</label>
+            <select class="form-select" th:field="*{decisionType}" id="lecturerDecisionType">
+                <option value="">Mặc định: bổ nhiệm / tuyển dụng giảng viên</option>
+                <option value="LECTURER_APPOINTMENT">Bổ nhiệm / tuyển dụng giảng viên</option>
+                <option value="OTHER">Khác</option>
+            </select>
+            <label class="form-label mt-2">Số quyết định</label>
+            <input class="form-control" th:field="*{decisionNo}" placeholder="VD: 45/QĐ-ĐH ngày ...">
+            <p class="text-muted small mb-0">Chỉ áp dụng khi <strong>thêm mới</strong> giảng viên; bản ghi được ghi vào bảng giảng viên và lịch sử nhân sự.</p>
+        </div>
+
         <button class="btn btn-primary">Lưu</button>
         <a class="btn btn-secondary" th:href="@{/admin/lecturers}">Huỷ</a>
     </form>
