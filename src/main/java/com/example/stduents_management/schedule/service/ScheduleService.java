@@ -12,6 +12,7 @@ import com.example.stduents_management.room.repository.RoomRepository;
 import com.example.stduents_management.schedule.dto.AutoScheduleRequest;
 import com.example.stduents_management.schedule.dto.AutoScheduleResult;
 import com.example.stduents_management.schedule.dto.ScheduleCalendarEventResponse;
+import com.example.stduents_management.schedule.dto.ScheduleCalendarMetaResponse;
 import com.example.stduents_management.schedule.dto.ScheduleRequest;
 import com.example.stduents_management.schedule.dto.ScheduleResponse;
 import com.example.stduents_management.schedule.entity.*;
@@ -312,61 +313,63 @@ public class ScheduleService {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, Object> getCalendarMeta() {
-        Map<String, Object> map = new LinkedHashMap<>();
-        map.put("semesters", semesterRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate")).stream()
-                .map(s -> {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("id", s.getId());
-                    m.put("code", s.getCode());
-                    m.put("name", s.getName());
-                    m.put("startDate", s.getStartDate() != null ? s.getStartDate().toString() : null);
-                    return m;
-                })
-                .toList());
-        map.put("classSections", classSectionRepository.findAll(Sort.by("classCode")).stream()
-                .map(cs -> {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("id", cs.getId());
-                    m.put("classCode", cs.getClassCode());
-                    m.put("className", cs.getClassName());
-                    m.put("semesterId", cs.getSemester() != null ? cs.getSemester().getId() : null);
-                    return m;
-                })
-                .toList());
-        map.put("lecturers", lecturerRepository.findAll(Sort.by("lecturerCode")).stream()
-                .map(l -> {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("lecturerId", l.getLecturerId().toString());
-                    m.put("lecturerCode", l.getLecturerCode());
-                    m.put("fullName", l.getFullName());
-                    return m;
-                })
-                .toList());
-        map.put("rooms", roomRepository.findAll(Sort.by("roomCode")).stream()
-                .map(r -> {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("roomId", r.getRoomId());
-                    m.put("roomCode", r.getRoomCode());
-                    m.put("roomName", r.getRoomName());
-                    return m;
-                })
-                .toList());
-        map.put("timeSlots", timeSlotRepository.findAll(Sort.by("slotCode")).stream()
-                .map(ts -> {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("id", ts.getId());
-                    m.put("slotCode", ts.getSlotCode());
-                    m.put("startTime", ts.getStartTime() != null ? ts.getStartTime().toString() : null);
-                    m.put("endTime", ts.getEndTime() != null ? ts.getEndTime().toString() : null);
-                    return m;
-                })
-                .toList());
-        map.put("weekPatterns", Arrays.stream(WeekPattern.values()).map(Enum::name).toList());
-        map.put("sessionTypes", Arrays.stream(SessionType.values()).map(Enum::name).toList());
-        map.put("scheduleTypes", Arrays.stream(ScheduleType.values()).map(Enum::name).toList());
-        map.put("scheduleStatuses", Arrays.stream(ScheduleStatus.values()).map(Enum::name).toList());
-        return map;
+    public ScheduleCalendarMetaResponse getCalendarMeta() {
+        List<ScheduleCalendarMetaResponse.SemesterRow> semesters = semesterRepository
+                .findAll(Sort.by(Sort.Direction.DESC, "startDate"))
+                .stream()
+                .map(s -> new ScheduleCalendarMetaResponse.SemesterRow(
+                        s.getId(),
+                        s.getCode(),
+                        s.getName(),
+                        s.getStartDate() != null ? s.getStartDate().toString() : null))
+                .toList();
+        List<ScheduleCalendarMetaResponse.ClassSectionRow> classSections = classSectionRepository
+                .findAll(Sort.by("classCode"))
+                .stream()
+                .map(cs -> new ScheduleCalendarMetaResponse.ClassSectionRow(
+                        cs.getId(),
+                        cs.getClassCode(),
+                        cs.getClassName(),
+                        cs.getSemester() != null ? cs.getSemester().getId() : null))
+                .toList();
+        List<ScheduleCalendarMetaResponse.LecturerRow> lecturers = lecturerRepository
+                .findAll(Sort.by("lecturerCode"))
+                .stream()
+                .map(l -> new ScheduleCalendarMetaResponse.LecturerRow(
+                        l.getLecturerId().toString(),
+                        l.getLecturerCode(),
+                        l.getFullName()))
+                .toList();
+        List<ScheduleCalendarMetaResponse.RoomRow> rooms = roomRepository
+                .findAll(Sort.by("roomCode"))
+                .stream()
+                .map(r -> new ScheduleCalendarMetaResponse.RoomRow(
+                        r.getRoomId(),
+                        r.getRoomCode(),
+                        r.getRoomName()))
+                .toList();
+        List<ScheduleCalendarMetaResponse.TimeSlotRow> timeSlots = timeSlotRepository
+                .findAll(Sort.by("slotCode"))
+                .stream()
+                .filter(ts -> ts.getIsActive() == null || Boolean.TRUE.equals(ts.getIsActive()))
+                .map(ts -> new ScheduleCalendarMetaResponse.TimeSlotRow(
+                        ts.getId(),
+                        ts.getSlotCode(),
+                        ts.getStartTime() != null ? ts.getStartTime().toString() : null,
+                        ts.getEndTime() != null ? ts.getEndTime().toString() : null,
+                        ts.getPeriodStart(),
+                        ts.getPeriodEnd()))
+                .toList();
+        return new ScheduleCalendarMetaResponse(
+                semesters,
+                classSections,
+                lecturers,
+                rooms,
+                timeSlots,
+                Arrays.stream(WeekPattern.values()).map(Enum::name).toList(),
+                Arrays.stream(SessionType.values()).map(Enum::name).toList(),
+                Arrays.stream(ScheduleType.values()).map(Enum::name).toList(),
+                Arrays.stream(ScheduleStatus.values()).map(Enum::name).toList());
     }
 
     private static int totalSessionsForCredits(Integer credits) {
@@ -433,6 +436,9 @@ public class ScheduleService {
         m.put("lecturerId", s.getLecturer() != null ? s.getLecturer().getLecturerId().toString() : null);
         m.put("roomId", s.getRoom() != null ? s.getRoom().getRoomId() : null);
         m.put("timeSlotId", s.getTimeSlot() != null ? s.getTimeSlot().getId() : null);
+        m.put("periodStart", s.getTimeSlot() != null ? s.getTimeSlot().getPeriodStart() : null);
+        m.put("periodEnd", s.getTimeSlot() != null ? s.getTimeSlot().getPeriodEnd() : null);
+        m.put("roomCode", s.getRoom() != null ? s.getRoom().getRoomCode() : null);
         m.put("dayOfWeek", s.getDayOfWeek());
         m.put("startWeek", s.getStartWeek());
         m.put("endWeek", s.getEndWeek());
@@ -496,6 +502,7 @@ public class ScheduleService {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "Dòng " + rowNum + ": Tuần bắt đầu phải <= tuần kết thúc");
                 }
+                validateWeekRange(startWeek, endWeek);
 
                 WeekPattern wp = readEnum(row, 8, formatter, WeekPattern.class, WeekPattern.ALL);
                 SessionType st = readEnum(row, 9, formatter, SessionType.class, SessionType.THEORY);
@@ -563,6 +570,12 @@ public class ScheduleService {
     }
 
     private static void validateWeekRange(Integer startWeek, Integer endWeek) {
+        if (startWeek != null && (startWeek < 1 || startWeek > 53)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tuần bắt đầu phải từ 1 đến 53");
+        }
+        if (endWeek != null && (endWeek < 1 || endWeek > 53)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tuần kết thúc phải từ 1 đến 53");
+        }
         if (startWeek != null && endWeek != null && startWeek > endWeek) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tuần bắt đầu phải <= tuần kết thúc");
         }

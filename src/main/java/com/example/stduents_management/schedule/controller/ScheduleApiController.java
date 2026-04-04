@@ -1,6 +1,7 @@
 package com.example.stduents_management.schedule.controller;
 
 import com.example.stduents_management.schedule.dto.ScheduleCalendarEventResponse;
+import com.example.stduents_management.schedule.dto.ScheduleCalendarMetaResponse;
 import com.example.stduents_management.schedule.dto.ScheduleRequest;
 import com.example.stduents_management.schedule.dto.ScheduleResponse;
 import com.example.stduents_management.schedule.service.ScheduleService;
@@ -24,7 +25,7 @@ public class ScheduleApiController {
     private final ScheduleService scheduleService;
 
     @GetMapping("/meta")
-    public Map<String, Object> meta() {
+    public ScheduleCalendarMetaResponse meta() {
         return scheduleService.getCalendarMeta();
     }
 

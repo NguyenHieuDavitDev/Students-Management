@@ -1,33 +1,62 @@
 <!doctype html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/dashboard :: layout(
-        'Lịch học — dạng lịch',
+        'Lịch học — lưới tuần',
         'Lịch học',
-        'Click ô trống để thêm; click sự kiện để sửa; kéo thả / kéo dài để đổi thứ hoặc tiết',
+        'Lưới tuần (T2–CN × tiết): click ô trống để thêm · click thẻ để sửa/xóa · kéo thả để đổi thứ/tiết',
         'schedules',
         ~{::content}
       )}">
 <body>
 <div th:fragment="content">
 
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet"/>
     <style>
-        #scheduleCalendar .fc .fc-button-primary {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
+        #calendarShell { min-height: 320px; }
+        .calendar-phase-msg {
+            display: flex; align-items: center; justify-content: center;
+            min-height: 280px; padding: 2rem; text-align: center;
+            border: 1px dashed #dee2e6; border-radius: 0.375rem; background: #fff;
         }
-        #scheduleCalendar .fc .fc-button-primary:hover {
-            background-color: #0b5ed7;
-            border-color: #0a58ca;
+        #scheduleCalendarWrap { min-height: 360px; }
+        .week-planner-root { max-width: 720px; margin: 0 auto; }
+        #calendarEventsLoadingOverlay {
+            position: absolute; inset: 0; z-index: 12;
+            display: flex; align-items: flex-start; justify-content: center;
+            padding-top: 5rem; pointer-events: none;
+            background: rgba(255, 255, 255, 0.78);
         }
-        #scheduleCalendar .fc .fc-button-primary:not(:disabled).fc-button-active,
-        #scheduleCalendar .fc .fc-button-primary:not(:disabled):active {
-            background-color: #0a58ca;
-            border-color: #0a53be;
+        #calendarEventsLoadingOverlay.d-none { display: none !important; }
+        .wk-toolbar { padding: 0.25rem 0; }
+        .wk-title-line { font-size: 1.05rem; font-weight: 700; color: #1a1a1a; }
+        .wk-range-label { font-size: 0.75rem; color: #6c757d; }
+        .wk-mode-btn.active { background-color: #198754 !important; color: #fff !important; border-color: #198754 !important; }
+        .wk-table-wrap { overflow-x: auto; border-radius: 0.5rem; border: 1px solid #dee2e6; background: #fff; }
+        .wk-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 0.72rem; }
+        .wk-table th, .wk-table td { border: 1px solid #e9ecef; vertical-align: middle; }
+        .wk-corner { width: 2.25rem; background: #ffe08a !important; border: 1px solid #e6cf7a !important; }
+        .wk-hd { padding: 0.45rem 0.2rem; font-weight: 700; color: #fff; text-align: center; line-height: 1.1; }
+        .wk-hd-0 { background: linear-gradient(180deg, #7a9a3a, #5d7a2e); }
+        .wk-hd-1 { background: linear-gradient(180deg, #6d8f35, #556b2f); }
+        .wk-hd-2 { background: linear-gradient(180deg, #5f8230, #4a5d28); }
+        .wk-hd-3 { background: linear-gradient(180deg, #56752c, #3f5224); }
+        .wk-hd-4 { background: linear-gradient(180deg, #4d6828, #364820); }
+        .wk-hd-5 { background: linear-gradient(180deg, #445c24, #2e3e1c); }
+        .wk-hd-6 { background: linear-gradient(180deg, #3b4f20, #263418); }
+        .wk-row-h { width: 2.25rem; background: #f8f9fa; font-weight: 600; text-align: center; color: #495057; }
+        .wk-cell { height: 2.6rem; padding: 2px; position: relative; background: #fafafa; }
+        .wk-cell.wk-section-top { border-top: 2px solid #ced4da; }
+        .wk-cell.wk-drop-hover { background: #d1e7dd !important; outline: 2px dashed #198754; }
+        .wk-card {
+            margin: 1px auto; max-width: 92%; min-height: calc(100% - 4px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: #fff; border: 2px solid #2d8a54; border-radius: 8px;
+            cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 2px 4px;
         }
-        #scheduleCalendar .fc .fc-daygrid-day.fc-day-today { background: rgba(255, 243, 205, 0.6); }
-        #scheduleCalendar .fc .fc-event { cursor: grab; }
-        #scheduleCalendar .fc .fc-event:active { cursor: grabbing; }
+        .wk-card:active { cursor: grabbing; }
+        .wk-card-dot { width: 7px; height: 7px; border-radius: 50%; background: #dc3545; margin-bottom: 2px; flex-shrink: 0; }
+        .wk-card-label { font-weight: 700; font-size: 0.7rem; color: #212529; line-height: 1; word-break: break-all; text-align: center; }
+        .wk-card-sub { font-size: 0.6rem; color: #6c757d; margin-top: 1px; display: none; }
+        @media (min-width: 400px) { .wk-card-sub { display: block; } }
     </style>
 
     <div id="calendarPageAlert" class="alert alert-danger d-none mb-3" role="alert"></div>
@@ -50,7 +79,59 @@
 
     <div class="card shadow-sm border-0">
         <div class="card-body p-2 p-md-3">
-            <div id="scheduleCalendar"></div>
+            <div id="calendarShell" class="position-relative">
+                <div id="calendarBootstrapPlaceholder" class="calendar-phase-msg text-muted" role="status" aria-live="polite">
+                    <div>
+                        <div class="spinner-border text-primary mb-3" role="presentation"></div>
+                        <div class="fw-semibold text-dark">Đang tải cấu hình lịch học…</div>
+                        <div class="small mt-1">Vui lòng chờ phản hồi từ máy chủ (học kỳ, lớp, phòng, tiết).</div>
+                    </div>
+                </div>
+                <div id="calendarNoSemesterMsg" class="calendar-phase-msg text-muted d-none" role="status">
+                    <div>
+                        <i class="fa-regular fa-calendar-xmark fa-2x mb-3 text-secondary"></i>
+                        <div class="fw-semibold text-dark">Chưa có học kỳ nào trong hệ thống</div>
+                        <div class="small mt-2">Thêm học kỳ trước, sau đó tải lại trang này để xem lịch.</div>
+                    </div>
+                </div>
+                <div id="calendarMetaErrorPanel" class="calendar-phase-msg d-none text-danger" role="alert">
+                    <div>
+                        <i class="fa-solid fa-triangle-exclamation fa-2x mb-3"></i>
+                        <div id="calendarMetaErrorText" class="fw-semibold"></div>
+                        <div class="small mt-2 text-muted">Kiểm tra đăng nhập và quyền truy cập <code>/admin/schedules/api/meta</code>.</div>
+                    </div>
+                </div>
+                <div id="scheduleCalendarWrap" class="position-relative d-none">
+                    <div id="weekPlannerRoot" class="week-planner-root position-relative">
+                        <div id="calendarEventsLoadingOverlay" class="d-none" aria-hidden="true">
+                            <div class="text-center mt-2">
+                                <div class="spinner-border text-success mb-2" role="status" aria-label="Đang tải"></div>
+                                <div class="small text-muted fw-semibold">Đang tải lịch học…</div>
+                            </div>
+                        </div>
+                        <div class="wk-toolbar d-flex align-items-center justify-content-between gap-2 mb-2">
+                            <button type="button" id="wkBtnPrev" class="btn btn-light border rounded-circle" style="width:2.25rem;height:2.25rem;" title="Tuần trước" aria-label="Tuần trước"><i class="fa-solid fa-chevron-left"></i></button>
+                            <div class="text-center flex-grow-1 px-1">
+                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                    <span class="text-danger" style="font-size:1.25rem;line-height:1;" aria-hidden="true">✿</span>
+                                    <span class="wk-title-line">Lịch học tập</span>
+                                </div>
+                                <div id="wkRangeLabel" class="wk-range-label mt-1"></div>
+                            </div>
+                            <button type="button" id="wkBtnNext" class="btn btn-light border rounded-circle" style="width:2.25rem;height:2.25rem;" title="Tuần sau" aria-label="Tuần sau"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                        <div class="btn-group w-100 mb-2" role="group" aria-label="Chế độ xem">
+                            <button type="button" id="wkModeWeek" class="btn btn-outline-success btn-sm w-50 wk-mode-btn active">Giao diện toàn tuần</button>
+                            <button type="button" id="wkModeDay" class="btn btn-outline-success btn-sm w-50 wk-mode-btn">Giao diện mỗi ngày</button>
+                        </div>
+                        <div id="wkDayPickerWrap" class="mb-2 d-none">
+                            <label class="form-label small mb-1 text-muted">Chọn ngày trong tuần</label>
+                            <select id="wkSingleDay" class="form-select form-select-sm"></select>
+                        </div>
+                        <div id="weekGridHost" class="wk-table-wrap"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -149,9 +230,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.15/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales-all.global.min.js"></script>
     <script th:inline="javascript">
         /*<![CDATA[*/
         const CSRF_TOKEN = /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
@@ -159,16 +237,95 @@
         const API_BASE = /*[[@{/admin/schedules/api}]]*/ '/admin/schedules/api';
         /*]]>*/
     </script>
-    <script>
+    <!-- th:inline="none": tránh Thymeleaf hiểu [[...]] trong JS là biểu thức (gây lỗi render + response đã commit). -->
+    <script th:inline="none">
         (function () {
+            function showStaticInitError(msg) {
+                var m = msg || 'Không tải được Bootstrap. Kiểm tra layout (script Bootstrap trong footer).';
+                var a = document.getElementById('calendarPageAlert');
+                if (a) {
+                    a.textContent = m;
+                    a.classList.remove('d-none');
+                }
+                var ph = document.getElementById('calendarBootstrapPlaceholder');
+                if (ph) ph.classList.add('d-none');
+                var ns = document.getElementById('calendarNoSemesterMsg');
+                if (ns) ns.classList.add('d-none');
+                var wrap = document.getElementById('scheduleCalendarWrap');
+                if (wrap) wrap.classList.add('d-none');
+                var errP = document.getElementById('calendarMetaErrorPanel');
+                var errT = document.getElementById('calendarMetaErrorText');
+                if (errT) errT.textContent = m;
+                if (errP) errP.classList.remove('d-none');
+            }
+
+            /** Bootstrap bundle nằm trong footer, sau nội dung trang — chờ DOMContentLoaded. */
+            function runCalendarPage() {
+            if (typeof bootstrap === 'undefined') {
+                showStaticInitError();
+                return;
+            }
             let meta = null;
-            let calendar = null;
-            /** Chặn mở modal sửa ngay sau khi kéo / resize (FullCalendar vẫn có thể bắn eventClick). */
-            let blockEventClickUntil = 0;
+            let lastEventRows = [];
+            let weekPlannerInited = false;
+            const weekPlannerState = { mode: 'week', weekMonday: null, singleDayModel: 2, dragStartIso: null };
             const modalEl = document.getElementById('scheduleModal');
+            if (!modalEl) {
+                showStaticInitError('Không tìm thấy modal lịch (#scheduleModal).');
+                return;
+            }
             const bsModal = new bootstrap.Modal(modalEl);
             const btnSaveSchedule = document.getElementById('btnSaveSchedule');
             const btnSaveDefaultHtml = btnSaveSchedule ? btnSaveSchedule.innerHTML : '';
+
+            (function setSemesterSelectLoading() {
+                const sel = document.getElementById('semesterSelect');
+                if (!sel) return;
+                sel.disabled = true;
+                sel.innerHTML = '';
+                const o = document.createElement('option');
+                o.value = '';
+                o.textContent = 'Đang tải học kỳ…';
+                o.disabled = true;
+                o.selected = true;
+                sel.appendChild(o);
+            })();
+
+            function showPhaseNoSemester() {
+                document.getElementById('calendarBootstrapPlaceholder')?.classList.add('d-none');
+                document.getElementById('calendarNoSemesterMsg')?.classList.remove('d-none');
+                document.getElementById('calendarMetaErrorPanel')?.classList.add('d-none');
+                document.getElementById('scheduleCalendarWrap')?.classList.add('d-none');
+            }
+
+            function showPhaseReadyCalendar() {
+                document.getElementById('calendarBootstrapPlaceholder')?.classList.add('d-none');
+                document.getElementById('calendarNoSemesterMsg')?.classList.add('d-none');
+                document.getElementById('calendarMetaErrorPanel')?.classList.add('d-none');
+                document.getElementById('scheduleCalendarWrap')?.classList.remove('d-none');
+            }
+
+            function showPhaseMetaErrorDetail(detail) {
+                document.getElementById('calendarBootstrapPlaceholder')?.classList.add('d-none');
+                document.getElementById('calendarNoSemesterMsg')?.classList.add('d-none');
+                const errP = document.getElementById('calendarMetaErrorPanel');
+                const errT = document.getElementById('calendarMetaErrorText');
+                if (errT) errT.textContent = detail || 'Không tải được cấu hình lịch.';
+                errP?.classList.remove('d-none');
+                document.getElementById('scheduleCalendarWrap')?.classList.add('d-none');
+            }
+
+            function ensureArray(v) {
+                if (v == null) return [];
+                if (Array.isArray(v)) return v;
+                if (typeof v === 'object') {
+                    const keys = Object.keys(v);
+                    if (keys.length && keys.every(function (k) { return /^\d+$/.test(k); })) {
+                        return keys.sort(function (a, b) { return Number(a) - Number(b); }).map(function (k) { return v[k]; });
+                    }
+                }
+                return [];
+            }
 
             function showPageError(msg) {
                 const el = document.getElementById('calendarPageAlert');
@@ -193,7 +350,7 @@
                 return n[d] || ('Thứ ' + d);
             }
 
-            /** Chuẩn hóa sự kiện từ API (ngày giờ + extendedProps) cho FullCalendar. */
+            /** Chuẩn hóa sự kiện từ API (ngày giờ + extendedProps). */
             function normalizeEventInput(row) {
                 if (!row) return row;
                 const ep = Object.assign({}, row.extendedProps || {});
@@ -226,10 +383,10 @@
                 }
             }
 
-            function eventScheduleId(fcEvent) {
-                const p = fcEvent.extendedProps || {};
+            function scheduleIdFromNormalizedEvent(ev) {
+                const p = ev.extendedProps || {};
                 if (p.scheduleId) return String(p.scheduleId);
-                const eid = String(fcEvent.id);
+                const eid = String(ev.id || '');
                 const parts = eid.split('-');
                 const last = parts[parts.length - 1];
                 if (/^\d+$/.test(last)) {
@@ -239,7 +396,7 @@
                 return eid;
             }
 
-            function mondayOfDate(d) {
+            function mondayOfDateUtc(d) {
                 const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
                 const day = x.getUTCDay();
                 const diff = day === 0 ? -6 : 1 - day;
@@ -256,8 +413,8 @@
             function weekNumberFromSemester(semesterStartStr, clickedDate) {
                 const sm = parseIsoDate(semesterStartStr);
                 if (!sm) return 1;
-                const cm = mondayOfDate(clickedDate);
-                const smUtc = mondayOfDate(sm);
+                const cm = mondayOfDateUtc(clickedDate);
+                const smUtc = mondayOfDateUtc(sm);
                 const diffMs = cm.getTime() - smUtc.getTime();
                 return Math.floor(diffMs / (7 * 24 * 3600 * 1000)) + 1;
             }
@@ -266,69 +423,117 @@
                 return jsDow === 0 ? 8 : jsDow + 1;
             }
 
-            function parseTimeToMinutes(t) {
-                if (!t) return null;
-                const p = String(t).split(':');
-                return (+p[0]) * 60 + (+p[1] || 0);
+            function formatYMD(d) {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return y + '-' + m + '-' + day;
             }
 
-            function findNearestSlotByStartMinutes(totalMinutes) {
-                if (!meta || !meta.timeSlots || !meta.timeSlots.length) return null;
-                let best = null;
-                for (const ts of meta.timeSlots) {
-                    const sm = parseTimeToMinutes(ts.startTime);
-                    if (sm == null) continue;
-                    const d = Math.abs(sm - totalMinutes);
-                    if (!best || d < best.d) best = {id: ts.id, d};
+            function parseLocalDateFromEventStart(iso) {
+                if (!iso) return null;
+                const s = String(iso).slice(0, 10);
+                const p = s.split('-').map(Number);
+                if (p.length < 3) return null;
+                return new Date(p[0], p[1] - 1, p[2]);
+            }
+
+            function startOfWeekMondayLocal(d) {
+                const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                const day = x.getDay();
+                const diff = day === 0 ? -6 : 1 - day;
+                x.setDate(x.getDate() + diff);
+                x.setHours(0, 0, 0, 0);
+                return x;
+            }
+
+            const MODEL_DOW_OFFSET = {2: 0, 3: 1, 4: 2, 5: 3, 6: 4, 7: 5, 8: 6};
+
+            function dateForModelDow(weekMondayLocal, modelDow) {
+                const base = weekMondayLocal ? new Date(weekMondayLocal) : startOfWeekMondayLocal(new Date());
+                const off = MODEL_DOW_OFFSET[modelDow];
+                if (off == null) return base;
+                const x = new Date(base);
+                x.setDate(x.getDate() + off);
+                return x;
+            }
+
+            function modelDowFromLocalDate(d) {
+                return jsDayToModel(d.getDay());
+            }
+
+            function slotContainingPeriod(periodNum) {
+                const slots = ensureArray(meta ? meta.timeSlots : []);
+                const hits = slots.filter(function (s) {
+                    const ps = s.periodStart != null ? s.periodStart : 1;
+                    const pe = s.periodEnd != null ? s.periodEnd : ps;
+                    return ps <= periodNum && periodNum <= pe;
+                });
+                if (!hits.length) return null;
+                hits.sort(function (a, b) { return (a.periodStart || 1) - (b.periodStart || 1); });
+                const exact = hits.find(function (h) { return (h.periodStart || 1) === periodNum; });
+                return exact || hits[0];
+            }
+
+            function computeMaxPeriod() {
+                let m = 6;
+                ensureArray(meta ? meta.timeSlots : []).forEach(function (s) {
+                    const ps = s.periodStart != null ? s.periodStart : 1;
+                    const pe = s.periodEnd != null ? s.periodEnd : ps;
+                    m = Math.max(m, pe, ps);
+                });
+                return Math.min(Math.max(m, 1), 20);
+            }
+
+            function eventPeriodSpan(ev) {
+                const ep = ev.extendedProps || {};
+                let ps = ep.periodStart != null ? +ep.periodStart : null;
+                let pe = ep.periodEnd != null ? +ep.periodEnd : null;
+                if (ps == null && ep.timeSlotId != null) {
+                    const sl = ensureArray(meta.timeSlots).find(function (t) { return String(t.id) === String(ep.timeSlotId); });
+                    if (sl) {
+                        ps = sl.periodStart != null ? sl.periodStart : 1;
+                        pe = sl.periodEnd != null ? sl.periodEnd : ps;
+                    }
                 }
-                return best ? best.id : meta.timeSlots[0].id;
+                if (ps == null) ps = 1;
+                if (pe == null) pe = ps;
+                return { ps: ps, pe: pe, len: Math.max(1, pe - ps + 1) };
             }
 
-            function findNearestSlotByEndMinutes(totalMinutes) {
-                if (!meta || !meta.timeSlots || !meta.timeSlots.length) return null;
-                let best = null;
-                for (const ts of meta.timeSlots) {
-                    const em = parseTimeToMinutes(ts.endTime);
-                    if (em == null) continue;
-                    const d = Math.abs(em - totalMinutes);
-                    if (!best || d < best.d) best = {id: ts.id, d};
-                }
-                return best ? best.id : null;
-            }
-
-            async function persistScheduleMove(info, useEndForSlot, revertFunc) {
-                const scheduleId = eventScheduleId(info.event);
-                if (!scheduleId) {
-                    revertFunc();
+            async function persistGridDrop(scheduleId, newModelDow, periodNum) {
+                const slot = slotContainingPeriod(periodNum);
+                if (!slot || slot.id == null) {
+                    showPageError('Không tìm thấy khung giờ cho tiết ' + periodNum + '.');
                     return;
                 }
+                const newSlotId = +slot.id;
                 try {
-                    const res = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {headers: authHeaders(false)});
+                    const res = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {headers: authHeaders(false), credentials: 'same-origin'});
                     if (!res.ok) throw new Error(await readApiError(res));
                     const r = await res.json();
-                    const start = info.event.start;
-                    const newDow = jsDayToModel(start.getDay());
-                    const hmStart = start.getHours() * 60 + start.getMinutes();
-                    let newSlotId = findNearestSlotByStartMinutes(hmStart);
-                    if (useEndForSlot && info.event.end) {
-                        const hmEnd = info.event.end.getHours() * 60 + info.event.end.getMinutes();
-                        const byEnd = findNearestSlotByEndMinutes(hmEnd);
-                        if (byEnd != null) {
-                            newSlotId = byEnd;
-                        }
-                    }
-                    if (newSlotId == null) {
-                        newSlotId = r.timeSlotId;
+                    const oldStart = parseLocalDateFromEventStart(weekPlannerState.dragStartIso);
+                    const newDate = dateForModelDow(weekPlannerState.weekMonday, newModelDow);
+                    if (!oldStart) throw new Error('Không đọc được ngày buổi học cũ.');
+                    const sem = ensureArray(meta.semesters).find(function (s) { return String(s.id) === String(r.semesterId); });
+                    const wOld = weekNumberFromSemester(sem ? sem.startDate : null, oldStart);
+                    const wNew = weekNumberFromSemester(sem ? sem.startDate : null, newDate);
+                    const delta = wNew - wOld;
+                    let newStartWeek = r.startWeek + delta;
+                    let newEndWeek = r.endWeek + delta;
+                    if (newStartWeek < 1 || newEndWeek < 1 || newStartWeek > 53 || newEndWeek > 53) {
+                        showPageError('Không thể đặt lịch vào tuần này (ngoài phạm vi 1–53).');
+                        return;
                     }
                     const payload = {
                         semesterId: r.semesterId,
                         classSectionId: r.classSectionId,
                         lecturerId: r.lecturerId,
                         roomId: r.roomId,
-                        timeSlotId: +newSlotId,
-                        dayOfWeek: newDow,
-                        startWeek: r.startWeek,
-                        endWeek: r.endWeek,
+                        timeSlotId: newSlotId,
+                        dayOfWeek: newModelDow,
+                        startWeek: newStartWeek,
+                        endWeek: newEndWeek,
                         weekPattern: r.weekPattern,
                         sessionType: r.sessionType,
                         scheduleType: r.scheduleType,
@@ -338,19 +543,288 @@
                     const put = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {
                         method: 'PUT',
                         headers: authHeaders(true),
+                        credentials: 'same-origin',
                         body: JSON.stringify(payload)
                     });
                     if (!put.ok) throw new Error(await readApiError(put));
                     hidePageError();
-                    flashPageSuccess('Đã cập nhật lịch sau khi kéo.');
-                    calendar.refetchEvents();
+                    flashPageSuccess('Đã cập nhật lịch sau khi kéo thả.');
+                    loadWeekEvents();
                 } catch (e) {
-                    showPageError('Không lưu được vị trí mới: ' + (e.message || e));
-                    revertFunc();
+                    showPageError('Không lưu được vị trí mới: ' + (e.message || String(e)));
                 }
             }
 
+            function updateWkRangeLabel() {
+                const el = document.getElementById('wkRangeLabel');
+                if (!el || !weekPlannerState.weekMonday) return;
+                const ws = new Date(weekPlannerState.weekMonday);
+                const we = new Date(ws);
+                we.setDate(we.getDate() + 6);
+                el.textContent = formatYMD(ws) + ' — ' + formatYMD(we);
+            }
+
+            function updateModeButtons() {
+                const w = document.getElementById('wkModeWeek');
+                const d = document.getElementById('wkModeDay');
+                const wrap = document.getElementById('wkDayPickerWrap');
+                if (w && d) {
+                    w.classList.toggle('active', weekPlannerState.mode === 'week');
+                    d.classList.toggle('active', weekPlannerState.mode === 'day');
+                }
+                if (wrap) wrap.classList.toggle('d-none', weekPlannerState.mode !== 'day');
+            }
+
+            function fillWkSingleDayOptions() {
+                const sel = document.getElementById('wkSingleDay');
+                if (!sel) return;
+                sel.innerHTML = '';
+                [[2, 'T2'], [3, 'T3'], [4, 'T4'], [5, 'T5'], [6, 'T6'], [7, 'T7'], [8, 'CN']].forEach(function (pair) {
+                    const o = document.createElement('option');
+                    o.value = String(pair[0]);
+                    o.textContent = pair[1];
+                    sel.appendChild(o);
+                });
+                sel.value = String(weekPlannerState.singleDayModel);
+            }
+
+            function getDisplayDays() {
+                if (weekPlannerState.mode === 'day') {
+                    return [weekPlannerState.singleDayModel];
+                }
+                return [2, 3, 4, 5, 6, 7, 8];
+            }
+
+            function dayShortLabel(md) {
+                return md === 8 ? 'CN' : 'T' + md;
+            }
+
+            function renderWeekGrid(events) {
+                const host = document.getElementById('weekGridHost');
+                if (!host) return;
+                if (!meta) {
+                    host.innerHTML = '<div class="p-4 text-center text-muted border rounded bg-light">Đang tải cấu hình lịch…</div>';
+                    return;
+                }
+                const sidTop = document.getElementById('semesterSelect') && document.getElementById('semesterSelect').value;
+                if (!sidTop) {
+                    host.innerHTML = '<div class="p-4 text-center text-muted border rounded bg-light">' +
+                        '<p class="mb-1 fw-semibold text-dark">Chưa chọn học kỳ</p>' +
+                        '<p class="small mb-0">Chọn một học kỳ trong danh sách phía trên để tải lịch học lên lưới.</p></div>';
+                    return;
+                }
+                const days = getDisplayDays();
+                const maxP = computeMaxPeriod();
+                const cols = days.length;
+                const occ = [];
+                for (let r = 0; r < maxP; r++) {
+                    occ[r] = [];
+                    for (let c = 0; c < cols; c++) occ[r][c] = null;
+                }
+                const placed = [];
+                ensureArray(events).forEach(function (raw) {
+                    const ev = normalizeEventInput(raw);
+                    if (!ev || !ev.start) return;
+                    const d0 = parseLocalDateFromEventStart(ev.start);
+                    if (!d0) return;
+                    const md = modelDowFromLocalDate(d0);
+                    const col = days.indexOf(md);
+                    if (col < 0) return;
+                    const span = eventPeriodSpan(ev);
+                    const r0 = span.ps - 1;
+                    const r1 = span.pe - 1;
+                    if (r0 < 0 || r0 >= maxP) return;
+                    let clash = false;
+                    for (let r = r0; r <= Math.min(r1, maxP - 1); r++) {
+                        if (occ[r][col]) clash = true;
+                    }
+                    if (clash) return;
+                    for (let r = r0; r <= Math.min(r1, maxP - 1); r++) occ[r][col] = 'x';
+                    placed.push({ ev: ev, col: col, r0: r0, rowspan: Math.min(span.len, maxP - r0) });
+                });
+
+                const tb = document.createElement('table');
+                tb.className = 'wk-table';
+                const thead = document.createElement('thead');
+                const hr = document.createElement('tr');
+                const corner = document.createElement('th');
+                corner.className = 'wk-corner wk-hd';
+                corner.textContent = '';
+                hr.appendChild(corner);
+                days.forEach(function (md, i) {
+                    const th = document.createElement('th');
+                    th.className = 'wk-hd wk-hd-' + (i % 7);
+                    th.textContent = dayShortLabel(md);
+                    hr.appendChild(th);
+                });
+                thead.appendChild(hr);
+                tb.appendChild(thead);
+                const tbody = document.createElement('tbody');
+                for (let r = 0; r < maxP; r++) {
+                    const tr = document.createElement('tr');
+                    const th = document.createElement('th');
+                    th.className = 'wk-row-h';
+                    th.textContent = 'T' + (r + 1);
+                    tr.appendChild(th);
+                    for (let c = 0; c < cols; c++) {
+                        if (occ[r][c] === 'x') continue;
+                        const td = document.createElement('td');
+                        td.className = 'wk-cell';
+                        if (r === 0 || r === 6 || r === 12) td.classList.add('wk-section-top');
+                        const md = days[c];
+                        td.dataset.modelDow = String(md);
+                        td.dataset.period = String(r + 1);
+                        const pItem = placed.find(function (p) { return p.col === c && p.r0 === r; });
+                        if (pItem) {
+                            td.setAttribute('rowspan', String(pItem.rowspan));
+                            const ep = pItem.ev.extendedProps || {};
+                            const sid = scheduleIdFromNormalizedEvent(pItem.ev);
+                            const card = document.createElement('div');
+                            card.className = 'wk-card';
+                            card.draggable = true;
+                            card.dataset.scheduleId = sid;
+                            card.title = (pItem.ev.title || 'Lịch học') + ' — Kéo để đổi ô · Click để sửa';
+                            const dot = document.createElement('span');
+                            dot.className = 'wk-card-dot';
+                            const lab = document.createElement('span');
+                            lab.className = 'wk-card-label';
+                            lab.textContent = ep.roomCode || (String(pItem.ev.title || '').split(' · ').pop() || '·');
+                            const sub = document.createElement('span');
+                            sub.className = 'wk-card-sub';
+                            sub.textContent = (pItem.ev.title || '').split(' · ')[0] || '';
+                            card.appendChild(dot);
+                            card.appendChild(lab);
+                            card.appendChild(sub);
+                            card.addEventListener('click', function (e) {
+                                e.stopPropagation();
+                                if (sid) openModalEdit(sid);
+                            });
+                            card.addEventListener('dragstart', function (e) {
+                                weekPlannerState.dragStartIso = pItem.ev.start;
+                                e.dataTransfer.setData('text/plain', sid);
+                                e.dataTransfer.effectAllowed = 'move';
+                                card.style.opacity = '0.65';
+                            });
+                            card.addEventListener('dragend', function () {
+                                card.style.opacity = '1';
+                            });
+                            td.appendChild(card);
+                        } else {
+                            td.addEventListener('click', function () {
+                                const dt = dateForModelDow(weekPlannerState.weekMonday, md);
+                                openModalCreate(dt, r + 1);
+                            });
+                            td.addEventListener('dragover', function (e) {
+                                e.preventDefault();
+                                td.classList.add('wk-drop-hover');
+                            });
+                            td.addEventListener('dragleave', function () {
+                                td.classList.remove('wk-drop-hover');
+                            });
+                            td.addEventListener('drop', function (e) {
+                                e.preventDefault();
+                                td.classList.remove('wk-drop-hover');
+                                const id = e.dataTransfer.getData('text/plain');
+                                if (!id) return;
+                                persistGridDrop(id, md, r + 1);
+                            });
+                        }
+                        tr.appendChild(td);
+                    }
+                    tbody.appendChild(tr);
+                }
+                tb.appendChild(tbody);
+                host.innerHTML = '';
+                host.appendChild(tb);
+            }
+
+            async function loadWeekEvents() {
+                const overlay = document.getElementById('calendarEventsLoadingOverlay');
+                const selEl = document.getElementById('semesterSelect');
+                const sid = selEl ? String(selEl.value || '').trim() : '';
+                if (!weekPlannerState.weekMonday) {
+                    weekPlannerState.weekMonday = startOfWeekMondayLocal(new Date());
+                }
+                updateWkRangeLabel();
+                if (!sid) {
+                    lastEventRows = [];
+                    hidePageError();
+                    renderWeekGrid([]);
+                    return;
+                }
+                const ws = new Date(weekPlannerState.weekMonday);
+                const we = new Date(ws);
+                we.setDate(we.getDate() + 6);
+                const startStr = formatYMD(ws);
+                const endStr = formatYMD(we);
+                if (overlay) {
+                    overlay.classList.remove('d-none');
+                    overlay.setAttribute('aria-hidden', 'false');
+                }
+                try {
+                    const res = await fetch(API_BASE + '/events?semesterId=' + encodeURIComponent(sid)
+                        + '&start=' + encodeURIComponent(startStr)
+                        + '&end=' + encodeURIComponent(endStr),
+                        {headers: authHeaders(false), credentials: 'same-origin'});
+                    if (!res.ok) throw new Error(await readApiError(res));
+                    const rows = ensureArray(await res.json());
+                    lastEventRows = rows.map(normalizeEventInput).filter(Boolean);
+                    hidePageError();
+                    renderWeekGrid(lastEventRows);
+                } catch (err) {
+                    const detail = (err && err.message) ? err.message : String(err);
+                    showPageError('Không tải được lịch học: ' + detail);
+                    lastEventRows = [];
+                    renderWeekGrid([]);
+                } finally {
+                    if (overlay) {
+                        overlay.classList.add('d-none');
+                        overlay.setAttribute('aria-hidden', 'true');
+                    }
+                }
+            }
+
+            function initWeekPlanner() {
+                if (weekPlannerInited) return;
+                weekPlannerInited = true;
+                weekPlannerState.weekMonday = startOfWeekMondayLocal(new Date());
+                fillWkSingleDayOptions();
+                updateModeButtons();
+                updateWkRangeLabel();
+                const btnPrev = document.getElementById('wkBtnPrev');
+                const btnNext = document.getElementById('wkBtnNext');
+                const modeW = document.getElementById('wkModeWeek');
+                const modeD = document.getElementById('wkModeDay');
+                const daySel = document.getElementById('wkSingleDay');
+                if (btnPrev) btnPrev.addEventListener('click', function () {
+                    weekPlannerState.weekMonday.setDate(weekPlannerState.weekMonday.getDate() - 7);
+                    updateWkRangeLabel();
+                    loadWeekEvents();
+                });
+                if (btnNext) btnNext.addEventListener('click', function () {
+                    weekPlannerState.weekMonday.setDate(weekPlannerState.weekMonday.getDate() + 7);
+                    updateWkRangeLabel();
+                    loadWeekEvents();
+                });
+                if (modeW) modeW.addEventListener('click', function () {
+                    weekPlannerState.mode = 'week';
+                    updateModeButtons();
+                    renderWeekGrid(lastEventRows);
+                });
+                if (modeD) modeD.addEventListener('click', function () {
+                    weekPlannerState.mode = 'day';
+                    updateModeButtons();
+                    renderWeekGrid(lastEventRows);
+                });
+                if (daySel) daySel.addEventListener('change', function () {
+                    weekPlannerState.singleDayModel = +daySel.value;
+                    renderWeekGrid(lastEventRows);
+                });
+                loadWeekEvents();
+            }
+
             function fillSelect(sel, items, valueKey, labelFn, emptyLabel) {
+                if (!sel) return;
                 sel.innerHTML = '';
                 if (emptyLabel) {
                     const o = document.createElement('option');
@@ -358,7 +832,7 @@
                     o.textContent = emptyLabel;
                     sel.appendChild(o);
                 }
-                (items || []).forEach(it => {
+                ensureArray(items).forEach(it => {
                     const o = document.createElement('option');
                     const raw = it[valueKey];
                     o.value = raw !== undefined && raw !== null ? String(raw) : '';
@@ -383,8 +857,9 @@
             }
 
             function enumSelect(sel, names) {
+                if (!sel) return;
                 sel.innerHTML = '';
-                names.forEach(n => {
+                ensureArray(names).forEach(n => {
                     const o = document.createElement('option');
                     o.value = n;
                     o.textContent = n;
@@ -395,23 +870,27 @@
             function loadClassSectionsForSemester(semesterId) {
                 const sel = document.getElementById('f_classSectionId');
                 const sid = String(semesterId);
-                const list = (meta.classSections || []).filter(cs => String(cs.semesterId) === sid);
+                const list = ensureArray(meta.classSections).filter(cs => String(cs.semesterId) === sid);
                 fillSelect(sel, list, 'id', cs => cs.classCode + ' — ' + cs.className, null);
             }
 
-            function openModalCreate(clickedDate, viewType) {
+            function openModalCreate(clickedDate, periodNum) {
+                const semIdRaw = document.getElementById('semesterSelect') && document.getElementById('semesterSelect').value;
+                const semId = semIdRaw != null ? String(semIdRaw).trim() : '';
+                if (!semId) {
+                    showPageError('Vui lòng chọn học kỳ trước khi thêm lịch.');
+                    return;
+                }
                 document.getElementById('scheduleModalTitle').textContent = 'Thêm lịch học (Create)';
                 document.getElementById('f_scheduleId').value = '';
                 document.getElementById('btnDeleteSchedule').classList.add('d-none');
                 document.getElementById('modalGlobalError').classList.add('d-none');
                 const rp = document.getElementById('scheduleReadPanel');
                 if (rp) rp.classList.add('d-none');
-
-                const semId = document.getElementById('semesterSelect').value;
                 setSelectValue('f_semesterId', semId);
                 loadClassSectionsForSemester(semId);
 
-                const sem = meta.semesters.find(s => String(s.id) === String(semId));
+                const sem = ensureArray(meta.semesters).find(s => String(s.id) === String(semId));
                 const w = weekNumberFromSemester(sem ? sem.startDate : null, clickedDate);
                 document.getElementById('f_dayOfWeek').value = jsDayToModel(clickedDate.getDay());
                 document.getElementById('f_startWeek').value = Math.max(1, w);
@@ -421,14 +900,16 @@
                 document.getElementById('f_scheduleType').value = 'NORMAL';
                 document.getElementById('f_status').value = 'ACTIVE';
                 document.getElementById('f_note').value = '';
-                if (meta.lecturers && meta.lecturers.length) setSelectValue('f_lecturerId', meta.lecturers[0].lecturerId);
-                if (meta.rooms && meta.rooms.length) setSelectValue('f_roomId', meta.rooms[0].roomId);
-                if (meta.timeSlots && meta.timeSlots.length) {
-                    let slotId = meta.timeSlots[0].id;
-                    if (viewType && viewType !== 'dayGridMonth') {
-                        const hm = clickedDate.getHours() * 60 + clickedDate.getMinutes();
-                        const nearest = findNearestSlotByStartMinutes(hm);
-                        if (nearest != null) slotId = nearest;
+                const lectList = ensureArray(meta.lecturers);
+                const roomList = ensureArray(meta.rooms);
+                const slotList = ensureArray(meta.timeSlots);
+                if (lectList.length) setSelectValue('f_lecturerId', lectList[0].lecturerId);
+                if (roomList.length) setSelectValue('f_roomId', roomList[0].roomId);
+                if (slotList.length) {
+                    let slotId = slotList[0].id;
+                    if (periodNum != null && periodNum >= 1) {
+                        const sl = slotContainingPeriod(periodNum);
+                        if (sl && sl.id != null) slotId = sl.id;
                     }
                     setSelectValue('f_timeSlotId', slotId);
                 }
@@ -475,10 +956,11 @@
                         res = await fetch(API_BASE + '/' + encodeURIComponent(id), {
                             method: 'PUT',
                             headers: authHeaders(true),
+                            credentials: 'same-origin',
                             body: body
                         });
                     } else {
-                        res = await fetch(API_BASE, {method: 'POST', headers: authHeaders(true), body: body});
+                        res = await fetch(API_BASE, {method: 'POST', headers: authHeaders(true), credentials: 'same-origin', body: body});
                     }
                     if (!res.ok) {
                         throw new Error(await readApiError(res));
@@ -486,7 +968,7 @@
                     bsModal.hide();
                     hidePageError();
                     flashPageSuccess(id ? 'Đã cập nhật lịch.' : 'Đã thêm lịch.');
-                    calendar.refetchEvents();
+                    loadWeekEvents();
                 } catch (e) {
                     showModalError(e.message);
                 } finally {
@@ -501,13 +983,14 @@
                 try {
                     const res = await fetch(API_BASE + '/' + encodeURIComponent(id), {
                         method: 'DELETE',
-                        headers: authHeaders(false)
+                        headers: authHeaders(false),
+                        credentials: 'same-origin'
                     });
                     if (!res.ok) throw new Error(await readApiError(res));
                     bsModal.hide();
                     hidePageError();
                     flashPageSuccess('Đã xóa lịch.');
-                    calendar.refetchEvents();
+                    loadWeekEvents();
                 } catch (e) {
                     showModalError(e.message);
                 }
@@ -541,7 +1024,7 @@
                 document.getElementById('f_scheduleId').value = scheduleId;
                 document.getElementById('btnDeleteSchedule').classList.remove('d-none');
                 document.getElementById('modalGlobalError').classList.add('d-none');
-                const res = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {headers: authHeaders(false)});
+                const res = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {headers: authHeaders(false), credentials: 'same-origin'});
                 if (!res.ok) {
                     showModalError(await readApiError(res));
                     bsModal.show();
@@ -566,128 +1049,75 @@
                 bsModal.show();
             }
 
-            function initCalendar() {
-                const el = document.getElementById('scheduleCalendar');
-                calendar = new FullCalendar.Calendar(el, {
-                    plugins: [FullCalendar.Interaction],
-                    initialView: 'dayGridMonth',
-                    headerToolbar: {
-                        left: 'prev,today,next',
-                        center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                    },
-                    height: 'auto',
-                    navLinks: true,
-                    nowIndicator: true,
-                    locale: 'vi',
-                    editable: true,
-                    eventStartEditable: true,
-                    eventDurationEditable: true,
-                    eventDragMinDistance: 6,
-                    eventOverlap: true,
-                    slotEventOverlap: true,
-                    buttonText: {
-                        today: 'Hôm nay',
-                        month: 'Tháng',
-                        week: 'Tuần',
-                        day: 'Ngày'
-                    },
-                    events: function (info, successCallback, failureCallback) {
-                        const sid = document.getElementById('semesterSelect').value;
-                        if (!sid) {
-                            successCallback([]);
-                            return;
-                        }
-                        const start = info.startStr.slice(0, 10);
-                        const end = info.endStr.slice(0, 10);
-                        fetch(API_BASE + '/events?semesterId=' + encodeURIComponent(sid)
-                            + '&start=' + encodeURIComponent(start)
-                            + '&end=' + encodeURIComponent(end), {headers: authHeaders(false)})
-                            .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
-                            .then(rows => {
-                                const list = (rows || []).map(normalizeEventInput);
-                                successCallback(list);
-                            })
-                            .catch(err => {
-                                showPageError('Không tải được sự kiện lịch: ' + (err.message || err));
-                                failureCallback(err);
-                            });
-                    },
-                    eventDidMount: function (arg) {
-                        const t = arg.event.title || 'Lịch học';
-                        arg.el.setAttribute('title', t + ' — Click: mở form sửa/xóa · Kéo: đổi thứ · Kéo dài: đổi tiết');
-                    },
-                    dateClick: function (arg) {
-                        arg.jsEvent.preventDefault();
-                        openModalCreate(arg.date, arg.view.type);
-                    },
-                    eventDragStart: function () {
-                        blockEventClickUntil = Date.now() + 500;
-                    },
-                    eventDragStop: function () {
-                        blockEventClickUntil = Date.now() + 400;
-                    },
-                    eventResizeStart: function () {
-                        blockEventClickUntil = Date.now() + 500;
-                    },
-                    eventResizeStop: function () {
-                        blockEventClickUntil = Date.now() + 400;
-                    },
-                    eventDrop: function (info) {
-                        persistScheduleMove(info, false, () => info.revert());
-                    },
-                    eventResize: function (info) {
-                        persistScheduleMove(info, true, () => info.revert());
-                    },
-                    eventClick: function (arg) {
-                        if (Date.now() < blockEventClickUntil) {
-                            return;
-                        }
-                        arg.jsEvent.preventDefault();
-                        arg.jsEvent.stopPropagation();
-                        const sid = eventScheduleId(arg.event);
-                        if (sid) openModalEdit(sid);
-                    }
-                });
-                calendar.render();
-            }
-
-            fetch(API_BASE + '/meta', {headers: authHeaders(false)})
+            fetch(API_BASE + '/meta', {headers: authHeaders(false), credentials: 'same-origin'})
                 .then(r => {
                     if (!r.ok) return Promise.reject(new Error('HTTP ' + r.status));
                     return r.json();
                 })
                 .then(m => {
+                    if (m == null || typeof m !== 'object' || Array.isArray(m)) {
+                        throw new Error('Phản hồi meta không hợp lệ (không phải object JSON).');
+                    }
                     meta = m;
                     hidePageError();
                     const top = document.getElementById('semesterSelect');
-                    fillSelect(top, meta.semesters, 'id', s => s.code + ' — ' + s.name, null);
-                    fillSelect(document.getElementById('f_semesterId'), meta.semesters, 'id', s => s.code + ' — ' + s.name, null);
-                    enumSelect(document.getElementById('f_weekPattern'), meta.weekPatterns || []);
-                    enumSelect(document.getElementById('f_sessionType'), meta.sessionTypes || []);
-                    enumSelect(document.getElementById('f_scheduleType'), meta.scheduleTypes || []);
-                    enumSelect(document.getElementById('f_status'), meta.scheduleStatuses || []);
+                    const sems = ensureArray(meta.semesters);
+                    const semEmptyLabel = sems.length ? null : '— Chưa có học kỳ —';
+                    fillSelect(top, sems, 'id', s => (s.code || '') + ' — ' + (s.name || ''), semEmptyLabel);
+                    fillSelect(document.getElementById('f_semesterId'), sems, 'id', s => (s.code || '') + ' — ' + (s.name || ''), semEmptyLabel);
+                    enumSelect(document.getElementById('f_weekPattern'), meta.weekPatterns);
+                    enumSelect(document.getElementById('f_sessionType'), meta.sessionTypes);
+                    enumSelect(document.getElementById('f_scheduleType'), meta.scheduleTypes);
+                    enumSelect(document.getElementById('f_status'), meta.scheduleStatuses);
                     fillSelect(document.getElementById('f_lecturerId'), meta.lecturers, 'lecturerId', l => l.lecturerCode + ' — ' + l.fullName, null);
                     fillSelect(document.getElementById('f_roomId'), meta.rooms, 'roomId', r => r.roomCode + ' — ' + r.roomName, null);
                     fillSelect(document.getElementById('f_timeSlotId'), meta.timeSlots, 'id', ts => {
                         let lab = ts.slotCode || ('Tiết ' + ts.id);
                         if (ts.startTime && ts.endTime) lab += ' (' + ts.startTime + '–' + ts.endTime + ')';
+                        if (ts.periodStart != null) {
+                            lab += ' · hàng T' + ts.periodStart + (ts.periodEnd != null && ts.periodEnd !== ts.periodStart ? ('–T' + ts.periodEnd) : '');
+                        }
                         return lab;
                     }, null);
-                    if (meta.semesters && meta.semesters.length) {
-                        setSelectValue('semesterSelect', meta.semesters[0].id);
+                    if (!sems.length) {
+                        top.disabled = true;
+                        showPhaseNoSemester();
+                        return;
                     }
-                    initCalendar();
-                    top.addEventListener('change', () => {
+                    top.disabled = false;
+                    if (sems.length && sems[0].id != null) {
+                        setSelectValue('semesterSelect', sems[0].id);
+                    }
+                    showPhaseReadyCalendar();
+                    initWeekPlanner();
+                    top.addEventListener('change', function onSemesterChange() {
                         hidePageError();
-                        calendar.refetchEvents();
+                        loadWeekEvents();
                     });
                 })
                 .catch(err => {
-                    showPageError('Không tải được cấu hình lịch (meta). ' + (err.message || ''));
-                    document.getElementById('scheduleCalendar').innerHTML =
-                        '<div class="p-3 text-muted">Kiểm tra đăng nhập và quyền truy cập API <code>/admin/schedules/api/meta</code>.</div>';
+                    const detail = (err && err.message) ? err.message : String(err);
+                    showPageError('Không tải được cấu hình lịch (meta). ' + detail);
+                    const sel = document.getElementById('semesterSelect');
+                    if (sel) {
+                        sel.disabled = true;
+                        sel.innerHTML = '';
+                        const o = document.createElement('option');
+                        o.value = '';
+                        o.textContent = 'Không tải được học kỳ';
+                        o.disabled = true;
+                        o.selected = true;
+                        sel.appendChild(o);
+                    }
+                    showPhaseMetaErrorDetail(detail);
                 });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', runCalendarPage);
+            } else {
+                runCalendarPage();
+            }
         })();
     </script>
 
