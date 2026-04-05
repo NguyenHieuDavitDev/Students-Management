@@ -3,6 +3,7 @@ package com.example.stduents_management.schedule.service;
 import com.example.stduents_management.classsection.entity.ClassSection;
 import com.example.stduents_management.classsection.entity.ClassSectionStatus;
 import com.example.stduents_management.classsection.repository.ClassSectionRepository;
+import com.example.stduents_management.course.entity.Course;
 import com.example.stduents_management.lecturer.entity.Lecturer;
 import com.example.stduents_management.lecturer.repository.LecturerRepository;
 import com.example.stduents_management.lecturercourseclass.entity.LecturerCourseClass;
@@ -279,13 +280,22 @@ public class ScheduleService {
         List<ScheduleCalendarEventResponse> out = new ArrayList<>();
         for (Schedule s : list) {
             TimeSlot slot = s.getTimeSlot();
-            if (slot == null) {
+            if (slot == null || slot.getStartTime() == null || slot.getEndTime() == null) {
                 continue;
             }
-            int sw = s.getStartWeek();
-            int ew = s.getEndWeek();
+            Integer dow = s.getDayOfWeek();
+            if (dow == null) {
+                continue;
+            }
+            Integer swBox = s.getStartWeek();
+            Integer ewBox = s.getEndWeek();
+            if (swBox == null || ewBox == null || swBox > ewBox) {
+                continue;
+            }
+            int sw = swBox;
+            int ew = ewBox;
             for (int w = sw; w <= ew; w++) {
-                LocalDate d = dateForSemesterWeekAndDay(anchorMonday, w, s.getDayOfWeek());
+                LocalDate d = dateForSemesterWeekAndDay(anchorMonday, w, dow);
                 if (from != null && d.isBefore(from)) {
                     continue;
                 }
@@ -298,10 +308,10 @@ public class ScheduleService {
                     end = end.plusDays(1);
                 }
                 String eid = s.getId() + "-" + w;
-                Map<String, Object> props = calendarExtendedProps(s);
+                Map<String, Object> props = calendarExtendedProps(s, d);
                 out.add(new ScheduleCalendarEventResponse(
                         eid,
-                        buildEventTitle(s),
+                        buildEventTitle(s, d),
                         start,
                         end,
                         colorForScheduleId(s.getId()),
@@ -321,7 +331,8 @@ public class ScheduleService {
                         s.getId(),
                         s.getCode(),
                         s.getName(),
-                        s.getStartDate() != null ? s.getStartDate().toString() : null))
+                        s.getStartDate() != null ? s.getStartDate().toString() : null,
+                        semesterAnchorMonday(s).toString()))
                 .toList();
         List<ScheduleCalendarMetaResponse.ClassSectionRow> classSections = classSectionRepository
                 .findAll(Sort.by("classCode"))
@@ -397,38 +408,91 @@ public class ScheduleService {
         return week1Monday.plusWeeks(weekNumber - 1L).plusDays(mondayBasedOffset);
     }
 
-    private static String buildEventTitle(Schedule s) {
-        ClassSection cs = s.getClassSection();
-        String course = (cs != null && cs.getCourse() != null) ? cs.getCourse().getCourseCode() : "";
-        String cc = cs != null ? cs.getClassCode() : "";
-        String room = s.getRoom() != null ? s.getRoom().getRoomCode() : "";
-        String lec = s.getLecturer() != null ? s.getLecturer().getFullName() : "";
+    /** Tiêu đề một dòng (tooltip / tóm tắt). */
+    private static String buildEventTitle(Schedule s, LocalDate occurrenceDate) {
+        String courseLine = buildCourseDisplayLine(s);
+        String day = s.getDayOfWeek() != null ? vietnameseDayOfWeek(s.getDayOfWeek()) : "";
+        String slot = formatSlotBrief(s.getTimeSlot());
+        String room = s.getRoom() != null && s.getRoom().getRoomCode() != null ? s.getRoom().getRoomCode() : "";
+        String lec = s.getLecturer() != null && s.getLecturer().getFullName() != null ? s.getLecturer().getFullName() : "";
+        String dateS = occurrenceDate != null ? occurrenceDate.toString() : "";
         StringBuilder sb = new StringBuilder();
-        if (!course.isEmpty()) {
-            sb.append(course);
-        }
-        if (!cc.isEmpty()) {
-            if (sb.length() > 0) {
-                sb.append(" · ");
-            }
-            sb.append(cc);
-        }
-        if (!room.isEmpty()) {
-            if (sb.length() > 0) {
-                sb.append(" · ");
-            }
-            sb.append(room);
-        }
-        if (!lec.isEmpty()) {
-            if (sb.length() > 0) {
-                sb.append(" · ");
-            }
-            sb.append(lec);
-        }
+        appendPart(sb, courseLine);
+        appendPart(sb, day);
+        appendPart(sb, dateS);
+        appendPart(sb, slot);
+        appendPart(sb, room);
+        appendPart(sb, lec);
         return sb.length() > 0 ? sb.toString() : "Lịch học";
     }
 
-    private static Map<String, Object> calendarExtendedProps(Schedule s) {
+    private static void appendPart(StringBuilder sb, String part) {
+        if (part == null || part.isBlank()) {
+            return;
+        }
+        if (sb.length() > 0) {
+            sb.append(" · ");
+        }
+        sb.append(part.trim());
+    }
+
+    /** Tên học phần + số tín chỉ (hoặc mã lớp HP). */
+    private static String buildCourseDisplayLine(Schedule s) {
+        ClassSection cs = s.getClassSection();
+        if (cs == null) {
+            return "";
+        }
+        Course c = cs.getCourse();
+        String name = (c != null && c.getCourseName() != null) ? c.getCourseName().trim() : "";
+        String code = (c != null && c.getCourseCode() != null) ? c.getCourseCode().trim() : "";
+        Integer cred = c != null ? c.getCredits() : null;
+        String credPart = cred != null ? " (" + cred + " TC)" : "";
+        if (!name.isEmpty()) {
+            return name + credPart;
+        }
+        if (!code.isEmpty()) {
+            return code + credPart;
+        }
+        String cc = cs.getClassCode() != null ? cs.getClassCode().trim() : "";
+        return cc + credPart;
+    }
+
+    private static String vietnameseDayOfWeek(int modelDow) {
+        return switch (modelDow) {
+            case 2 -> "Thứ 2";
+            case 3 -> "Thứ 3";
+            case 4 -> "Thứ 4";
+            case 5 -> "Thứ 5";
+            case 6 -> "Thứ 6";
+            case 7 -> "Thứ 7";
+            case 8 -> "Chủ nhật";
+            default -> "Thứ " + modelDow;
+        };
+    }
+
+    /** Mã khung giờ + khoảng giờ (rút :00 giây nếu có). */
+    private static String formatSlotBrief(TimeSlot slot) {
+        if (slot == null) {
+            return "";
+        }
+        String code = slot.getSlotCode() != null ? slot.getSlotCode().trim() : "";
+        if (slot.getStartTime() == null || slot.getEndTime() == null) {
+            return code;
+        }
+        String a = trimSeconds(slot.getStartTime().toString());
+        String b = trimSeconds(slot.getEndTime().toString());
+        String range = a + "–" + b;
+        return code.isEmpty() ? range : (code + " " + range);
+    }
+
+    private static String trimSeconds(String time) {
+        if (time != null && time.length() >= 8 && time.endsWith(":00")) {
+            return time.substring(0, time.length() - 3);
+        }
+        return time != null ? time : "";
+    }
+
+    private static Map<String, Object> calendarExtendedProps(Schedule s, LocalDate occurrenceDate) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("scheduleId", s.getId().toString());
         m.put("semesterId", s.getSemester() != null ? s.getSemester().getId() : null);
@@ -447,6 +511,37 @@ public class ScheduleService {
         m.put("scheduleType", s.getScheduleType() != null ? s.getScheduleType().name() : null);
         m.put("status", s.getStatus() != null ? s.getStatus().name() : null);
         m.put("note", s.getNote());
+
+        String courseDisplay = buildCourseDisplayLine(s);
+        if (!courseDisplay.isBlank()) {
+            m.put("courseDisplay", courseDisplay);
+        }
+        String slotDisplay = formatSlotBrief(s.getTimeSlot());
+        if (!slotDisplay.isBlank()) {
+            m.put("slotDisplay", slotDisplay);
+        }
+        if (s.getDayOfWeek() != null) {
+            m.put("dayDisplay", vietnameseDayOfWeek(s.getDayOfWeek()));
+        }
+        if (occurrenceDate != null) {
+            m.put("instanceDate", occurrenceDate.toString());
+        }
+        Room room = s.getRoom();
+        if (room != null) {
+            String rc = room.getRoomCode() != null ? room.getRoomCode().trim() : "";
+            String rn = room.getRoomName() != null ? room.getRoomName().trim() : "";
+            String roomDisplay = rc;
+            if (!rn.isEmpty() && !rn.equals(rc)) {
+                roomDisplay = rc.isEmpty() ? rn : (rc + " — " + rn);
+            }
+            if (!roomDisplay.isBlank()) {
+                m.put("roomDisplay", roomDisplay);
+            }
+        }
+        if (s.getLecturer() != null && s.getLecturer().getFullName() != null
+                && !s.getLecturer().getFullName().isBlank()) {
+            m.put("lecturerDisplay", s.getLecturer().getFullName().trim());
+        }
         return m;
     }
 

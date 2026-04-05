@@ -14,7 +14,8 @@ public record ScheduleCalendarMetaResponse(
         List<String> scheduleTypes,
         List<String> scheduleStatuses
 ) {
-    public record SemesterRow(Long id, String code, String name, String startDate) {}
+    /** Thứ Hai mốc tuần 1 (khớp ScheduleService.semesterAnchorMonday; dùng khi tính tuần trên calendar). */
+    public record SemesterRow(Long id, String code, String name, String startDate, String weekAnchorMonday) {}
 
     public record ClassSectionRow(Long id, String classCode, String className, Long semesterId) {}
 

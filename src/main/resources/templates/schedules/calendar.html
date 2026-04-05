@@ -47,16 +47,16 @@
         .wk-cell.wk-section-top { border-top: 2px solid #ced4da; }
         .wk-cell.wk-drop-hover { background: #d1e7dd !important; outline: 2px dashed #198754; }
         .wk-card {
-            margin: 1px auto; max-width: 92%; min-height: calc(100% - 4px);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            margin: 1px auto; max-width: 96%; min-height: calc(100% - 4px);
+            display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start;
             background: #fff; border: 2px solid #2d8a54; border-radius: 8px;
-            cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 2px 4px;
+            cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 3px 4px;
+            text-align: left; overflow: auto; max-height: 100%;
         }
         .wk-card:active { cursor: grabbing; }
-        .wk-card-dot { width: 7px; height: 7px; border-radius: 50%; background: #dc3545; margin-bottom: 2px; flex-shrink: 0; }
-        .wk-card-label { font-weight: 700; font-size: 0.7rem; color: #212529; line-height: 1; word-break: break-all; text-align: center; }
-        .wk-card-sub { font-size: 0.6rem; color: #6c757d; margin-top: 1px; display: none; }
-        @media (min-width: 400px) { .wk-card-sub { display: block; } }
+        .wk-card-line-title { font-weight: 700; font-size: 0.62rem; color: #1a3d2e; line-height: 1.15; word-break: break-word; }
+        .wk-card-line { font-size: 0.55rem; color: #495057; line-height: 1.12; margin-top: 2px; word-break: break-word; }
+        .wk-card-line:first-child { margin-top: 0; }
     </style>
 
     <div id="calendarPageAlert" class="alert alert-danger d-none mb-3" role="alert"></div>
@@ -139,9 +139,12 @@
     <div class="modal fade" id="scheduleModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="scheduleModalTitle">Lịch học</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header flex-column align-items-stretch gap-1">
+                    <div class="d-flex w-100 align-items-center justify-content-between">
+                        <h5 class="modal-title mb-0" id="scheduleModalTitle">Lịch học</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <p class="small text-muted mb-0">Xem / <strong>sửa</strong> / <strong>xóa</strong> (Lưu · Xóa) hoặc đóng. Ô trống trên lưới: <strong>thêm</strong> lịch mới.</p>
                 </div>
                 <div class="modal-body">
                     <div id="modalGlobalError" class="alert alert-danger d-none"></div>
@@ -350,6 +353,39 @@
                 return n[d] || ('Thứ ' + d);
             }
 
+            function formatDMY(localDate) {
+                if (!localDate || isNaN(localDate.getTime())) return '';
+                const d = String(localDate.getDate()).padStart(2, '0');
+                const m = String(localDate.getMonth() + 1).padStart(2, '0');
+                return d + '/' + m + '/' + localDate.getFullYear();
+            }
+
+            /** Đổ nội dung thẻ ô lịch: học phần+TC, khung giờ, thứ+ngày, phòng, GV. */
+            function fillScheduleCardElement(cardEl, ev) {
+                const ep = ev.extendedProps || {};
+                const d0 = parseLocalDateFromEventStart(ev.start);
+                let dateStr = '';
+                if (ep.instanceDate) {
+                    const id = parseLocalDateFromYmd(ep.instanceDate);
+                    if (id) dateStr = formatDMY(id);
+                }
+                if (!dateStr && d0) dateStr = formatDMY(d0);
+                const rows = [];
+                rows.push({ cls: 'wk-card-line wk-card-line-title', text: ep.courseDisplay || ev.title || 'Lịch học' });
+                if (ep.slotDisplay) rows.push({ cls: 'wk-card-line', text: 'Giờ: ' + ep.slotDisplay });
+                const dayLine = [ep.dayDisplay, dateStr].filter(Boolean).join(' · ');
+                if (dayLine) rows.push({ cls: 'wk-card-line', text: dayLine });
+                if (ep.roomDisplay) rows.push({ cls: 'wk-card-line', text: 'Phòng: ' + ep.roomDisplay });
+                if (ep.lecturerDisplay) rows.push({ cls: 'wk-card-line', text: 'GV: ' + ep.lecturerDisplay });
+                cardEl.textContent = '';
+                rows.forEach(function (row) {
+                    const line = document.createElement('div');
+                    line.className = row.cls;
+                    line.textContent = row.text;
+                    cardEl.appendChild(line);
+                });
+            }
+
             /** Chuẩn hóa sự kiện từ API (ngày giờ + extendedProps). */
             function normalizeEventInput(row) {
                 if (!row) return row;
@@ -410,13 +446,31 @@
                 return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
             }
 
-            function weekNumberFromSemester(semesterStartStr, clickedDate) {
-                const sm = parseIsoDate(semesterStartStr);
+            /** Cùng quy tắc với backend semesterAnchorMonday + dateForSemesterWeekAndDay. */
+            function weekAnchorIsoFromSemesterRow(sem) {
+                if (!sem) return null;
+                const w = sem.weekAnchorMonday != null && String(sem.weekAnchorMonday).trim()
+                    ? String(sem.weekAnchorMonday).trim().slice(0, 10)
+                    : '';
+                if (w) return w;
+                const d = sem.startDate != null && String(sem.startDate).trim()
+                    ? String(sem.startDate).trim().slice(0, 10)
+                    : '';
+                if (d) return d;
+                return formatYMD(startOfWeekMondayLocal(new Date()));
+            }
+
+            function weekNumberFromSemester(semesterRow, clickedDate) {
+                const anchorStr = weekAnchorIsoFromSemesterRow(semesterRow);
+                const sm = parseIsoDate(anchorStr);
                 if (!sm) return 1;
                 const cm = mondayOfDateUtc(clickedDate);
                 const smUtc = mondayOfDateUtc(sm);
                 const diffMs = cm.getTime() - smUtc.getTime();
-                return Math.floor(diffMs / (7 * 24 * 3600 * 1000)) + 1;
+                let w = Math.floor(diffMs / (7 * 24 * 3600 * 1000)) + 1;
+                if (w < 1) w = 1;
+                if (w > 53) w = 53;
+                return w;
             }
 
             function jsDayToModel(jsDow) {
@@ -431,10 +485,17 @@
             }
 
             function parseLocalDateFromEventStart(iso) {
-                if (!iso) return null;
+                if (iso == null) return null;
+                if (Array.isArray(iso) && iso.length >= 3) {
+                    return new Date(+iso[0], +iso[1] - 1, +iso[2]);
+                }
+                if (typeof iso === 'object' && iso.year != null) {
+                    const mo = iso.monthValue != null ? +iso.monthValue : (+iso.month || 0) + 1;
+                    return new Date(+iso.year, mo - 1, +iso.dayOfMonth);
+                }
                 const s = String(iso).slice(0, 10);
                 const p = s.split('-').map(Number);
-                if (p.length < 3) return null;
+                if (p.length < 3 || p.some(function (n) { return Number.isNaN(n); })) return null;
                 return new Date(p[0], p[1] - 1, p[2]);
             }
 
@@ -445,6 +506,37 @@
                 x.setDate(x.getDate() + diff);
                 x.setHours(0, 0, 0, 0);
                 return x;
+            }
+
+            /** yyyy-mm-dd → Date địa phương 00:00 */
+            function parseLocalDateFromYmd(str) {
+                if (str == null || !String(str).trim()) return null;
+                const s = String(str).trim().slice(0, 10);
+                const p = s.split('-').map(Number);
+                if (p.length < 3 || p.some(function (n) { return Number.isNaN(n); })) return null;
+                const d = new Date(p[0], p[1] - 1, p[2]);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            /**
+             * Tuần hiển thị mặc định theo mốc học kỳ (weekAnchorMonday / startDate), trùng logic backend.
+             * Trước đây luôn dùng tuần chứa “hôm nay” → với HK cũ (vd 2024) mở calendar năm 2026 thì API trả rỗng.
+             */
+            function alignPlannerWeekToSemester() {
+                const sel = document.getElementById('semesterSelect');
+                const sid = sel ? String(sel.value || '').trim() : '';
+                if (!sid || !meta) {
+                    weekPlannerState.weekMonday = startOfWeekMondayLocal(new Date());
+                    return;
+                }
+                const sem = ensureArray(meta.semesters).find(function (s) { return String(s.id) === sid; });
+                const iso = weekAnchorIsoFromSemesterRow(sem);
+                const d = parseLocalDateFromYmd(iso);
+                if (d) {
+                    weekPlannerState.weekMonday = startOfWeekMondayLocal(d);
+                } else {
+                    weekPlannerState.weekMonday = startOfWeekMondayLocal(new Date());
+                }
             }
 
             const MODEL_DOW_OFFSET = {2: 0, 3: 1, 4: 2, 5: 3, 6: 4, 7: 5, 8: 6};
@@ -516,8 +608,8 @@
                     const newDate = dateForModelDow(weekPlannerState.weekMonday, newModelDow);
                     if (!oldStart) throw new Error('Không đọc được ngày buổi học cũ.');
                     const sem = ensureArray(meta.semesters).find(function (s) { return String(s.id) === String(r.semesterId); });
-                    const wOld = weekNumberFromSemester(sem ? sem.startDate : null, oldStart);
-                    const wNew = weekNumberFromSemester(sem ? sem.startDate : null, newDate);
+                    const wOld = weekNumberFromSemester(sem, oldStart);
+                    const wNew = weekNumberFromSemester(sem, newDate);
                     const delta = wNew - wOld;
                     let newStartWeek = r.startWeek + delta;
                     let newEndWeek = r.endWeek + delta;
@@ -549,7 +641,7 @@
                     if (!put.ok) throw new Error(await readApiError(put));
                     hidePageError();
                     flashPageSuccess('Đã cập nhật lịch sau khi kéo thả.');
-                    loadWeekEvents();
+                    await loadWeekEvents();
                 } catch (e) {
                     showPageError('Không lưu được vị trí mới: ' + (e.message || String(e)));
                 }
@@ -677,24 +769,14 @@
                         const pItem = placed.find(function (p) { return p.col === c && p.r0 === r; });
                         if (pItem) {
                             td.setAttribute('rowspan', String(pItem.rowspan));
-                            const ep = pItem.ev.extendedProps || {};
                             const sid = scheduleIdFromNormalizedEvent(pItem.ev);
                             const card = document.createElement('div');
                             card.className = 'wk-card';
                             card.draggable = true;
                             card.dataset.scheduleId = sid;
-                            card.title = (pItem.ev.title || 'Lịch học') + ' — Kéo để đổi ô · Click để sửa';
-                            const dot = document.createElement('span');
-                            dot.className = 'wk-card-dot';
-                            const lab = document.createElement('span');
-                            lab.className = 'wk-card-label';
-                            lab.textContent = ep.roomCode || (String(pItem.ev.title || '').split(' · ').pop() || '·');
-                            const sub = document.createElement('span');
-                            sub.className = 'wk-card-sub';
-                            sub.textContent = (pItem.ev.title || '').split(' · ')[0] || '';
-                            card.appendChild(dot);
-                            card.appendChild(lab);
-                            card.appendChild(sub);
+                            card.title = (pItem.ev.title || 'Lịch học')
+                                + '\n\nClick: xem / sửa / xóa trong hộp thoại\nKéo thả: đổi thứ hoặc tiết';
+                            fillScheduleCardElement(card, pItem.ev);
                             card.addEventListener('click', function (e) {
                                 e.stopPropagation();
                                 if (sid) openModalEdit(sid);
@@ -736,6 +818,15 @@
                 tb.appendChild(tbody);
                 host.innerHTML = '';
                 host.appendChild(tb);
+                if (placed.length === 0) {
+                    const hint = document.createElement('p');
+                    hint.className = 'small text-muted text-center mt-2 mb-0 px-2';
+                    const nIn = ensureArray(events).length;
+                    hint.textContent = nIn === 0
+                        ? 'Không có buổi học trong tuần này. Dùng ← → để xem tuần khác (lịch thường nằm trong khoảng ngày của học kỳ).'
+                        : ('Có ' + nIn + ' buổi từ máy chủ nhưng không đặt được trên lưới (kiểm tra cấu hình tiết / dữ liệu).');
+                    host.appendChild(hint);
+                }
             }
 
             async function loadWeekEvents() {
@@ -743,7 +834,7 @@
                 const selEl = document.getElementById('semesterSelect');
                 const sid = selEl ? String(selEl.value || '').trim() : '';
                 if (!weekPlannerState.weekMonday) {
-                    weekPlannerState.weekMonday = startOfWeekMondayLocal(new Date());
+                    alignPlannerWeekToSemester();
                 }
                 updateWkRangeLabel();
                 if (!sid) {
@@ -787,7 +878,7 @@
             function initWeekPlanner() {
                 if (weekPlannerInited) return;
                 weekPlannerInited = true;
-                weekPlannerState.weekMonday = startOfWeekMondayLocal(new Date());
+                alignPlannerWeekToSemester();
                 fillWkSingleDayOptions();
                 updateModeButtons();
                 updateWkRangeLabel();
@@ -891,7 +982,7 @@
                 loadClassSectionsForSemester(semId);
 
                 const sem = ensureArray(meta.semesters).find(s => String(s.id) === String(semId));
-                const w = weekNumberFromSemester(sem ? sem.startDate : null, clickedDate);
+                const w = weekNumberFromSemester(sem, clickedDate);
                 document.getElementById('f_dayOfWeek').value = jsDayToModel(clickedDate.getDay());
                 document.getElementById('f_startWeek').value = Math.max(1, w);
                 document.getElementById('f_endWeek').value = Math.max(1, w);
@@ -968,7 +1059,7 @@
                     bsModal.hide();
                     hidePageError();
                     flashPageSuccess(id ? 'Đã cập nhật lịch.' : 'Đã thêm lịch.');
-                    loadWeekEvents();
+                    await loadWeekEvents();
                 } catch (e) {
                     showModalError(e.message);
                 } finally {
@@ -990,7 +1081,7 @@
                     bsModal.hide();
                     hidePageError();
                     flashPageSuccess('Đã xóa lịch.');
-                    loadWeekEvents();
+                    await loadWeekEvents();
                 } catch (e) {
                     showModalError(e.message);
                 }
@@ -1092,6 +1183,7 @@
                     initWeekPlanner();
                     top.addEventListener('change', function onSemesterChange() {
                         hidePageError();
+                        alignPlannerWeekToSemester();
                         loadWeekEvents();
                     });
                 })
