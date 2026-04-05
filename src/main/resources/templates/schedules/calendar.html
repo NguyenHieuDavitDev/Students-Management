@@ -50,12 +50,22 @@
             margin: 1px auto; max-width: 96%; min-height: calc(100% - 4px);
             display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start;
             background: #fff; border: 2px solid #2d8a54; border-radius: 8px;
-            cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 3px 4px;
+            cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 4px 5px;
             text-align: left; overflow: auto; max-height: 100%;
+            color: #111 !important;
+            -webkit-text-fill-color: #111;
+            font-size: 11px;
+            line-height: 1.25;
         }
         .wk-card:active { cursor: grabbing; }
-        .wk-card-line-title { font-weight: 700; font-size: 0.62rem; color: #1a3d2e; line-height: 1.15; word-break: break-word; }
-        .wk-card-line { font-size: 0.55rem; color: #495057; line-height: 1.12; margin-top: 2px; word-break: break-word; }
+        .wk-card-line-title {
+            font-weight: 700; font-size: 11px; color: #0d2818 !important; line-height: 1.2; word-break: break-word;
+            -webkit-text-fill-color: #0d2818;
+        }
+        .wk-card-line {
+            font-size: 10px; color: #333 !important; line-height: 1.2; margin-top: 3px; word-break: break-word;
+            -webkit-text-fill-color: #333;
+        }
         .wk-card-line:first-child { margin-top: 0; }
     </style>
 
@@ -360,10 +370,16 @@
                 return d + '/' + m + '/' + localDate.getFullYear();
             }
 
+            function strOrEmpty(v) {
+                if (v == null) return '';
+                const s = String(v).trim();
+                return s;
+            }
+
             /** Đổ nội dung thẻ ô lịch: học phần+TC, khung giờ, thứ+ngày, phòng, GV. */
             function fillScheduleCardElement(cardEl, ev) {
-                const ep = ev.extendedProps || {};
-                const d0 = parseLocalDateFromEventStart(ev.start);
+                const ep = ev && ev.extendedProps ? ev.extendedProps : {};
+                const d0 = parseLocalDateFromEventStart(ev && ev.start);
                 let dateStr = '';
                 if (ep.instanceDate) {
                     const id = parseLocalDateFromYmd(ep.instanceDate);
@@ -371,26 +387,69 @@
                 }
                 if (!dateStr && d0) dateStr = formatDMY(d0);
                 const rows = [];
-                rows.push({ cls: 'wk-card-line wk-card-line-title', text: ep.courseDisplay || ev.title || 'Lịch học' });
-                if (ep.slotDisplay) rows.push({ cls: 'wk-card-line', text: 'Giờ: ' + ep.slotDisplay });
-                const dayLine = [ep.dayDisplay, dateStr].filter(Boolean).join(' · ');
+                let titleText = strOrEmpty(ep.courseDisplay);
+                if (!titleText && (strOrEmpty(ep.courseName) || strOrEmpty(ep.courseCode))) {
+                    const cred = ep.credits != null && ep.credits !== '' ? ' (' + ep.credits + ' TC)' : '';
+                    titleText = (strOrEmpty(ep.courseName) || strOrEmpty(ep.courseCode)) + cred;
+                }
+                if (!titleText && strOrEmpty(ep.courseCode) && strOrEmpty(ep.classSectionCode)) {
+                    titleText = strOrEmpty(ep.courseCode) + ' · ' + strOrEmpty(ep.classSectionCode);
+                }
+                if (!titleText) {
+                    titleText = strOrEmpty(ep.classSectionCode) || strOrEmpty(ep.courseCode)
+                        || strOrEmpty(ev && ev.title) || strOrEmpty(ep.title);
+                }
+                if (!titleText && strOrEmpty(ev && ev.id)) {
+                    titleText = 'Lịch #' + String(ev.id).slice(0, 8);
+                }
+                if (!titleText) titleText = 'Lịch học';
+                rows.push({ cls: 'wk-card-line wk-card-line-title', text: titleText });
+                const slotLine = strOrEmpty(ep.slotDisplay);
+                if (slotLine) rows.push({ cls: 'wk-card-line', text: 'Giờ: ' + slotLine });
+                const dayLine = [strOrEmpty(ep.dayDisplay), dateStr].filter(Boolean).join(' · ');
                 if (dayLine) rows.push({ cls: 'wk-card-line', text: dayLine });
-                if (ep.roomDisplay) rows.push({ cls: 'wk-card-line', text: 'Phòng: ' + ep.roomDisplay });
-                if (ep.lecturerDisplay) rows.push({ cls: 'wk-card-line', text: 'GV: ' + ep.lecturerDisplay });
+                const roomLine = strOrEmpty(ep.roomDisplay);
+                if (roomLine) rows.push({ cls: 'wk-card-line', text: 'Phòng: ' + roomLine });
+                const lecLine = strOrEmpty(ep.lecturerDisplay);
+                if (lecLine) rows.push({ cls: 'wk-card-line', text: 'GV: ' + lecLine });
                 cardEl.textContent = '';
                 rows.forEach(function (row) {
                     const line = document.createElement('div');
                     line.className = row.cls;
-                    line.textContent = row.text;
+                    const t = row.text != null ? String(row.text) : '';
+                    line.textContent = t.length ? t : '—';
                     cardEl.appendChild(line);
                 });
             }
 
-            /** Chuẩn hóa sự kiện từ API (ngày giờ + extendedProps). */
+            /** Gộp extendedProps từ nhiều kiểu JSON (camelCase, snake_case, chuỗi JSON, hoặc trường dẹt ở root). */
             function normalizeEventInput(row) {
-                if (!row) return row;
-                const ep = Object.assign({}, row.extendedProps || {});
-                if (!ep.scheduleId && row.scheduleId) ep.scheduleId = row.scheduleId;
+                if (!row || typeof row !== 'object') return row;
+                let raw = row.extendedProps != null ? row.extendedProps : row.extended_properties;
+                if (typeof raw === 'string') {
+                    const t = raw.trim();
+                    if (t.startsWith('{')) {
+                        try { raw = JSON.parse(t); } catch (e) { raw = {}; }
+                    } else {
+                        raw = {};
+                    }
+                }
+                if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+                    raw = {};
+                }
+                const ep = Object.assign({}, raw);
+                const flatKeys = [
+                    'scheduleId', 'semesterId', 'classSectionId', 'classSectionCode', 'courseCode', 'courseName',
+                    'credits', 'lecturerId', 'roomId', 'timeSlotId', 'periodStart', 'periodEnd',
+                    'courseDisplay', 'slotDisplay', 'dayDisplay', 'roomDisplay', 'lecturerDisplay',
+                    'instanceDate', 'dayOfWeek', 'startWeek', 'endWeek', 'note', 'status'
+                ];
+                flatKeys.forEach(function (k) {
+                    if (ep[k] == null && row[k] != null) {
+                        ep[k] = row[k];
+                    }
+                });
+                if (!ep.scheduleId && row.scheduleId != null) ep.scheduleId = row.scheduleId;
                 return {
                     id: row.id,
                     title: row.title,
@@ -486,6 +545,10 @@
 
             function parseLocalDateFromEventStart(iso) {
                 if (iso == null) return null;
+                if (typeof iso === 'number' && Number.isFinite(iso)) {
+                    const d = new Date(iso);
+                    return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                }
                 if (Array.isArray(iso) && iso.length >= 3) {
                     return new Date(+iso[0], +iso[1] - 1, +iso[2]);
                 }
@@ -493,8 +556,9 @@
                     const mo = iso.monthValue != null ? +iso.monthValue : (+iso.month || 0) + 1;
                     return new Date(+iso.year, mo - 1, +iso.dayOfMonth);
                 }
-                const s = String(iso).slice(0, 10);
-                const p = s.split('-').map(Number);
+                const raw = String(iso).trim();
+                const datePart = raw.length >= 10 ? raw.slice(0, 10) : raw;
+                const p = datePart.split('-').map(Number);
                 if (p.length < 3 || p.some(function (n) { return Number.isNaN(n); })) return null;
                 return new Date(p[0], p[1] - 1, p[2]);
             }
@@ -573,6 +637,18 @@
                     const ps = s.periodStart != null ? s.periodStart : 1;
                     const pe = s.periodEnd != null ? s.periodEnd : ps;
                     m = Math.max(m, pe, ps);
+                });
+                return Math.min(Math.max(m, 1), 20);
+            }
+
+            /** Đủ số hàng T* để không bỏ sót buổi học khi tiết (period) > 6 hoặc chỉ xuất hiện trong events. */
+            function computeMaxPeriodForWeek(events) {
+                let m = computeMaxPeriod();
+                ensureArray(events).forEach(function (raw) {
+                    const ev = normalizeEventInput(raw);
+                    if (!ev) return;
+                    const span = eventPeriodSpan(ev);
+                    m = Math.max(m, span.ps, span.pe);
                 });
                 return Math.min(Math.max(m, 1), 20);
             }
@@ -706,7 +782,7 @@
                     return;
                 }
                 const days = getDisplayDays();
-                const maxP = computeMaxPeriod();
+                const maxP = computeMaxPeriodForWeek(events);
                 const cols = days.length;
                 const occ = [];
                 for (let r = 0; r < maxP; r++) {
@@ -731,7 +807,10 @@
                         if (occ[r][col]) clash = true;
                     }
                     if (clash) return;
-                    for (let r = r0; r <= Math.min(r1, maxP - 1); r++) occ[r][col] = 'x';
+                    const rMax = Math.min(r1, maxP - 1);
+                    for (let r = r0; r <= rMax; r++) {
+                        occ[r][col] = (r === r0) ? 'start' : 'span';
+                    }
                     placed.push({ ev: ev, col: col, r0: r0, rowspan: Math.min(span.len, maxP - r0) });
                 });
 
@@ -759,7 +838,7 @@
                     th.textContent = 'T' + (r + 1);
                     tr.appendChild(th);
                     for (let c = 0; c < cols; c++) {
-                        if (occ[r][c] === 'x') continue;
+                        if (occ[r][c] === 'span') continue;
                         const td = document.createElement('td');
                         td.className = 'wk-cell';
                         if (r === 0 || r === 6 || r === 12) td.classList.add('wk-section-top');

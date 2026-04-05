@@ -4162,28 +4162,48 @@ Module **schedule_overrides** dùng để quản lý các thay đổi áp dụng
 
 ### 20. Quản Lý Permissions (Gán quyền cho vai trò)
 
-Module **permissions** dùng để gán quyền cụ thể cho từng vai trò (role): định nghĩa danh sách quyền (mã, tên, mô tả) và quản lý bảng gán vai trò – quyền (phân quyền).
+Module **permissions** dùng để gán quyền cụ thể cho từng vai trò (role): định nghĩa danh sách quyền (mã, tên, mô tả) và quản lý bảng gán vai trò – quyền (phân quyền). Module này **cũng điều khiển phần lớn mục menu trái (sidebar)** mà người dùng thấy sau khi đăng nhập vào khu vực **admin** (`/admin/**`), thông qua trường **mục sidebar** gắn với quyền và màn **cấu hình menu theo vai trò**.
 
 #### Bảng / Entity:
 
-- **permissions**: `id` (UUID), `code` (unique), `name`, `description`
+- **permissions**: `id` (UUID), `code` (unique), `name`, `description`, **`sidebar_menu_key`** (tùy chọn, NVARCHAR): khi khác null, quyền này được coi là “mở” một mục menu cố định trên sidebar admin (giá trị khớp `activeMenu` / định nghĩa trong `SidebarMenuDefinition`).
 - **role_permissions**: `id` (UUID), `role_id` (FK → roles), `permission_id` (FK → permissions), unique(role_id, permission_id)
 
 #### Tính năng:
 
 - **CRUD phân quyền**: Danh sách gán quyền (vai trò + quyền), thêm gán quyền (chọn vai trò + quyền), bỏ gán (xóa bản ghi role_permission)
-- **CRUD định nghĩa quyền**: Danh sách quyền (mã, tên, mô tả), thêm/sửa/xóa quyền tại `/admin/permissions/definitions`
+- **CRUD định nghĩa quyền**: Danh sách quyền (mã, tên, mô tả, **mục sidebar**), thêm/sửa/xóa quyền tại `/admin/permissions/definitions`
+- **Menu sidebar theo vai trò**: Trang chọn vai trò + checkbox từng mục menu; lưu sẽ đồng bộ gán quyền (tự tạo quyền hệ thống `AUTO_MENU_*` nếu cần). Chi tiết ở mục con bên dưới.
 - **Phân trang**: Cả danh sách phân quyền và danh sách định nghĩa quyền đều có phân trang (mặc định 10/trang)
 - **Tìm kiếm gần đúng**: Phân quyền theo tên vai trò, mô tả vai trò, mã quyền, tên quyền; định nghĩa quyền theo mã, tên, mô tả
 - **Import Excel**: Nhập phân quyền từ file (cột: Tên vai trò, Mã quyền)
 - **Export Excel**: Xuất danh sách phân quyền ra `role-permissions.xlsx`
 - **Print**: In danh sách phân quyền (vai trò, mã quyền, tên quyền)
 
+#### Cấu hình những gì “nhìn thấy” sau đăng nhập (sidebar admin)
+
+Áp dụng cho tài khoản có quyền vào `/admin` (theo `SecurityConfig`: `ADMIN`, `MANAGER`, `LECTURER`), **không** áp dụng cách ẩn sidebar cho tài khoản chỉ là sinh viên / portal khác nếu có.
+
+| Đối tượng | Sidebar admin |
+|-----------|----------------|
+| **Tài khoản ADMIN** | Luôn thấy **đầy đủ** mục (và các mục chỉ admin: Vai trò, Người dùng, Quyền, Cấu hình hệ thống, Nhật ký, …). Cấu hình “menu theo quyền” **không** thu hẹp menu của ADMIN. |
+| **MANAGER / LECTURER** (và vai trò khác có vào `/admin`) | **Hai chế độ:** (1) Nếu vai trò **không** có **bất kỳ** quyền nào được gán mà có `sidebar_menu_key` khác null → sidebar **giữ hành vi cũ**: hiển thị gần như toàn bộ mục (trừ nhóm chỉ ADMIN). (2) Nếu có **ít nhất một** quyền (đã gán cho vai trò) có `sidebar_menu_key` → **chế độ menu theo quyền**: chỉ hiện **Overview**, **Thông báo**, và các mục có key nằm trong tập hợp gộp từ mọi quyền của user (theo vai trò); tiêu đề nhóm sidebar chỉ hiện khi còn ít nhất một mục con trong nhóm. |
+
+**Cách cấu hình (do ADMIN thực hiện trong `/admin/permissions/**`):**
+
+1. **Định nghĩa quyền** (`/admin/permissions/definitions`): khi tạo/sửa quyền, chọn **Mục sidebar** (danh sách cố định trong `SidebarMenuDefinition`) hoặc để trống. Sau đó **gán quyền** cho vai trò như bình thường (`/admin/permissions/new` hoặc import Excel).
+2. **Menu sidebar theo vai trò** (`/admin/permissions/sidebar-by-role`): chọn vai trò, tick các mục cần hiện, **Lưu**. Hệ thống tạo (nếu chưa có) các quyền mã dạng **`AUTO_MENU_*`** gắn đúng `sidebar_menu_key` và gán cho vai trò. **Bỏ tick** một mục sẽ **gỡ mọi gán** của vai trò đó đối với quyền có đúng `sidebar_menu_key` tương ứng (kể cả quyền tự định nghĩa trước đó), để trạng thái checkbox trùng với menu thực tế.
+
+**Giao diện Thymeleaf:** `templates/layout/sidebar.html` dùng `UserProfileDto` (`canShowSidebarMenuItem`, `canShowSidebarSection`) do `CurrentUserProfileService` nạp khi render layout; logic tập hợp key sidebar theo vai trò nằm ở `RolePermissionRepository` (truy vấn distinct `sidebar_menu_key` theo `role_id` của user).
+
+**Lưu ý:** Ẩn mục sidebar **không** thay thế kiểm soát URL: các route `/admin/**` vẫn do Spring Security và (nếu có) `@PreAuthorize` trên từng controller quyết định; menu chỉ giúp **ẩn đường dẫn** trên UI.
+
 #### URL Admin:
 
 | Chức năng | URL |
 |-----------|-----|
 | Danh sách phân quyền | GET `/admin/permissions` |
+| **Cấu hình menu sidebar theo vai trò** | GET `/admin/permissions/sidebar-by-role`, POST `/admin/permissions/sidebar-by-role` |
 | Gán quyền (form) | GET `/admin/permissions/new`, POST `/admin/permissions` |
 | Bỏ gán | POST `/admin/permissions/{id}/delete` |
 | Định nghĩa quyền | GET `/admin/permissions/definitions` (list), `/definitions/new`, `/definitions/{id}/edit`, POST tương ứng |
@@ -4194,13 +4214,15 @@ Module **permissions** dùng để gán quyền cụ thể cho từng vai trò (
 #### Cấu trúc code (module riêng `permission`):
 
 - **Package**: `com.example.stduents_management.permission`
+- **Enum / view**: `SidebarMenuDefinition` (danh sách mục menu + nhóm), `SidebarSectionView` (nhóm cho UI cấu hình)
 - **Entity**: `permission.entity.Permission`, `permission.entity.RolePermission` (tham chiếu `role.entity.Role`)
 - **DTO**: `permission.dto.PermissionRequest`, `PermissionResponse`, `RolePermissionRequest`, `RolePermissionResponse`
-- **Repository**: `permission.repository.PermissionRepository`, `RolePermissionRepository`
-- **Service**: `permission.service.PermissionService` (CRUD quyền), `RolePermissionService` (CRUD phân quyền, search, import, export, print)
+- **Repository**: `permission.repository.PermissionRepository`, `RolePermissionRepository` (thêm truy vấn đếm/xóa theo `sidebar_menu_key` + vai trò)
+- **Service**: `permission.service.PermissionService` (CRUD quyền, validate `sidebar_menu_key`), `RolePermissionService` (CRUD phân quyền, search, import, export, print), **`RoleSidebarMenuService`** (đồng bộ checkbox “menu theo vai trò” ↔ gán quyền / quyền `AUTO_MENU_*`)
 - **Controller**: `permission.controller.PermissionDashboardController` (phụ thuộc `role.service.RoleService` cho dropdown vai trò)
-- **Templates**: `permissions/index.html`, `form-assignment.html`, `print.html`, `definitions-index.html`, `definitions-form.html`
-- **Sidebar**: Mục "Permissions" (icon key), active menu `permissions`
+- **Templates**: `permissions/index.html`, **`sidebar-by-role.html`**, `form-assignment.html`, `print.html`, `definitions-index.html`, `definitions-form.html`
+- **Liên quan hiển thị đăng nhập**: `user.dto.UserProfileDto`, `user.service.CurrentUserProfileService`; layout `layout/sidebar.html`
+- **Sidebar**: Mục "Quyền" (icon key), active menu `permissions`
 
 ---
 

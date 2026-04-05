@@ -18,10 +18,11 @@
         </div>
         <div class="card-body">
             <p class="text-muted small">
-                Chọn các <strong>tiết (khung giờ)</strong> được phép dùng trong tuần — hệ thống thử lần lượt <strong>Thứ 2 → Thứ 6</strong>,
-                theo đúng thứ tự tiết bạn chọn, để gán <strong>một dòng lịch cố định</strong> (cùng thứ, cùng tiết mỗi tuần) cho mỗi lớp.
-                <strong>Tổng số buổi học</strong> theo tín chỉ: <strong>3 tín chỉ → 15 buổi</strong>, <strong>2 tín chỉ → 10 buổi</strong>,
-                <strong>1 tín chỉ → 5 buổi</strong> (số tuần lặp = số buổi, từ tuần bắt đầu). Chỉ lớp đang mở; phòng phải hoạt động.
+                Chọn <strong>học kỳ</strong>, <strong>tuần bắt đầu</strong> và (tuỳ chọn) <strong>tuần kết thúc</strong> của khung giảng trong học kỳ đó.
+                Hệ thống lấy <strong>số buổi từ tín chỉ học phần</strong> của lớp học phần: <strong>≈ 5 buổi / 1 tín chỉ</strong> (1→5, 2→10, 3→15, 4→20… tối đa 60).
+                Mỗi dòng lịch = <strong>cùng thứ + cùng tiết</strong> lặp mỗi tuần từ tuần A đến tuần B. Nếu số buổi <strong>lớn hơn</strong> số tuần trong khung
+                <code>[tuần bắt đầu, tuần kết thúc]</code>, sẽ tự thêm <strong>nhiều dòng</strong> (thứ/tiết khác) cho đủ buổi — chỉ khi xếp được hết mới ghi DB (tránh lịch dở dang).
+                Nếu <strong>không nhập tuần kết thúc</strong>, khung = từ tuần bắt đầu kéo dài đúng số buổi (như trước). Thử tiết theo thứ <strong>2→6</strong> và thứ tự tiết bạn chọn. Chỉ lớp <strong>đang mở</strong>; phòng hoạt động.
             </p>
 
             <form method="post" th:action="@{/admin/schedules/auto}" th:object="${autoScheduleRequest}" class="mt-4">
@@ -37,8 +38,14 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Tuần bắt đầu</label>
-                        <input type="number" min="1" class="form-control" th:field="*{startWeek}">
+                        <input type="number" min="1" max="53" class="form-control" th:field="*{startWeek}">
                         <small class="text-danger" th:errors="*{startWeek}"></small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tuần kết thúc <span class="text-muted fw-normal">(tuỳ chọn)</span></label>
+                        <input type="number" min="1" max="53" class="form-control" th:field="*{endWeek}" placeholder="Để trống = tự tính theo tín chỉ">
+                        <small class="text-danger" th:errors="*{endWeek}"></small>
+                        <small class="text-muted d-block">Phải ≥ tuần bắt đầu. Trong khung này hệ thống chia đủ buổi theo tín chỉ.</small>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Tiết trong tuần được phép xếp <span class="text-danger">*</span></label>
