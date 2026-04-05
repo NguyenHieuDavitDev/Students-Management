@@ -1,11 +1,13 @@
 package com.example.stduents_management.permission.controller;
 
+import com.example.stduents_management.permission.SidebarMenuDefinition;
 import com.example.stduents_management.permission.dto.PermissionRequest;
 import com.example.stduents_management.permission.dto.PermissionResponse;
 import com.example.stduents_management.permission.dto.RolePermissionRequest;
 import com.example.stduents_management.permission.dto.RolePermissionResponse;
 import com.example.stduents_management.permission.service.PermissionService;
 import com.example.stduents_management.permission.service.RolePermissionService;
+import com.example.stduents_management.permission.service.RoleSidebarMenuService;
 import com.example.stduents_management.role.service.RoleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,8 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Controller
@@ -32,6 +36,7 @@ public class PermissionDashboardController {
     private final RolePermissionService rolePermissionService;
     private final PermissionService permissionService;
     private final RoleService roleService;
+    private final RoleSidebarMenuService roleSidebarMenuService;
 
     // ---------- Phân quyền (Role-Permission assignments) ----------
     @GetMapping
@@ -115,9 +120,47 @@ public class PermissionDashboardController {
         return new ResponseEntity<>(resource, headers, HttpStatus.OK);
     }
 
+    // ---------- Menu sidebar theo vai trò (checkbox → gán quyền AUTO_MENU_*) ----------
+    @GetMapping("/sidebar-by-role")
+    public String sidebarByRole(@RequestParam(required = false) UUID roleId, Model model) {
+        model.addAttribute("sidebarSections", SidebarMenuDefinition.groupedSectionsInSidebarOrder());
+        var roles = roleService.getAll();
+        model.addAttribute("roles", roles);
+        if (roleId == null && !roles.isEmpty()) {
+            roleId = roles.get(0).getId();
+        }
+        model.addAttribute("selectedRoleId", roleId);
+        if (roleId != null) {
+            model.addAttribute("selectedMenuKeys", roleSidebarMenuService.getMenuKeysForRole(roleId));
+        } else {
+            model.addAttribute("selectedMenuKeys", Set.<String>of());
+        }
+        return "permissions/sidebar-by-role";
+    }
+
+    @PostMapping("/sidebar-by-role")
+    public String saveSidebarByRole(
+            @RequestParam UUID roleId,
+            @RequestParam(required = false) List<String> menuKeys,
+            RedirectAttributes redirect
+    ) {
+        try {
+            Set<String> sel = menuKeys == null ? Set.of() : Set.copyOf(menuKeys);
+            roleSidebarMenuService.syncRoleSidebarMenus(roleId, sel);
+            redirect.addFlashAttribute("success", "Đã cập nhật mục sidebar cho vai trò.");
+        } catch (ResponseStatusException e) {
+            redirect.addFlashAttribute("error", e.getReason());
+        }
+        return "redirect:/admin/permissions/sidebar-by-role?roleId=" + roleId;
+    }
+
     private void loadAssignmentFormData(Model model) {
         model.addAttribute("roles", roleService.getAll());
         model.addAttribute("permissions", permissionService.findAll());
+    }
+
+    private void loadPermissionDefinitionForm(Model model) {
+        model.addAttribute("sidebarMenuOptions", SidebarMenuDefinition.sortedForForm());
     }
 
     // ---------- Định nghĩa quyền (Permission CRUD) ----------
@@ -138,6 +181,7 @@ public class PermissionDashboardController {
     public String newPermissionForm(Model model) {
         model.addAttribute("mode", "create");
         model.addAttribute("permissionRequest", new PermissionRequest());
+        loadPermissionDefinitionForm(model);
         return "permissions/definitions-form";
     }
 
@@ -150,6 +194,7 @@ public class PermissionDashboardController {
     ) {
         if (result.hasErrors()) {
             model.addAttribute("mode", "create");
+            loadPermissionDefinitionForm(model);
             return "permissions/definitions-form";
         }
         try {
@@ -159,6 +204,7 @@ public class PermissionDashboardController {
         } catch (ResponseStatusException e) {
             model.addAttribute("mode", "create");
             model.addAttribute("globalError", e.getReason());
+            loadPermissionDefinitionForm(model);
             return "permissions/definitions-form";
         }
     }
@@ -170,9 +216,11 @@ public class PermissionDashboardController {
         req.setCode(r.code());
         req.setName(r.name());
         req.setDescription(r.description());
+        req.setSidebarMenuKey(r.sidebarMenuKey());
         model.addAttribute("mode", "edit");
         model.addAttribute("permissionId", id);
         model.addAttribute("permissionRequest", req);
+        loadPermissionDefinitionForm(model);
         return "permissions/definitions-form";
     }
 
@@ -187,6 +235,7 @@ public class PermissionDashboardController {
         if (result.hasErrors()) {
             model.addAttribute("mode", "edit");
             model.addAttribute("permissionId", id);
+            loadPermissionDefinitionForm(model);
             return "permissions/definitions-form";
         }
         try {
@@ -197,6 +246,7 @@ public class PermissionDashboardController {
             model.addAttribute("mode", "edit");
             model.addAttribute("permissionId", id);
             model.addAttribute("globalError", e.getReason());
+            loadPermissionDefinitionForm(model);
             return "permissions/definitions-form";
         }
     }

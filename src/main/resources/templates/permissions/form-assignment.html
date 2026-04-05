@@ -28,9 +28,11 @@
                         <label class="form-label">Quyền <span class="text-danger">*</span></label>
                         <select class="form-select" th:field="*{permissionId}">
                             <option value="">-- Chọn quyền --</option>
-                            <option th:each="p : ${permissions}" th:value="${p.id}" th:text="${p.code + ' - ' + p.name}"></option>
+                            <option th:each="p : ${permissions}" th:value="${p.id()}"
+                                    th:text="${p.code() + ' – ' + p.name() + ((p.sidebarMenuKey() != null and !#strings.isEmpty(p.sidebarMenuKey())) ? ' [sidebar: ' + p.sidebarMenuKey() + ']' : '')}"></option>
                         </select>
                         <small class="text-danger" th:errors="*{permissionId}"></small>
+                        <div class="form-text">Quyền có gắn mục sidebar sẽ điều khiển menu trái cho user thuộc vai trò (khi bật chế độ menu theo quyền).</div>
                     </div>
                 </div>
                 <hr>

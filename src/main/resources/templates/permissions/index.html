@@ -19,6 +19,14 @@
         <span th:text="${error}"></span>
     </div>
 
+    <div class="alert alert-primary py-2 small mb-3">
+        <strong>Chọn mục sidebar theo vai trò:</strong>
+        <a class="btn btn-sm btn-primary ms-1" th:href="@{/admin/permissions/sidebar-by-role}">
+            <i class="fa-solid fa-list-check"></i> Cấu hình menu sidebar
+        </a>
+        <span class="text-muted ms-1">— hoặc gắn <em>Mục sidebar</em> trong <a th:href="@{/admin/permissions/definitions}">Định nghĩa quyền</a> rồi <a th:href="@{/admin/permissions/new}">gán quyền</a>.</span>
+    </div>
+
     <div class="card">
         <div class="card-body">
             <div class="d-flex justify-content-between mb-3 flex-wrap gap-2 align-items-center">
@@ -30,6 +38,9 @@
                     </button>
                 </form>
                 <div class="d-flex gap-2 flex-wrap">
+                    <a class="btn btn-primary btn-sm" th:href="@{/admin/permissions/sidebar-by-role}">
+                        <i class="fa-solid fa-list-check"></i> Menu sidebar theo vai trò
+                    </a>
                     <a class="btn btn-outline-info btn-sm" th:href="@{/admin/permissions/definitions}">
                         <i class="fa-solid fa-list"></i> Định nghĩa quyền
                     </a>

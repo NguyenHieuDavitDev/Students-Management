@@ -33,6 +33,19 @@
                         <input type="text" class="form-control" th:field="*{description}" placeholder="Tối đa 255 ký tự" maxlength="255">
                         <small class="text-danger" th:errors="*{description}"></small>
                     </div>
+                    <div class="col-12">
+                        <label class="form-label">Mục sidebar (tùy chọn)</label>
+                        <select class="form-select" th:field="*{sidebarMenuKey}">
+                            <option value="">— Không gắn — (menu theo quyền không dùng quyền này)</option>
+                            <option th:each="opt : ${sidebarMenuOptions}"
+                                    th:value="${opt.menuKey}"
+                                    th:text="|${opt.labelVi} (${opt.menuKey})|">Mục</option>
+                        </select>
+                        <div class="form-text">
+                            Khi <strong>vai trò</strong> được gán quyền có mục sidebar, user có vai trò đó chỉ thấy các mục menu đã gán
+                            (+ Overview, Thông báo). Nếu <em>không</em> có quyền nào gắn mục sidebar, menu giữ như cũ (đầy đủ trừ mục chỉ ADMIN).
+                        </div>
+                    </div>
                 </div>
                 <hr>
                 <div class="d-flex gap-2">

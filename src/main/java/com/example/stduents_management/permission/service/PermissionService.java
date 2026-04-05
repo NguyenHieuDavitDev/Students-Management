@@ -1,5 +1,6 @@
 package com.example.stduents_management.permission.service;
 
+import com.example.stduents_management.permission.SidebarMenuDefinition;
 import com.example.stduents_management.permission.dto.PermissionRequest;
 import com.example.stduents_management.permission.dto.PermissionResponse;
 import com.example.stduents_management.permission.entity.Permission;
@@ -55,6 +56,7 @@ public class PermissionService {
         p.setCode(code);
         p.setName(req.getName() != null ? req.getName().trim() : "");
         p.setDescription(req.getDescription() != null && req.getDescription().length() > 255 ? req.getDescription().substring(0, 255) : req.getDescription());
+        p.setSidebarMenuKey(normalizeSidebarMenuKey(req.getSidebarMenuKey()));
         permissionRepository.save(p);
     }
 
@@ -72,6 +74,7 @@ public class PermissionService {
         p.setCode(code);
         p.setName(req.getName() != null ? req.getName().trim() : "");
         p.setDescription(req.getDescription() != null && req.getDescription().length() > 255 ? req.getDescription().substring(0, 255) : req.getDescription());
+        p.setSidebarMenuKey(normalizeSidebarMenuKey(req.getSidebarMenuKey()));
     }
 
     @Transactional
@@ -83,6 +86,22 @@ public class PermissionService {
     }
 
     private PermissionResponse toResponse(Permission p) {
-        return new PermissionResponse(p.getId(), p.getCode(), p.getName(), p.getDescription());
+        String sk = p.getSidebarMenuKey();
+        String label = SidebarMenuDefinition.fromMenuKey(sk).map(SidebarMenuDefinition::getLabelVi).orElse(null);
+        return new PermissionResponse(p.getId(), p.getCode(), p.getName(), p.getDescription(), sk, label);
+    }
+
+    private static String normalizeSidebarMenuKey(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String k = raw.trim();
+        if (k.length() > 64) {
+            k = k.substring(0, 64);
+        }
+        if (!SidebarMenuDefinition.isValidMenuKeyOrBlank(k)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mục sidebar không hợp lệ");
+        }
+        return SidebarMenuDefinition.fromMenuKey(k).map(SidebarMenuDefinition::getMenuKey).orElse(null);
     }
 }

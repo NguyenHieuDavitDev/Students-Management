@@ -46,6 +46,7 @@
                         <th>Mã quyền</th>
                         <th>Tên quyền</th>
                         <th>Mô tả</th>
+                        <th>Mục sidebar</th>
                         <th class="text-end">Thao tác</th>
                     </tr>
                     </thead>
@@ -54,6 +55,10 @@
                         <td th:text="${p.code()}"></td>
                         <td th:text="${p.name()}"></td>
                         <td th:text="${p.description()}"></td>
+                        <td>
+                            <span th:if="${p.sidebarMenuKey() != null}" th:text="${p.sidebarMenuLabelVi() != null ? p.sidebarMenuLabelVi() + ' (' + p.sidebarMenuKey() + ')' : p.sidebarMenuKey()}">—</span>
+                            <span th:if="${p.sidebarMenuKey() == null}" class="text-muted">—</span>
+                        </td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-outline-primary" th:href="@{/admin/permissions/definitions/{id}/edit(id=${p.id})}">
                                 <i class="fa-solid fa-pen-to-square"></i> Sửa
@@ -65,7 +70,7 @@
                         </td>
                     </tr>
                     <tr th:if="${permissions.content.isEmpty()}">
-                        <td colspan="4" class="text-center text-muted">
+                        <td colspan="5" class="text-center text-muted">
                             <i class="fa-solid fa-box-open"></i> Chưa có quyền nào. Thêm quyền để có thể gán cho vai trò.
                         </td>
                     </tr>

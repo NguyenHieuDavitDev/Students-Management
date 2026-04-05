@@ -19,4 +19,8 @@ public class PermissionRequest {
 
     @Size(max = 255)
     private String description;
+
+    /** Khớp {@link com.example.stduents_management.permission.SidebarMenuDefinition#getMenuKey()} hoặc để trống. */
+    @Size(max = 64)
+    private String sidebarMenuKey;
 }

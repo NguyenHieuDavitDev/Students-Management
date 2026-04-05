@@ -26,4 +26,11 @@ public class Permission {
 
     @Column(columnDefinition = "NVARCHAR(255)")
     private String description;
+
+    /**
+     * Khớp {@link com.example.stduents_management.permission.SidebarMenuDefinition#getMenuKey()} — khi gán quyền này cho vai trò,
+     * mục sidebar tương ứng hiển thị (nếu bật chế độ menu theo quyền cho user đó).
+     */
+    @Column(name = "sidebar_menu_key", length = 64, columnDefinition = "NVARCHAR(64)")
+    private String sidebarMenuKey;
 }

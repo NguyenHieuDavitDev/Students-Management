@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/dashboard :: layout(
+        'Menu sidebar theo vai trò',
+        'Chọn mục hiển thị trên sidebar',
+        'Gắn mục menu admin cho từng vai trò (tài khoản thuộc vai trò chỉ thấy các mục đã chọn + Overview, Thông báo)',
+        'permissions',
+        ~{::content}
+      )}">
+<body>
+<div th:fragment="content">
+
+    <div th:if="${success}" class="alert alert-success">
+        <i class="fa-solid fa-circle-check me-1"></i>
+        <span th:text="${success}"></span>
+    </div>
+    <div th:if="${error}" class="alert alert-danger">
+        <i class="fa-solid fa-triangle-exclamation me-1"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <a class="btn btn-outline-secondary btn-sm" th:href="@{/admin/permissions}">
+            <i class="fa-solid fa-arrow-left"></i> Quay lại phân quyền
+        </a>
+    </div>
+
+    <div class="alert alert-info small py-2" th:if="${!roles.isEmpty()}">
+        Chọn <strong>vai trò</strong>, đánh dấu các mục cần hiện trên sidebar cho tài khoản thuộc vai trò đó.
+        Tài khoản <strong>ADMIN</strong> luôn thấy đủ menu (không áp dụng giới hạn này).
+        Nếu vai trò <em>không</em> có bất kỳ mục sidebar nào được gán qua màn hình này hoặc qua <a th:href="@{/admin/permissions/definitions}">định nghĩa quyền</a>,
+        menu admin của vai trò đó vẫn hiển thị đầy đủ như trước (trừ các mục chỉ dành cho ADMIN).
+    </div>
+
+    <div class="card" th:if="${roles.isEmpty()}">
+        <div class="card-body text-muted">Chưa có vai trò nào. Tạo vai trò trước khi cấu hình menu.</div>
+    </div>
+
+    <div class="card" th:if="${!roles.isEmpty()}">
+        <div class="card-body">
+            <form method="get" th:action="@{/admin/permissions/sidebar-by-role}" class="row g-2 align-items-end mb-4">
+                <div class="col-md-6 col-lg-4">
+                    <label class="form-label fw-semibold">Vai trò</label>
+                    <select name="roleId" class="form-select" onchange="this.form.submit()">
+                        <option th:each="r : ${roles}"
+                                th:value="${r.id}"
+                                th:selected="${selectedRoleId != null and r.id.equals(selectedRoleId)}"
+                                th:text="${r.name}">Vai trò</option>
+                    </select>
+                </div>
+            </form>
+
+            <form th:if="${selectedRoleId != null}" method="post" th:action="@{/admin/permissions/sidebar-by-role}">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input type="hidden" name="roleId" th:value="${selectedRoleId}">
+
+                <div th:each="sec : ${sidebarSections}" class="mb-4">
+                    <h6 class="text-primary border-bottom pb-1 mb-2" th:text="${sec.sectionTitleVi}">Nhóm</h6>
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-2">
+                        <div class="col" th:each="item : ${sec.items}">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="menuKeys"
+                                       th:id="|mk_${item.name()}|"
+                                       th:value="${item.menuKey}"
+                                       th:checked="${#sets.contains(selectedMenuKeys, item.menuKey)}">
+                                <label class="form-check-label" th:for="|mk_${item.name()}|">
+                                    <span th:text="${item.labelVi}">Tên</span>
+                                    <small class="text-muted d-block" th:text="${item.menuKey}">key</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap pt-2 border-top">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-save"></i> Lưu cấu hình sidebar
+                    </button>
+                    <a class="btn btn-outline-secondary" th:href="@{/admin/permissions}">
+                        Hủy / Quay lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

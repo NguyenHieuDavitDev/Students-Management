@@ -1,5 +1,7 @@
 package com.example.stduents_management.user.service;
 
+import com.example.stduents_management.permission.SidebarMenuDefinition;
+import com.example.stduents_management.permission.repository.RolePermissionRepository;
 import com.example.stduents_management.role.entity.Role;
 import com.example.stduents_management.user.dto.UserProfileDto;
 import com.example.stduents_management.user.entity.User;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 public class CurrentUserProfileService {
 
     private final UserRepository userRepository;
+    private final RolePermissionRepository rolePermissionRepository;
 
     /**
      * Trả về ID giảng viên đang đăng nhập (nếu user là lecturer), hoặc empty.
@@ -77,6 +80,26 @@ public class CurrentUserProfileService {
         boolean canManageRolesUsersPermissions = user.getRoles().stream()
                 .anyMatch(r -> "ADMIN".equalsIgnoreCase(r.getName()));
 
+        Set<UUID> roleIds = user.getRoles() == null ? Set.of() : user.getRoles().stream()
+                .map(Role::getId)
+                .collect(Collectors.toSet());
+
+        boolean sidebarUnrestricted = canManageRolesUsersPermissions;
+        boolean sidebarRestricted = false;
+        Set<String> menuKeys = Set.of();
+        Set<String> sectionIds = SidebarMenuDefinition.allSectionIds();
+
+        if (canAccessDashboard && !sidebarUnrestricted && !roleIds.isEmpty()) {
+            sidebarRestricted = rolePermissionRepository.countSidebarMenuMappingsForRoles(roleIds) > 0;
+            if (sidebarRestricted) {
+                menuKeys = rolePermissionRepository.findDistinctSidebarMenuKeysByRoleIds(roleIds);
+                if (menuKeys == null) {
+                    menuKeys = Set.of();
+                }
+                sectionIds = SidebarMenuDefinition.sectionsForMenuKeys(menuKeys);
+            }
+        }
+
         return UserProfileDto.builder()
                 .username(user.getUsername())
                 .displayName(displayName)
@@ -86,6 +109,10 @@ public class CurrentUserProfileService {
                 .lecturer(isLecturer)
                 .canAccessDashboard(canAccessDashboard)
                 .canManageRolesUsersPermissions(canManageRolesUsersPermissions)
+                .sidebarMenuUnrestricted(sidebarUnrestricted)
+                .sidebarMenuRestricted(sidebarRestricted)
+                .visibleSidebarMenuKeys(sidebarRestricted ? menuKeys : Set.of())
+                .visibleSidebarSectionIds(sidebarRestricted ? sectionIds : SidebarMenuDefinition.allSectionIds())
                 .build();
     }
 

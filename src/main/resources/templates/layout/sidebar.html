@@ -32,44 +32,44 @@
         <ul class="nav nav-pills nav-sidebar flex-column">
 
             <!-- I. NHÓM QUẢN LÝ NGƯỜI DÙNG – PHÂN QUYỀN -->
-            <li class="nav-header">Quản lý người dùng – Phân quyền</li>
-            <li class="nav-item">
+            <li class="nav-header" th:if="${userProfile == null or userProfile.canAccessDashboard}">Quản lý người dùng – Phân quyền</li>
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canAccessDashboard}">
                 <a class="nav-link" th:href="@{/admin}" th:classappend="${activeMenu}=='overview' ? 'active' : ''">
                     <i class="fa-solid fa-gauge-high"></i>
                     <span>Overview</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canAccessDashboard}">
                 <a class="nav-link" th:href="@{/admin/notifications}" th:classappend="${activeMenu}=='notifications' ? 'active' : ''">
                     <i class="fa-solid fa-bell"></i>
                     <span>Thông báo</span>
                 </a>
             </li>
-            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
+            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions and userProfile.canShowSidebarMenuItem('audit-logs')}">
                 <a class="nav-link" th:href="@{/admin/audit-logs}" th:classappend="${activeMenu}=='audit-logs' ? 'active' : ''">
                     <i class="fa-solid fa-clipboard-list"></i>
                     <span>Nhật ký hoạt động</span>
                 </a>
             </li>
-            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
+            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions and userProfile.canShowSidebarMenuItem('roles')}">
                 <a class="nav-link" th:href="@{/admin/roles}" th:classappend="${activeMenu}=='roles' ? 'active' : ''">
                     <i class="fa-solid fa-shield-halved"></i>
                     <span>Vai trò</span>
                 </a>
             </li>
-            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
+            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions and userProfile.canShowSidebarMenuItem('users')}">
                 <a class="nav-link" th:href="@{/admin/users}" th:classappend="${activeMenu}=='users' ? 'active' : ''">
                     <i class="fa-solid fa-users"></i>
                     <span>Người dùng</span>
                 </a>
             </li>
-            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
+            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions and userProfile.canShowSidebarMenuItem('permissions')}">
                 <a class="nav-link" th:href="@{/admin/permissions}" th:classappend="${activeMenu}=='permissions' ? 'active' : ''">
                     <i class="fa-solid fa-key"></i>
                     <span>Quyền</span>
                 </a>
             </li>
-            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions}">
+            <li class="nav-item" th:if="${userProfile != null and userProfile.canManageRolesUsersPermissions and userProfile.canShowSidebarMenuItem('settings')}">
                 <a class="nav-link" th:href="@{/admin/settings}" th:classappend="${activeMenu}=='settings' ? 'active' : ''">
                     <i class="fa-solid fa-gear"></i>
                     <span>Cấu hình hệ thống</span>
@@ -77,38 +77,38 @@
             </li>
 
             <!-- II. NHÓM QUẢN LÝ SINH VIÊN -->
-            <li class="nav-header">Quản lý sinh viên</li>
-            <li class="nav-item">
+            <li class="nav-header" th:if="${userProfile == null or userProfile.canShowSidebarSection('STUDENT')}">Quản lý sinh viên</li>
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('faculties')}">
                 <a class="nav-link" th:href="@{/admin/faculties}" th:classappend="${activeMenu}=='faculties' ? 'active' : ''">
                     <i class="fa-solid fa-building-columns"></i>
                     <span>Khoa</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('majors')}">
                 <a class="nav-link" th:href="@{/admin/majors}" th:classappend="${activeMenu}=='majors' ? 'active' : ''">
                     <i class="fa-solid fa-layer-group"></i>
                     <span>Ngành học</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('classes')}">
                 <a class="nav-link" th:href="@{/admin/classes}" th:classappend="${activeMenu}=='classes' ? 'active' : ''">
                     <i class="fa-solid fa-chalkboard-user"></i>
                     <span>Lớp học</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('education-types')}">
                 <a class="nav-link" th:href="@{/admin/education-types}" th:classappend="${activeMenu}=='education-types' ? 'active' : ''">
                     <i class="fa-solid fa-graduation-cap"></i>
                     <span>Loại đào tạo</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('trainingLevels')}">
                 <a class="nav-link" th:href="@{/admin/training-levels}" th:classappend="${activeMenu}=='trainingLevels' ? 'active' : ''">
                     <i class="fa-solid fa-graduation-cap"></i>
                     <span>Bậc đào tạo</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('students')}">
                 <a class="nav-link" th:href="@{/admin/students}" th:classappend="${activeMenu}=='students' ? 'active' : ''">
                     <i class="fa-solid fa-user-graduate"></i>
                     <span>Sinh viên</span>
@@ -116,26 +116,26 @@
             </li>
 
             <!-- III. NHÓM QUẢN LÝ GIẢNG VIÊN – NHÂN SỰ -->
-            <li class="nav-header">Giảng viên – Nhân sự</li>
-            <li class="nav-item">
+            <li class="nav-header" th:if="${userProfile == null or userProfile.canShowSidebarSection('LECTURER')}">Giảng viên – Nhân sự</li>
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('lecturers')}">
                 <a class="nav-link" th:href="@{/admin/lecturers}" th:classappend="${activeMenu}=='lecturers' ? 'active' : ''">
                     <i class="fa-solid fa-chalkboard-teacher"></i>
                     <span>Giảng viên</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('positions')}">
                 <a class="nav-link" th:href="@{/admin/positions}" th:classappend="${activeMenu}=='positions' ? 'active' : ''">
                     <i class="fa-solid fa-briefcase"></i>
                     <span>Hàm học vị</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('departments')}">
                 <a class="nav-link" th:href="@{/admin/departments}" th:classappend="${activeMenu}=='departments' ? 'active' : ''">
                     <i class="fa-solid fa-building-user"></i>
                     <span>Phòng ban</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('lecturer-duties')}">
                 <a class="nav-link" th:href="@{/admin/lecturer-duties}" th:classappend="${activeMenu}=='lecturer-duties' ? 'active' : ''">
                     <i class="fa-solid fa-id-card-clip"></i>
                     <span>Chức vụ giảng viên</span>
@@ -143,38 +143,38 @@
             </li>
 
             <!-- IV. NHÓM QUẢN LÝ CHƯƠNG TRÌNH – MÔN HỌC -->
-            <li class="nav-header">Chương trình – Môn học</li>
-            <li class="nav-item">
+            <li class="nav-header" th:if="${userProfile == null or userProfile.canShowSidebarSection('PROGRAM')}">Chương trình – Môn học</li>
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('training-programs')}">
                 <a class="nav-link" th:href="@{/admin/training-programs}" th:classappend="${activeMenu}=='training-programs' ? 'active' : ''">
                     <i class="fa-solid fa-book-open"></i>
                     <span>Chương trình đào tạo</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('courses')}">
                 <a class="nav-link" th:href="@{/admin/courses}" th:classappend="${activeMenu}=='courses' ? 'active' : ''">
                     <i class="fa-solid fa-book"></i>
                     <span>Môn học</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('documents')}">
                 <a class="nav-link" th:href="@{/admin/documents}" th:classappend="${activeMenu}=='documents' ? 'active' : ''">
                     <i class="fa-solid fa-file-lines"></i>
                     <span>Tài liệu học tập</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('course-prerequisites')}">
                 <a class="nav-link" th:href="@{/admin/course-prerequisites}" th:classappend="${activeMenu}=='course-prerequisites' ? 'active' : ''">
                     <i class="fa-solid fa-diagram-project"></i>
                     <span>Course Prerequisites</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('graduation-conditions')}">
                 <a class="nav-link" th:href="@{/admin/graduation-conditions}" th:classappend="${activeMenu}=='graduation-conditions' ? 'active' : ''">
                     <i class="fa-solid fa-graduation-cap"></i>
                     <span>Điều kiện xét tốt nghiệp</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('graduation-results')}">
                 <a class="nav-link" th:href="@{/admin/graduation-results}" th:classappend="${activeMenu}=='graduation-results' ? 'active' : ''">
                     <i class="fa-solid fa-file-circle-check"></i>
                     <span>Kết quả xét tốt nghiệp</span>
@@ -182,14 +182,14 @@
             </li>
 
             <!-- V. NHÓM QUẢN LÝ HỌC KỲ – LỚP HỌC PHẦN -->
-            <li class="nav-header"> Học kỳ – Lớp học phần</li>
-            <li class="nav-item">
+            <li class="nav-header" th:if="${userProfile == null or userProfile.canShowSidebarSection('SEMESTER')}"> Học kỳ – Lớp học phần</li>
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('semesters')}">
                 <a class="nav-link" th:href="@{/admin/semesters}" th:classappend="${activeMenu}=='semesters' ? 'active' : ''">
                     <i class="fa-solid fa-calendar-days"></i>
                     <span>Học kỳ</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('class-sections')}">
                 <a class="nav-link" th:href="@{/admin/class-sections}" th:classappend="${activeMenu}=='class-sections' ? 'active' : ''">
                     <i class="fa-solid fa-chalkboard"></i>
                     <span>Lớp học phần</span>
@@ -197,8 +197,8 @@
             </li>
 
             <!-- VI. NHÓM ĐĂNG KÝ HỌC PHẦN -->
-            <li class="nav-header">Đăng ký học phần</li>
-            <li class="nav-item">
+            <li class="nav-header" th:if="${userProfile == null or userProfile.canShowSidebarSection('REGISTRATION')}">Đăng ký học phần</li>
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('course-registrations')}">
                 <a class="nav-link" th:href="@{/admin/course-registrations}" th:classappend="${activeMenu}=='course-registrations' ? 'active' : ''">
                     <i class="fa-solid fa-clipboard-list"></i>
                     <span>Course Registrations</span>
@@ -206,56 +206,56 @@
             </li>
 
             <!-- VII. NHÓM QUẢN LÝ LỊCH HỌC – PHÒNG HỌC -->
-            <li class="nav-header">Lịch học – Phòng học</li>
-            <li class="nav-item">
+            <li class="nav-header" th:if="${userProfile == null or userProfile.canShowSidebarSection('SCHEDULE')}">Lịch học – Phòng học</li>
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('buildings')}">
                 <a class="nav-link" th:href="@{/admin/buildings}" th:classappend="${activeMenu}=='buildings' ? 'active' : ''">
                     <i class="fa-solid fa-building"></i>
                     <span>Toà nhà</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('room-types')}">
                 <a class="nav-link" th:href="@{/admin/room-types}" th:classappend="${activeMenu}=='room-types' ? 'active' : ''">
                     <i class="fa-solid fa-door-open"></i>
                     <span>Loại phòng</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('rooms')}">
                 <a class="nav-link" th:href="@{/admin/rooms}" th:classappend="${activeMenu}=='rooms' ? 'active' : ''">
                     <i class="fa-solid fa-door-closed"></i>
                     <span>Phòng học</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('room-block-times')}">
                 <a class="nav-link" th:href="@{/admin/room-block-times}" th:classappend="${activeMenu}=='room-block-times' ? 'active' : ''">
                     <i class="fa-solid fa-lock"></i>
                     <span>Khóa phòng</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('time-slots')}">
                 <a class="nav-link" th:href="@{/admin/time-slots}" th:classappend="${activeMenu}=='time-slots' ? 'active' : ''">
                     <i class="fa-solid fa-clock"></i>
                     <span>Khung giờ</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('schedules')}">
                 <a class="nav-link" th:href="@{/admin/schedules}" th:classappend="${activeMenu}=='schedules' ? 'active' : ''">
                     <i class="fa-solid fa-calendar-check"></i>
                     <span>Lịch học</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('schedule-overrides')}">
                 <a class="nav-link" th:href="@{/admin/schedule-overrides}" th:classappend="${activeMenu}=='schedule-overrides' ? 'active' : ''">
                     <i class="fa-solid fa-calendar-day"></i>
                     <span>Dạy bù / Đổi phòng</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('lecturer-course-classes')}">
                 <a class="nav-link" th:href="@{/admin/lecturer-course-classes}" th:classappend="${activeMenu}=='lecturer-course-classes' ? 'active' : ''">
                     <i class="fa-solid fa-user-tie"></i>
                     <span>Phân công giảng viên</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('equipments')}">
                 <a class="nav-link" th:href="@{/admin/equipments}" th:classappend="${activeMenu}=='equipments' ? 'active' : ''">
                     <i class="fa-solid fa-laptop"></i>
                     <span>Thiết bị</span>
@@ -263,20 +263,20 @@
             </li>
 
             <!-- VIII. NHÓM HỌC PHÍ -->
-            <li class="nav-header">Học phí</li>
-            <li class="nav-item">
+            <li class="nav-header" th:if="${userProfile == null or userProfile.canShowSidebarSection('TUITION')}">Học phí</li>
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('tuition-fees')}">
                 <a class="nav-link" th:href="@{/admin/tuition-fees}" th:classappend="${activeMenu}=='tuition-fees' ? 'active' : ''">
                     <i class="fa-solid fa-coins"></i>
                     <span>Cấu hình học phí</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('student-tuition')}">
                 <a class="nav-link" th:href="@{/admin/student-tuition}" th:classappend="${activeMenu}=='student-tuition' ? 'active' : ''">
                     <i class="fa-solid fa-receipt"></i>
                     <span>Học phí sinh viên</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('payments')}">
                 <a class="nav-link" th:href="@{/admin/payments}" th:classappend="${activeMenu}=='payments' ? 'active' : ''">
                     <i class="fa-solid fa-wallet"></i>
                     <span>Lịch sử thanh toán</span>
@@ -284,57 +284,57 @@
             </li>
 
             <!-- IX. NHÓM QUẢN LÝ LOẠI KỲ THI - KHẢO THÍ -->
-            <li class="nav-header">Quản lý loại kỳ thi - khảo thí</li>
-            <li class="nav-item">
+            <li class="nav-header" th:if="${userProfile == null or userProfile.canShowSidebarSection('EXAM')}">Quản lý loại kỳ thi - khảo thí</li>
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('exam-types')}">
                 <a class="nav-link" th:href="@{/admin/exam-types}" th:classappend="${activeMenu}=='exam-types' ? 'active' : ''">
                     <i class="fa-solid fa-clipboard-list"></i>
                     <span>Loại kỳ thi</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('exam-rooms')}">
                 <a class="nav-link" th:href="@{/admin/exam-rooms}" th:classappend="${activeMenu}=='exam-rooms' ? 'active' : ''">
                     <i class="fa-solid fa-door-open"></i>
                     <span>Phân phòng thi</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('exam-schedules')}">
                 <a class="nav-link" th:href="@{/admin/exam-schedules}" th:classappend="${activeMenu}=='exam-schedules' ? 'active' : ''">
                     <i class="fa-solid fa-calendar-days"></i>
                     <span>Lịch thi</span>
                 </a>
             </li>
-            <li class="nav-header">Quản lý điểm - đánh giá học tập</li>
-            <li class="nav-item">
+            <li class="nav-header" th:if="${userProfile == null or userProfile.canShowSidebarSection('GRADES')}">Quản lý điểm - đánh giá học tập</li>
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('grade-components')}">
                 <a class="nav-link" th:href="@{/admin/grade-components}" th:classappend="${activeMenu}=='grade-components' ? 'active' : ''">
                     <i class="fa-solid fa-percent"></i>
                     <span>Thành phần điểm</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('student-grades')}">
                 <a class="nav-link" th:href="@{/admin/student-grades}" th:classappend="${activeMenu}=='student-grades' ? 'active' : ''">
                     <i class="fa-solid fa-clipboard-check"></i>
                     <span>Điểm sinh viên</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('attendances')}">
                 <a class="nav-link" th:href="@{/admin/attendances}" th:classappend="${activeMenu}=='attendances' ? 'active' : ''">
                     <i class="fa-solid fa-user-check"></i>
                     <span>Điểm danh</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('feedbacks')}">
                 <a class="nav-link" th:href="@{/admin/feedbacks}" th:classappend="${activeMenu}=='feedbacks' ? 'active' : ''">
                     <i class="fa-solid fa-comments"></i>
                     <span>Phản hồi GV &amp; môn học</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('grade-scales')}">
                 <a class="nav-link" th:href="@{/admin/grade-scales/transcript}" th:classappend="${activeMenu}=='grade-scales' ? 'active' : ''">
                     <i class="fa-solid fa-table-list"></i>
                     <span>Bảng điểm tổng kết</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" th:if="${userProfile == null or userProfile.canShowSidebarMenuItem('grade-scales')}">
                 <a class="nav-link" th:href="@{/admin/grade-scales}" th:classappend="${activeMenu}=='grade-scales' ? 'active' : ''">
                     <i class="fa-solid fa-star-half-stroke"></i>
                     <span>Thang điểm</span>
