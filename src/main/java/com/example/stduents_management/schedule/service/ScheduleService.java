@@ -128,6 +128,7 @@ public class ScheduleService {
      * Khung tuần: {@code startWeek} và tùy chọn {@code endWeek}. Trong khung, mỗi dòng lịch = cùng thứ + tiết mỗi tuần từ tuần A→B;
      * nếu số buổi &gt; số tuần trong khung → thêm các dòng khác (thứ/tiết khác) cho đủ buổi.
      * Kiểm tra trùng theo <strong>khoảng tuần</strong> (GV / phòng / lớp HP không được chồng lấn cùng thứ+tiết).
+     * Thứ được phép: {@code allowedDayOfWeeks} (ít nhất một thứ, 2–8).
      */
     @Transactional
     public AutoScheduleResult generateAutoSchedule(AutoScheduleRequest req) {
@@ -175,8 +176,29 @@ public class ScheduleService {
             }
         }
 
+        List<Integer> dayIds = req.getAllowedDayOfWeeks();
+        if (dayIds == null || dayIds.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Chọn ít nhất một thứ trong tuần để phân lịch.");
+        }
+        LinkedHashSet<Integer> allowedDaysUnique = new LinkedHashSet<>();
+        for (Integer d : dayIds) {
+            if (d == null) {
+                continue;
+            }
+            if (d < 2 || d > 8) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Thứ trong tuần phải từ 2 (Thứ 2) đến 8 (Chủ nhật), giá trị không hợp lệ: " + d);
+            }
+            allowedDaysUnique.add(d);
+        }
+        if (allowedDaysUnique.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Chọn ít nhất một thứ trong tuần để phân lịch.");
+        }
+
         List<int[]> candidateOrder = new ArrayList<>();
-        for (int day = 2; day <= 6; day++) {
+        for (Integer day : allowedDaysUnique) {
             for (Integer sid : allowedUnique) {
                 candidateOrder.add(new int[]{day, sid});
             }

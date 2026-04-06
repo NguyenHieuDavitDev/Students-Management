@@ -22,7 +22,7 @@
                 Hệ thống lấy <strong>số buổi từ tín chỉ học phần</strong> của lớp học phần: <strong>≈ 5 buổi / 1 tín chỉ</strong> (1→5, 2→10, 3→15, 4→20… tối đa 60).
                 Mỗi dòng lịch = <strong>cùng thứ + cùng tiết</strong> lặp mỗi tuần từ tuần A đến tuần B. Nếu số buổi <strong>lớn hơn</strong> số tuần trong khung
                 <code>[tuần bắt đầu, tuần kết thúc]</code>, sẽ tự thêm <strong>nhiều dòng</strong> (thứ/tiết khác) cho đủ buổi — chỉ khi xếp được hết mới ghi DB (tránh lịch dở dang).
-                Nếu <strong>không nhập tuần kết thúc</strong>, khung = từ tuần bắt đầu kéo dài đúng số buổi (như trước). Thử tiết theo thứ <strong>2→6</strong> và thứ tự tiết bạn chọn. Chỉ lớp <strong>đang mở</strong>; phòng hoạt động.
+                Nếu <strong>không nhập tuần kết thúc</strong>, khung = từ tuần bắt đầu kéo dài đúng số buổi (như trước). Chọn <strong>thứ trong tuần</strong> và <strong>tiết</strong> được phép; thứ tự trên form = độ ưu tiên thử ô trống (thứ trước, tiết sau). Chỉ lớp <strong>đang mở</strong>; phòng hoạt động.
             </p>
 
             <form method="post" th:action="@{/admin/schedules/auto}" th:object="${autoScheduleRequest}" class="mt-4">
@@ -46,6 +46,41 @@
                         <input type="number" min="1" max="53" class="form-control" th:field="*{endWeek}" placeholder="Để trống = tự tính theo tín chỉ">
                         <small class="text-danger" th:errors="*{endWeek}"></small>
                         <small class="text-muted d-block">Phải ≥ tuần bắt đầu. Trong khung này hệ thống chia đủ buổi theo tín chỉ.</small>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Thứ trong tuần được phép xếp <span class="text-danger">*</span></label>
+                        <div class="d-flex flex-wrap gap-3 border rounded p-3 bg-light">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" th:field="*{allowedDayOfWeeks}" value="2" id="dow-2">
+                                <label class="form-check-label" for="dow-2">Thứ 2</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" th:field="*{allowedDayOfWeeks}" value="3" id="dow-3">
+                                <label class="form-check-label" for="dow-3">Thứ 3</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" th:field="*{allowedDayOfWeeks}" value="4" id="dow-4">
+                                <label class="form-check-label" for="dow-4">Thứ 4</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" th:field="*{allowedDayOfWeeks}" value="5" id="dow-5">
+                                <label class="form-check-label" for="dow-5">Thứ 5</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" th:field="*{allowedDayOfWeeks}" value="6" id="dow-6">
+                                <label class="form-check-label" for="dow-6">Thứ 6</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" th:field="*{allowedDayOfWeeks}" value="7" id="dow-7">
+                                <label class="form-check-label" for="dow-7">Thứ 7</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" th:field="*{allowedDayOfWeeks}" value="8" id="dow-8">
+                                <label class="form-check-label" for="dow-8">Chủ nhật</label>
+                            </div>
+                        </div>
+                        <small class="text-danger d-block" th:errors="*{allowedDayOfWeeks}"></small>
+                        <small class="text-muted d-block mt-1">Thứ tự ưu tiên khi tìm ô trống: theo thứ tự T2 → … → CN ở trên, sau đó theo thứ tự tiết bạn chọn.</small>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Tiết trong tuần được phép xếp <span class="text-danger">*</span></label>
