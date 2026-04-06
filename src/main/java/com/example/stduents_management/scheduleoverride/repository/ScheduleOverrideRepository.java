@@ -1,5 +1,6 @@
 package com.example.stduents_management.scheduleoverride.repository;
 
+import com.example.stduents_management.scheduleoverride.entity.OverrideType;
 import com.example.stduents_management.scheduleoverride.entity.ScheduleOverride;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,7 +9,10 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.example.stduents_management.scheduleoverride.entity.OverrideStatus;
+
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,4 +51,45 @@ public interface ScheduleOverrideRepository extends JpaRepository<ScheduleOverri
            "LEFT JOIN FETCH o.newRoom LEFT JOIN FETCH o.newTimeSlot LEFT JOIN FETCH o.newLecturer " +
            "ORDER BY o.overrideDate DESC, o.createdAt DESC")
     List<ScheduleOverride> findAllForPrint();
+
+    /** Override đang áp dụng trong khoảng ngày (lịch tuần) — có fetch phòng / tiết mới. */
+    @Query("""
+            SELECT o FROM ScheduleOverride o
+            JOIN FETCH o.schedule s
+            LEFT JOIN FETCH s.semester
+            LEFT JOIN FETCH s.classSection cs
+            LEFT JOIN FETCH cs.course
+            LEFT JOIN FETCH s.lecturer
+            LEFT JOIN FETCH s.room
+            LEFT JOIN FETCH s.timeSlot
+            LEFT JOIN FETCH o.newRoom
+            LEFT JOIN FETCH o.newTimeSlot
+            WHERE s.semester.id = :semesterId
+            AND o.status = :status
+            AND (
+                (o.overrideDate >= :from AND o.overrideDate <= :to)
+                OR (o.movedToDate IS NOT NULL AND o.movedToDate >= :from AND o.movedToDate <= :to)
+            )
+            """)
+    List<ScheduleOverride> findActiveForSemesterAndDateRange(
+            @Param("semesterId") Long semesterId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("status") OverrideStatus status
+    );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            DELETE FROM ScheduleOverride o
+            WHERE o.schedule.id = :scheduleId
+            AND o.overrideDate = :overrideDate
+            AND o.status = :status
+            AND o.overrideType IN :types
+            """)
+    void deleteByScheduleOverrideDateTypesAndStatus(
+            @Param("scheduleId") UUID scheduleId,
+            @Param("overrideDate") LocalDate overrideDate,
+            @Param("types") Collection<OverrideType> types,
+            @Param("status") OverrideStatus status
+    );
 }

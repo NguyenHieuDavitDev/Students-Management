@@ -87,6 +87,7 @@ public class ScheduleOverrideDashboardController {
         ScheduleOverrideRequest req = new ScheduleOverrideRequest();
         req.setScheduleId(r.scheduleId());
         req.setOverrideDate(r.overrideDate());
+        req.setMovedToDate(r.movedToDate());
         req.setOverrideType(r.overrideType());
         req.setNewRoomId(r.newRoomId());
         req.setNewTimeSlotId(r.newTimeSlotId());

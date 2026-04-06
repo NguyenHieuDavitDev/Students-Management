@@ -43,6 +43,10 @@ public class ScheduleOverride {
     @JoinColumn(name = "new_time_slot_id")
     private TimeSlot newTimeSlot;
 
+    /** Với {@link OverrideType#RESCHEDULE}: ngày đích (buổi học xuất hiện tại đây thay vì {@link #overrideDate}). */
+    @Column(name = "moved_to_date")
+    private LocalDate movedToDate;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "new_lecturer_id", columnDefinition = "uniqueidentifier")
     private Lecturer newLecturer;

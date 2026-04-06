@@ -46,7 +46,7 @@
         <td class="text-center" th:text="${i.index + 1}"></td>
         <td th:text="${o.scheduleBrief}"></td>
         <td th:text="${#temporals.format(o.overrideDate(), 'dd/MM/yyyy')}"></td>
-        <td class="text-center" th:text="${o.overrideType?.name() == 'MAKEUP' ? 'Dạy bù' : (o.overrideType?.name() == 'ROOM_CHANGE' ? 'Đổi phòng' : (o.overrideType?.name() == 'TIME_CHANGE' ? 'Đổi giờ' : 'Hủy buổi'))}"></td>
+        <td class="text-center" th:text="${o.overrideType?.name() == 'MAKEUP' ? 'Dạy bù' : (o.overrideType?.name() == 'ROOM_CHANGE' ? 'Đổi phòng' : (o.overrideType?.name() == 'TIME_CHANGE' ? 'Đổi giờ' : (o.overrideType?.name() == 'RESCHEDULE' ? 'Dịch buổi' : 'Hủy buổi')))}"></td>
         <td th:text="${o.newRoomDisplay} ?: '-'"></td>
         <td th:text="${o.newTimeSlotDisplay} ?: '-'"></td>
         <td th:text="${o.newLecturerName} ?: '-'"></td>

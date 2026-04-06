@@ -93,8 +93,42 @@ public class ScheduleOverrideService {
             o.setNewLecturer(lecturerRepository.findById(req.getNewLecturerId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giảng viên thay thế")));
         }
+        o.setMovedToDate(req.getMovedToDate());
         repository.save(o);
         notifyScheduleChange(schedule, o);
+    }
+
+    /**
+     * Kéo thả lịch: đổi tiết cho đúng một ngày (xóa ghi đè TIME/RESCHEDULE cũ cùng ngày gốc nếu có).
+     */
+    @Transactional
+    public void replaceOccurrenceTimeSlot(UUID scheduleId, LocalDate occurrenceDate, int newTimeSlotId) {
+        repository.deleteByScheduleOverrideDateTypesAndStatus(
+                scheduleId, occurrenceDate, List.of(OverrideType.TIME_CHANGE, OverrideType.RESCHEDULE), OverrideStatus.ACTIVE);
+        ScheduleOverrideRequest req = new ScheduleOverrideRequest();
+        req.setScheduleId(scheduleId);
+        req.setOverrideDate(occurrenceDate);
+        req.setOverrideType(OverrideType.TIME_CHANGE);
+        req.setNewTimeSlotId(newTimeSlotId);
+        create(req);
+    }
+
+    /**
+     * Kéo thả lịch: dịch buổi sang ngày + tiết đích (một lần).
+     */
+    @Transactional
+    public void replaceOccurrenceReschedule(UUID scheduleId, LocalDate originalDate, LocalDate movedToDate,
+                                            int newTimeSlotId, Long newRoomId) {
+        repository.deleteByScheduleOverrideDateTypesAndStatus(
+                scheduleId, originalDate, List.of(OverrideType.TIME_CHANGE, OverrideType.RESCHEDULE), OverrideStatus.ACTIVE);
+        ScheduleOverrideRequest req = new ScheduleOverrideRequest();
+        req.setScheduleId(scheduleId);
+        req.setOverrideDate(originalDate);
+        req.setMovedToDate(movedToDate);
+        req.setOverrideType(OverrideType.RESCHEDULE);
+        req.setNewTimeSlotId(newTimeSlotId);
+        req.setNewRoomId(newRoomId);
+        create(req);
     }
 
     @Transactional
@@ -114,6 +148,7 @@ public class ScheduleOverrideService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy khung giờ mới")) : null);
         o.setNewLecturer(req.getNewLecturerId() != null ? lecturerRepository.findById(req.getNewLecturerId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giảng viên thay thế")) : null);
+        o.setMovedToDate(req.getMovedToDate());
         notifyScheduleChange(schedule, o);
     }
 
@@ -139,6 +174,7 @@ public class ScheduleOverrideService {
 
         String overrideType = o.getOverrideType() != null ? o.getOverrideType().name() : "";
         String overrideDate = o.getOverrideDate() != null ? o.getOverrideDate().toString() : "";
+        String movedToPart = o.getMovedToDate() != null ? (" Chuyển sang ngày: " + o.getMovedToDate() + ".") : "";
         String status = o.getStatus() != null ? o.getStatus().name() : "";
         java.time.LocalDateTime scheduledAt = o.getOverrideDate() != null ? o.getOverrideDate().atStartOfDay() : null;
 
@@ -160,7 +196,8 @@ public class ScheduleOverrideService {
                 + (courseName.isBlank() ? "" : " - " + courseName)
                 + (semesterName.isBlank() ? "" : " (" + semesterName + ")")
                 + ". Ngày áp dụng: " + overrideDate
-                + ". Loại: " + overrideType
+                + movedToPart
+                + " Loại: " + overrideType
                 + statusPart
                 + ". "
                 + (newRoomStr.isBlank() ? "" : "Phòng: " + newRoomStr + ". ")
@@ -247,7 +284,7 @@ public class ScheduleOverrideService {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("ScheduleOverrides");
             Row header = sheet.createRow(0);
-            String[] headers = {"Override ID", "Schedule ID", "Lịch gốc", "Ngày áp dụng", "Loại", "Phòng mới", "Khung giờ mới", "GV thay thế", "Trạng thái", "Lý do", "Duyệt lúc", "Ngày tạo"};
+            String[] headers = {"Override ID", "Schedule ID", "Lịch gốc", "Ngày áp dụng", "Ngày đích (dịch buổi)", "Loại", "Phòng mới", "Khung giờ mới", "GV thay thế", "Trạng thái", "Lý do", "Duyệt lúc", "Ngày tạo"};
             for (int i = 0; i < headers.length; i++) header.createCell(i).setCellValue(headers[i]);
 
             List<ScheduleOverride> list = repository.findAll(Sort.by("overrideDate").descending().and(Sort.by("createdAt").descending()));
@@ -259,14 +296,15 @@ public class ScheduleOverrideService {
                 row.createCell(1).setCellValue(r.scheduleId() != null ? r.scheduleId().toString() : "");
                 row.createCell(2).setCellValue(nullToEmpty(r.scheduleBrief()));
                 row.createCell(3).setCellValue(r.overrideDate() != null ? r.overrideDate().toString() : "");
-                row.createCell(4).setCellValue(r.overrideType() != null ? r.overrideType().name() : "");
-                row.createCell(5).setCellValue(nullToEmpty(r.newRoomDisplay()));
-                row.createCell(6).setCellValue(nullToEmpty(r.newTimeSlotDisplay()));
-                row.createCell(7).setCellValue(nullToEmpty(r.newLecturerName()));
-                row.createCell(8).setCellValue(r.status() != null ? r.status().name() : "");
-                row.createCell(9).setCellValue(nullToEmpty(r.reason()));
-                row.createCell(10).setCellValue(r.approvedAt() != null ? r.approvedAt().toString() : "");
-                row.createCell(11).setCellValue(r.createdAt() != null ? r.createdAt().toString() : "");
+                row.createCell(4).setCellValue(r.movedToDate() != null ? r.movedToDate().toString() : "");
+                row.createCell(5).setCellValue(r.overrideType() != null ? r.overrideType().name() : "");
+                row.createCell(6).setCellValue(nullToEmpty(r.newRoomDisplay()));
+                row.createCell(7).setCellValue(nullToEmpty(r.newTimeSlotDisplay()));
+                row.createCell(8).setCellValue(nullToEmpty(r.newLecturerName()));
+                row.createCell(9).setCellValue(r.status() != null ? r.status().name() : "");
+                row.createCell(10).setCellValue(nullToEmpty(r.reason()));
+                row.createCell(11).setCellValue(r.approvedAt() != null ? r.approvedAt().toString() : "");
+                row.createCell(12).setCellValue(r.createdAt() != null ? r.createdAt().toString() : "");
             }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write(out);
@@ -280,6 +318,18 @@ public class ScheduleOverrideService {
         }
         if (req.getOverrideType() == OverrideType.TIME_CHANGE && req.getNewTimeSlotId() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Đổi khung giờ cần chọn khung giờ mới");
+        }
+        if (req.getOverrideType() == OverrideType.RESCHEDULE) {
+            if (req.getMovedToDate() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dịch buổi cần có ngày đích (movedToDate)");
+            }
+            if (req.getNewTimeSlotId() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dịch buổi cần chọn khung giờ tại ngày đích");
+            }
+            if (req.getMovedToDate().equals(req.getOverrideDate())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Cùng ngày chỉ dùng loại «Đổi giờ» (TIME_CHANGE), không dùng «Dịch buổi»");
+            }
         }
     }
 
@@ -300,6 +350,7 @@ public class ScheduleOverrideService {
                 s != null ? s.getId() : null,
                 scheduleBrief,
                 o.getOverrideDate(),
+                o.getMovedToDate(),
                 o.getOverrideType(),
                 nr != null ? nr.getRoomId() : null,
                 nr != null ? (nr.getRoomCode() + " - " + nr.getRoomName()) : null,

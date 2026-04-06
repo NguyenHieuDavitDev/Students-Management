@@ -18,6 +18,9 @@ import com.example.stduents_management.schedule.dto.ScheduleRequest;
 import com.example.stduents_management.schedule.dto.ScheduleResponse;
 import com.example.stduents_management.schedule.entity.*;
 import com.example.stduents_management.schedule.repository.ScheduleRepository;
+import com.example.stduents_management.scheduleoverride.entity.OverrideStatus;
+import com.example.stduents_management.scheduleoverride.entity.OverrideType;
+import com.example.stduents_management.scheduleoverride.entity.ScheduleOverride;
 import com.example.stduents_management.scheduleoverride.repository.ScheduleOverrideRepository;
 import com.example.stduents_management.semester.entity.Semester;
 import com.example.stduents_management.semester.repository.SemesterRepository;
@@ -387,10 +390,35 @@ public class ScheduleService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy học kỳ"));
         LocalDate anchorMonday = semesterAnchorMonday(sem);
         List<Schedule> list = repository.findBySemesterIdWithDetails(semesterId);
+        LocalDate fromEff = from != null ? from : LocalDate.MIN;
+        LocalDate toEff = to != null ? to : LocalDate.MAX;
+        List<ScheduleOverride> calOverrides = scheduleOverrideRepository.findActiveForSemesterAndDateRange(
+                semesterId, fromEff, toEff, OverrideStatus.ACTIVE);
+        Map<String, ScheduleOverride> roomOverrideByScheduleAndDate = new LinkedHashMap<>();
+        Map<String, ScheduleOverride> timeOverrideByScheduleAndDate = new LinkedHashMap<>();
+        Map<String, ScheduleOverride> rescheduleAwayByScheduleAndDate = new LinkedHashMap<>();
+        for (ScheduleOverride o : calOverrides) {
+            if (o.getSchedule() == null || o.getOverrideDate() == null) {
+                continue;
+            }
+            UUID sid = o.getSchedule().getId();
+            LocalDate od = o.getOverrideDate();
+            String k = sid + "|" + od;
+            OverrideType ot = o.getOverrideType();
+            if (ot == OverrideType.ROOM_CHANGE && o.getNewRoom() != null) {
+                roomOverrideByScheduleAndDate.put(k, o);
+            }
+            if (ot == OverrideType.TIME_CHANGE && o.getNewTimeSlot() != null) {
+                timeOverrideByScheduleAndDate.put(k, o);
+            }
+            if (ot == OverrideType.RESCHEDULE && o.getMovedToDate() != null && o.getNewTimeSlot() != null) {
+                rescheduleAwayByScheduleAndDate.put(k, o);
+            }
+        }
         List<ScheduleCalendarEventResponse> out = new ArrayList<>();
         for (Schedule s : list) {
-            TimeSlot slot = s.getTimeSlot();
-            if (slot == null || slot.getStartTime() == null || slot.getEndTime() == null) {
+            TimeSlot baseSlot = s.getTimeSlot();
+            if (baseSlot == null || baseSlot.getStartTime() == null || baseSlot.getEndTime() == null) {
                 continue;
             }
             Integer dow = s.getDayOfWeek();
@@ -412,22 +440,88 @@ public class ScheduleService {
                 if (to != null && d.isAfter(to)) {
                     continue;
                 }
+                String occKey = s.getId() + "|" + d;
+                if (rescheduleAwayByScheduleAndDate.containsKey(occKey)) {
+                    continue;
+                }
+                TimeSlot slot = baseSlot;
+                ScheduleOverride timeOv = timeOverrideByScheduleAndDate.get(occKey);
+                if (timeOv != null && timeOv.getNewTimeSlot() != null
+                        && timeOv.getNewTimeSlot().getStartTime() != null
+                        && timeOv.getNewTimeSlot().getEndTime() != null) {
+                    slot = timeOv.getNewTimeSlot();
+                }
                 LocalDateTime start = LocalDateTime.of(d, slot.getStartTime());
                 LocalDateTime end = LocalDateTime.of(d, slot.getEndTime());
                 if (!end.isAfter(start)) {
                     end = end.plusDays(1);
                 }
                 String eid = s.getId() + "-" + w;
+                ScheduleOverride roomOvr = roomOverrideByScheduleAndDate.get(occKey);
+                Room titleRoom = roomOvr != null ? roomOvr.getNewRoom() : null;
                 Map<String, Object> props = calendarExtendedProps(s, d);
+                props.put("timeSlotId", slot.getId());
+                props.put("periodStart", slot.getPeriodStart());
+                props.put("periodEnd", slot.getPeriodEnd());
+                applyRoomOverrideToCalendarProps(props, roomOvr);
                 out.add(new ScheduleCalendarEventResponse(
                         eid,
-                        buildEventTitle(s, d),
+                        buildEventTitle(s, d, titleRoom, slot),
                         start,
                         end,
                         colorForScheduleId(s.getId()),
                         props
                 ));
             }
+        }
+        for (ScheduleOverride o : calOverrides) {
+            if (o.getOverrideType() != OverrideType.RESCHEDULE
+                    || o.getMovedToDate() == null
+                    || o.getNewTimeSlot() == null
+                    || o.getSchedule() == null) {
+                continue;
+            }
+            TimeSlot ns = o.getNewTimeSlot();
+            if (ns.getStartTime() == null || ns.getEndTime() == null) {
+                continue;
+            }
+            LocalDate md = o.getMovedToDate();
+            if (from != null && md.isBefore(from)) {
+                continue;
+            }
+            if (to != null && md.isAfter(to)) {
+                continue;
+            }
+            Schedule s = o.getSchedule();
+            LocalDateTime start = LocalDateTime.of(md, ns.getStartTime());
+            LocalDateTime end = LocalDateTime.of(md, ns.getEndTime());
+            if (!end.isAfter(start)) {
+                end = end.plusDays(1);
+            }
+            String eid = s.getId() + "-mv-" + o.getOverrideId();
+            Room titleRoom = o.getNewRoom() != null ? o.getNewRoom() : s.getRoom();
+            String keyMoved = s.getId() + "|" + md;
+            ScheduleOverride roomAtMoved = roomOverrideByScheduleAndDate.get(keyMoved);
+            if (roomAtMoved != null && roomAtMoved.getNewRoom() != null) {
+                titleRoom = roomAtMoved.getNewRoom();
+            }
+            Map<String, Object> props = calendarExtendedProps(s, md);
+            props.put("timeSlotId", ns.getId());
+            props.put("periodStart", ns.getPeriodStart());
+            props.put("periodEnd", ns.getPeriodEnd());
+            props.put("dayOfWeek", md.getDayOfWeek().getValue() + 1);
+            props.put("instanceDate", md.toString());
+            props.put("rescheduledFromDate", o.getOverrideDate().toString());
+            props.put("rescheduledInstance", true);
+            applyRoomOverrideToCalendarProps(props, roomAtMoved);
+            out.add(new ScheduleCalendarEventResponse(
+                    eid,
+                    buildEventTitle(s, md, titleRoom, ns),
+                    start,
+                    end,
+                    colorForScheduleId(s.getId()),
+                    props
+            ));
         }
         return out;
     }
@@ -534,8 +628,36 @@ public class ScheduleService {
         return week1Monday.plusWeeks(weekNumber - 1L).plusDays(mondayBasedOffset);
     }
 
+    /**
+     * Ghi đè hiển thị phòng trên lịch khi có bản ghi đổi phòng theo ngày ({@link OverrideType#ROOM_CHANGE}).
+     */
+    private static void applyRoomOverrideToCalendarProps(Map<String, Object> m, ScheduleOverride o) {
+        if (o == null || o.getOverrideType() != OverrideType.ROOM_CHANGE || o.getNewRoom() == null) {
+            return;
+        }
+        Room nr = o.getNewRoom();
+        m.put("roomId", nr.getRoomId());
+        m.put("roomCode", nr.getRoomCode());
+        String rc = nr.getRoomCode() != null ? nr.getRoomCode().trim() : "";
+        String rn = nr.getRoomName() != null ? nr.getRoomName().trim() : "";
+        String roomDisplay = rc;
+        if (!rn.isEmpty() && !rn.equals(rc)) {
+            roomDisplay = rc.isEmpty() ? rn : (rc + " — " + rn);
+        }
+        if (!roomDisplay.isBlank()) {
+            m.put("roomDisplay", roomDisplay);
+        }
+        m.put("roomOverride", true);
+    }
+
     /** Tiêu đề một dòng (tooltip / tóm tắt) — luôn có ít nhất mã lớp HP / mã môn. */
-    private static String buildEventTitle(Schedule s, LocalDate occurrenceDate) {
+    private static String buildEventTitle(Schedule s, LocalDate occurrenceDate, Room roomOverrideForTitle) {
+        return buildEventTitle(s, occurrenceDate, roomOverrideForTitle, null);
+    }
+
+ 
+    private static String buildEventTitle(Schedule s, LocalDate occurrenceDate, Room roomOverrideForTitle,
+                                          TimeSlot slotOverrideForTitle) {
         String courseLine = buildCourseDisplayLine(s);
         if (courseLine == null || courseLine.isBlank()) {
             ClassSection cs = s.getClassSection();
@@ -545,9 +667,23 @@ public class ScheduleService {
                 courseLine = "Lớp học phần";
             }
         }
-        String day = s.getDayOfWeek() != null ? vietnameseDayOfWeek(s.getDayOfWeek()) : "";
-        String slot = formatSlotBrief(s.getTimeSlot());
-        String room = s.getRoom() != null && s.getRoom().getRoomCode() != null ? s.getRoom().getRoomCode() : "";
+        String day;
+        if (occurrenceDate != null) {
+            day = vietnameseDayOfWeek(occurrenceDate.getDayOfWeek().getValue() + 1);
+        } else if (s.getDayOfWeek() != null) {
+            day = vietnameseDayOfWeek(s.getDayOfWeek());
+        } else {
+            day = "";
+        }
+        TimeSlot slotRef = slotOverrideForTitle != null ? slotOverrideForTitle : s.getTimeSlot();
+        String slot = formatSlotBrief(slotRef);
+        String room;
+        if (roomOverrideForTitle != null && roomOverrideForTitle.getRoomCode() != null
+                && !roomOverrideForTitle.getRoomCode().isBlank()) {
+            room = roomOverrideForTitle.getRoomCode().trim();
+        } else {
+            room = s.getRoom() != null && s.getRoom().getRoomCode() != null ? s.getRoom().getRoomCode().trim() : "";
+        }
         String lec = s.getLecturer() != null && s.getLecturer().getFullName() != null ? s.getLecturer().getFullName() : "";
         String dateS = occurrenceDate != null ? occurrenceDate.toString() : "";
         StringBuilder sb = new StringBuilder();

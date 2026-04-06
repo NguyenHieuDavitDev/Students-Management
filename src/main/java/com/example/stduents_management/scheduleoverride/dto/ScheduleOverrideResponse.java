@@ -12,6 +12,7 @@ public record ScheduleOverrideResponse(
         UUID scheduleId,
         String scheduleBrief,
         LocalDate overrideDate,
+        LocalDate movedToDate,
         OverrideType overrideType,
         Long newRoomId,
         String newRoomDisplay,

@@ -26,8 +26,11 @@ public class ScheduleOverrideRequest {
     /** Phòng mới (bắt buộc nếu override_type = ROOM_CHANGE) */
     private Long newRoomId;
 
-    /** Khung giờ mới (bắt buộc nếu override_type = TIME_CHANGE) */
+    /** Khung giờ mới (bắt buộc nếu override_type = TIME_CHANGE hoặc RESCHEDULE) */
     private Integer newTimeSlotId;
+
+    /** Ngày đích khi RESCHEDULE (phải khác ngày buổi gốc). */
+    private LocalDate movedToDate;
 
     /** Giảng viên thay thế (dạy bù) */
     private UUID newLecturerId;

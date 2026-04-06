@@ -58,7 +58,8 @@
                     <thead>
                     <tr>
                         <th>Lịch gốc</th>
-                        <th>Ngày áp dụng</th>
+                        <th>Ngày buổi gốc</th>
+                        <th>Ngày đích</th>
                         <th>Loại</th>
                         <th>Phòng mới</th>
                         <th>Khung giờ mới</th>
@@ -72,10 +73,12 @@
                     <tr th:each="o : ${overrides.content}">
                         <td th:text="${o.scheduleBrief}" style="max-width:180px;"></td>
                         <td th:text="${#temporals.format(o.overrideDate, 'dd/MM/yyyy')}"></td>
+                        <td th:text="${o.movedToDate != null ? #temporals.format(o.movedToDate, 'dd/MM/yyyy') : '—'}"></td>
                         <td>
                             <span th:if="${o.overrideType?.name() == 'MAKEUP'}" class="badge bg-info">Dạy bù</span>
                             <span th:if="${o.overrideType?.name() == 'ROOM_CHANGE'}" class="badge bg-primary">Đổi phòng</span>
                             <span th:if="${o.overrideType?.name() == 'TIME_CHANGE'}" class="badge bg-warning">Đổi giờ</span>
+                            <span th:if="${o.overrideType?.name() == 'RESCHEDULE'}" class="badge bg-success">Dịch buổi</span>
                             <span th:if="${o.overrideType?.name() == 'CANCEL'}" class="badge bg-secondary">Hủy buổi</span>
                         </td>
                         <td th:text="${o.newRoomDisplay} ?: '-'"></td>
@@ -97,7 +100,7 @@
                         </td>
                     </tr>
                     <tr th:if="${overrides.content.isEmpty()}">
-                        <td colspan="9" class="text-center text-muted">
+                        <td colspan="10" class="text-center text-muted">
                             <i class="fa-solid fa-box-open"></i> Không có dữ liệu thay đổi lịch
                         </td>
                     </tr>

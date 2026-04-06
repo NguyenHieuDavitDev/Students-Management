@@ -15,6 +15,10 @@ spring:
       ddl-auto: update
     show-sql: true
 
+  flyway:
+    # DB đã có sẵn bảng (chưa từng dùng Flyway) — cho phép baseline rồi chạy migration
+    baseline-on-migrate: true
+
 # File tài liệu học tập: lưu dưới uploads/documents/, phục vụ qua /uploads/documents/**
 app:
   document-upload:

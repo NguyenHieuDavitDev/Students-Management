@@ -726,7 +726,11 @@ CREATE TABLE [dbo].[schedule_overrides] (
     [new_lecturer_id]  uniqueidentifier,
     [new_room_id]      bigint,
     [new_time_slot_id] int,
+    [moved_to_date]    date,
     [schedule_id]      uniqueidentifier,
+    CONSTRAINT [CK_schedule_overrides_override_type] CHECK ([override_type] IN (
+        N'MAKEUP', N'ROOM_CHANGE', N'TIME_CHANGE', N'CANCEL', N'RESCHEDULE'
+    )),
     CONSTRAINT [FKhbtw334pvq95c3mj83bu7h59q] FOREIGN KEY ([new_room_id])      REFERENCES [dbo].[rooms]([id]),
     CONSTRAINT [FKoodl2tghs09bov371b7bscgnb] FOREIGN KEY ([schedule_id])      REFERENCES [dbo].[schedules]([id]),
     CONSTRAINT [FKfbb5a0bwnq8927sn3inkb1vlr] FOREIGN KEY ([new_lecturer_id])  REFERENCES [dbo].[lecturers]([lecturer_id]),

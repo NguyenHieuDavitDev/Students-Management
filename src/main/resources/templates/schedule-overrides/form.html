@@ -29,14 +29,19 @@
                         <small class="text-danger" th:errors="*{scheduleId}"></small>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Ngày áp dụng thay đổi <span class="text-danger">*</span></label>
+                        <label class="form-label">Ngày buổi gốc (bị thay đổi) <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" th:field="*{overrideDate}">
                         <small class="text-danger" th:errors="*{overrideDate}"></small>
                     </div>
                     <div class="col-md-6">
+                        <label class="form-label">Ngày đích (khi loại «Dịch một buổi»)</label>
+                        <input type="date" class="form-control" th:field="*{movedToDate}">
+                        <small class="text-muted">Bắt buộc nếu chọn Dịch một buổi; phải khác ngày buổi gốc. Đổi chỉ tiết trong cùng ngày → dùng «Đổi giờ».</small>
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label">Loại thay đổi <span class="text-danger">*</span></label>
                         <select class="form-select" th:field="*{overrideType}">
-                            <option th:each="t : ${overrideTypes}" th:value="${t}" th:text="${t.name() == 'MAKEUP' ? 'Dạy bù' : (t.name() == 'ROOM_CHANGE' ? 'Đổi phòng' : (t.name() == 'TIME_CHANGE' ? 'Đổi giờ' : 'Hủy buổi'))}"></option>
+                            <option th:each="t : ${overrideTypes}" th:value="${t}" th:text="${t.name() == 'MAKEUP' ? 'Dạy bù' : (t.name() == 'ROOM_CHANGE' ? 'Đổi phòng' : (t.name() == 'TIME_CHANGE' ? 'Đổi giờ' : (t.name() == 'RESCHEDULE' ? 'Dịch một buổi' : 'Hủy buổi')))}"></option>
                         </select>
                         <small class="text-danger" th:errors="*{overrideType}"></small>
                     </div>

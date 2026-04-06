@@ -3,7 +3,7 @@
       th:replace="~{layout/dashboard :: layout(
         'Lịch học — lưới tuần',
         'Lịch học',
-        'Lưới tuần (T2–CN × tiết): click ô trống để thêm · click thẻ để sửa/xóa · kéo thả để đổi thứ/tiết',
+        'Lưới tuần: kéo thả — mặc định chỉ đổi một buổi; có thể đổi cả lịch gốc hoặc chỉ đổi phòng một buổi',
         'schedules',
         ~{::content}
       )}">
@@ -243,6 +243,57 @@
         </div>
     </div>
 
+    <!-- Xác nhận sau khi kéo thả thẻ lịch -->
+    <div class="modal fade" id="scheduleDragConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Xác nhận thay đổi sau khi kéo thả</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="dragConfirmSummary" class="small mb-3"></p>
+                    <div class="alert alert-danger d-none py-2 small" id="dragConfirmError" role="alert"></div>
+                    <div class="mb-2 fw-semibold">Bạn muốn áp dụng thế nào?</div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="dragConfirmMode" id="dragModeOnce" value="once" checked>
+                        <label class="form-check-label" for="dragModeOnce">
+                            <strong>Chỉ buổi này</strong> <span class="badge bg-success">Mặc định</span> — chỉ đổi <em>đúng ngày đang kéo</em>; dịch sang thứ/tiết theo ô thả. <em>Các tuần và buổi khác giữ nguyên</em> (ghi vào «Dạy bù / Đổi phòng»).
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="dragConfirmMode" id="dragModeFull" value="full">
+                        <label class="form-check-label" for="dragModeFull">
+                            <strong>Đổi cả lịch gốc</strong> — cập nhật <em>thứ, tiết</em> cho <em>cả chuỗi lặp</em> (PUT). Dùng khi muốn đổi thường xuyên, không chỉ một ngày.
+                        </label>
+                    </div>
+                    <div id="dragConfirmFullRoomRow" class="mb-3">
+                        <label class="form-label" for="dragConfirmFullRoomSelect" id="dragConfirmFullRoomLabel">Phòng học</label>
+                        <select id="dragConfirmFullRoomSelect" class="form-select form-select-sm"></select>
+                        <small class="text-muted d-block" id="dragConfirmFullRoomHint">Tuỳ chọn: khi «Chỉ buổi này» và dịch sang ngày khác, có thể gửi kèm phòng. Khi «Đổi cả lịch gốc» = phòng của dòng lịch sau khi lưu.</small>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="dragConfirmMode" id="dragModeRoom" value="room">
+                        <label class="form-check-label" for="dragModeRoom">
+                            <strong>Chỉ đổi phòng</strong> — giữ nguyên thứ/tiết/tuần; chỉ ghi nhận <em>phòng mới cho buổi ngày đang kéo</em> (bản ghi “Đổi phòng” theo ngày).
+                        </label>
+                    </div>
+                    <div id="dragConfirmRoomRow" class="d-none">
+                        <label class="form-label" for="dragConfirmRoomSelect">Phòng cho buổi đó <span class="text-danger">*</span></label>
+                        <select id="dragConfirmRoomSelect" class="form-select form-select-sm"></select>
+                        <small class="text-muted">Ô thả không quyết định phòng — chọn phòng tại đây.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="btnDragConfirmApply">
+                        <i class="fa-solid fa-check me-1"></i>Xác nhận
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script th:inline="javascript">
         /*<![CDATA[*/
         const CSRF_TOKEN = /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
@@ -281,13 +332,31 @@
             let meta = null;
             let lastEventRows = [];
             let weekPlannerInited = false;
-            const weekPlannerState = { mode: 'week', weekMonday: null, singleDayModel: 2, dragStartIso: null };
+            const weekPlannerState = {
+                mode: 'week',
+                weekMonday: null,
+                singleDayModel: 2,
+                dragStartIso: null,
+                dragSourceRoomId: null,
+                dragSourceModelDow: null,
+                dragSourcePeriod: null,
+                dragSourceSlotLabel: '',
+                dragSourceRoomLabel: '',
+                pendingDrop: null
+            };
             const modalEl = document.getElementById('scheduleModal');
             if (!modalEl) {
                 showStaticInitError('Không tìm thấy modal lịch (#scheduleModal).');
                 return;
             }
             const bsModal = new bootstrap.Modal(modalEl);
+            const dragConfirmModalEl = document.getElementById('scheduleDragConfirmModal');
+            const bsDragConfirmModal = dragConfirmModalEl ? new bootstrap.Modal(dragConfirmModalEl) : null;
+            if (dragConfirmModalEl) {
+                dragConfirmModalEl.addEventListener('hidden.bs.modal', function () {
+                    weekPlannerState.pendingDrop = null;
+                });
+            }
             const btnSaveSchedule = document.getElementById('btnSaveSchedule');
             const btnSaveDefaultHtml = btnSaveSchedule ? btnSaveSchedule.innerHTML : '';
 
@@ -669,58 +738,286 @@
                 return { ps: ps, pe: pe, len: Math.max(1, pe - ps + 1) };
             }
 
-            async function persistGridDrop(scheduleId, newModelDow, periodNum) {
+            function populateRoomSelectElement(sel, preferredRoomId, includePlaceholder) {
+                if (!sel || !meta) return;
+                sel.innerHTML = '';
+                if (includePlaceholder) {
+                    const ph = document.createElement('option');
+                    ph.value = '';
+                    ph.textContent = '— Chọn phòng —';
+                    sel.appendChild(ph);
+                }
+                ensureArray(meta.rooms).forEach(function (r) {
+                    const o = document.createElement('option');
+                    o.value = String(r.roomId);
+                    o.textContent = (r.roomCode || '') + (r.roomName ? (' — ' + r.roomName) : '');
+                    sel.appendChild(o);
+                });
+                if (preferredRoomId != null && String(preferredRoomId).trim() !== '') {
+                    sel.value = String(preferredRoomId);
+                }
+            }
+
+            function fillDragConfirmRoomSelect(preferredRoomId) {
+                populateRoomSelectElement(document.getElementById('dragConfirmRoomSelect'), preferredRoomId, true);
+            }
+
+            function fillDragConfirmFullRoomSelect(preferredRoomId) {
+                populateRoomSelectElement(document.getElementById('dragConfirmFullRoomSelect'), preferredRoomId, false);
+            }
+
+            function toggleDragConfirmModeRows() {
+                const mode = document.querySelector('input[name="dragConfirmMode"]:checked');
+                const roomRow = document.getElementById('dragConfirmRoomRow');
+                const fullRoomRow = document.getElementById('dragConfirmFullRoomRow');
+                const lbl = document.getElementById('dragConfirmFullRoomLabel');
+                const hint = document.getElementById('dragConfirmFullRoomHint');
+                const v = mode ? mode.value : 'once';
+                if (roomRow) {
+                    if (v === 'room') roomRow.classList.remove('d-none');
+                    else roomRow.classList.add('d-none');
+                }
+                if (fullRoomRow) {
+                    if (v === 'full' || v === 'once') fullRoomRow.classList.remove('d-none');
+                    else fullRoomRow.classList.add('d-none');
+                }
+                if (lbl && hint) {
+                    if (v === 'once') {
+                        lbl.textContent = 'Phòng tại buổi sau khi dịch (tuỳ chọn)';
+                        hint.textContent = 'Nếu dịch sang ngày khác: có thể chọn phòng cho buổi đó. Cùng ngày chỉ đổi tiết thì để mặc định (theo lịch gốc).';
+                    } else if (v === 'full') {
+                        lbl.textContent = 'Phòng học (lịch gốc sau khi lưu)';
+                        hint.textContent = 'Mặc định theo lịch hiện tại; chọn phòng khác nếu cần.';
+                    }
+                }
+            }
+
+            function slotLabelForPeriod(periodNum) {
                 const slot = slotContainingPeriod(periodNum);
-                if (!slot || slot.id == null) {
-                    showPageError('Không tìm thấy khung giờ cho tiết ' + periodNum + '.');
+                if (slot && slot.slotCode) return slot.slotCode + ' (hàng T' + periodNum + ')';
+                return 'Tiết / hàng T' + periodNum;
+            }
+
+            function openScheduleDragConfirm(scheduleId, newModelDow, periodNum) {
+                if (!bsDragConfirmModal) {
+                    showPageError('Không tìm thấy hộp thoại xác nhận kéo thả.');
                     return;
                 }
+                weekPlannerState.pendingDrop = { scheduleId: scheduleId, newModelDow: newModelDow, periodNum: periodNum };
+                const oldD = parseLocalDateFromEventStart(weekPlannerState.dragStartIso);
+                const oldDStr = oldD ? formatDMY(oldD) : '—';
+                const newDate = dateForModelDow(weekPlannerState.weekMonday, newModelDow);
+                const newDStr = newDate ? formatDMY(newDate) : '—';
+                const tgtSlotLabel = slotLabelForPeriod(periodNum);
+                const srcDow = weekPlannerState.dragSourceModelDow;
+                const srcPer = weekPlannerState.dragSourcePeriod;
+                const srcDayTxt = srcDow != null ? modelDayLabel(srcDow) : '—';
+                const srcSlotTxt = srcPer != null ? slotLabelForPeriod(srcPer) : (weekPlannerState.dragSourceSlotLabel || '—');
+                const srcRoomTxt = weekPlannerState.dragSourceRoomLabel || (weekPlannerState.dragSourceRoomId != null ? ('#' + weekPlannerState.dragSourceRoomId) : '—');
+                const sum = document.getElementById('dragConfirmSummary');
+                if (sum) {
+                    sum.innerHTML =
+                        '<div class="border rounded p-2 bg-light mb-2 small">' +
+                        '<div class="fw-semibold text-secondary mb-1">Buổi đang kéo</div>' +
+                        '<div>Ngày: <strong>' + oldDStr + '</strong></div>' +
+                        '<div>Thứ / tiết: <strong>' + srcDayTxt + '</strong> · <strong>' + srcSlotTxt + '</strong></div>' +
+                        '<div>Phòng: <strong>' + srcRoomTxt + '</strong></div>' +
+                        '</div>' +
+                        '<div class="border rounded p-2 bg-success bg-opacity-10 mb-2 small">' +
+                        '<div class="fw-semibold text-success mb-1">Ô thả (đích)</div>' +
+                        '<div>Thứ / tiết: <strong>' + modelDayLabel(newModelDow) + '</strong> · <strong>' + tgtSlotLabel + '</strong></div>' +
+                        '<div>Ngày trên tuần đang xem: <strong>' + newDStr + '</strong></div>' +
+                        '<ul class="small mb-0 ps-3 mt-2">' +
+                        '<li><strong>Chỉ buổi này:</strong> chỉ sửa ngày <strong>' + oldDStr + '</strong>; các buổi khác giữ theo lịch gốc.</li>' +
+                        '<li><strong>Đổi cả lịch gốc:</strong> cả chuỗi lặp theo thứ/tiết mới (căn tuần theo tuần này).</li>' +
+                        '</ul></div>' +
+                        '<p class="mb-0 text-muted small"><i class="fa-solid fa-circle-info me-1"></i>Thả vào ô trống hoặc ô có lịch khác đều được.</p>';
+                }
+                const errEl = document.getElementById('dragConfirmError');
+                if (errEl) {
+                    errEl.classList.add('d-none');
+                    errEl.textContent = '';
+                }
+                const onceRadio = document.getElementById('dragModeOnce');
+                if (onceRadio) onceRadio.checked = true;
+                fillDragConfirmRoomSelect(weekPlannerState.dragSourceRoomId);
+                fillDragConfirmFullRoomSelect(weekPlannerState.dragSourceRoomId);
+                toggleDragConfirmModeRows();
+                bsDragConfirmModal.show();
+                fetch(API_BASE + '/' + encodeURIComponent(scheduleId), { headers: authHeaders(false), credentials: 'same-origin' })
+                    .then(function (res) { return res.ok ? res.json() : null; })
+                    .then(function (sch) {
+                        if (!sch || sch.roomId == null) return;
+                        const fs = document.getElementById('dragConfirmFullRoomSelect');
+                        if (fs && fs.querySelector('option[value="' + String(sch.roomId) + '"]')) {
+                            fs.value = String(sch.roomId);
+                        }
+                    })
+                    .catch(function () { /* giữ mặc định từ thẻ */ });
+            }
+
+            async function applyPersistGridMove(scheduleId, newModelDow, periodNum) {
+                const slot = slotContainingPeriod(periodNum);
+                if (!slot || slot.id == null) {
+                    throw new Error('Không tìm thấy khung giờ cho tiết ' + periodNum + '.');
+                }
                 const newSlotId = +slot.id;
-                try {
-                    const res = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {headers: authHeaders(false), credentials: 'same-origin'});
-                    if (!res.ok) throw new Error(await readApiError(res));
-                    const r = await res.json();
-                    const oldStart = parseLocalDateFromEventStart(weekPlannerState.dragStartIso);
-                    const newDate = dateForModelDow(weekPlannerState.weekMonday, newModelDow);
-                    if (!oldStart) throw new Error('Không đọc được ngày buổi học cũ.');
-                    const sem = ensureArray(meta.semesters).find(function (s) { return String(s.id) === String(r.semesterId); });
-                    const wOld = weekNumberFromSemester(sem, oldStart);
-                    const wNew = weekNumberFromSemester(sem, newDate);
-                    const delta = wNew - wOld;
-                    let newStartWeek = r.startWeek + delta;
-                    let newEndWeek = r.endWeek + delta;
-                    if (newStartWeek < 1 || newEndWeek < 1 || newStartWeek > 53 || newEndWeek > 53) {
-                        showPageError('Không thể đặt lịch vào tuần này (ngoài phạm vi 1–53).');
-                        return;
-                    }
-                    const payload = {
-                        semesterId: r.semesterId,
-                        classSectionId: r.classSectionId,
-                        lecturerId: r.lecturerId,
-                        roomId: r.roomId,
-                        timeSlotId: newSlotId,
-                        dayOfWeek: newModelDow,
-                        startWeek: newStartWeek,
-                        endWeek: newEndWeek,
-                        weekPattern: r.weekPattern,
-                        sessionType: r.sessionType,
-                        scheduleType: r.scheduleType,
-                        status: r.status,
-                        note: r.note
-                    };
-                    const put = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {
-                        method: 'PUT',
+                const res = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {headers: authHeaders(false), credentials: 'same-origin'});
+                if (!res.ok) throw new Error(await readApiError(res));
+                const r = await res.json();
+                const oldStart = parseLocalDateFromEventStart(weekPlannerState.dragStartIso);
+                const newDate = dateForModelDow(weekPlannerState.weekMonday, newModelDow);
+                if (!oldStart) throw new Error('Không đọc được ngày buổi học cũ.');
+                const sem = ensureArray(meta.semesters).find(function (s) { return String(s.id) === String(r.semesterId); });
+                const wOld = weekNumberFromSemester(sem, oldStart);
+                const wNew = weekNumberFromSemester(sem, newDate);
+                const delta = wNew - wOld;
+                let newStartWeek = r.startWeek + delta;
+                let newEndWeek = r.endWeek + delta;
+                if (newStartWeek < 1 || newEndWeek < 1 || newStartWeek > 53 || newEndWeek > 53) {
+                    throw new Error('Không thể đặt lịch vào tuần này (ngoài phạm vi 1–53).');
+                }
+                const fullRoomSel = document.getElementById('dragConfirmFullRoomSelect');
+                let chosenRoomId = r.roomId;
+                if (fullRoomSel && fullRoomSel.value !== '' && fullRoomSel.value != null) {
+                    chosenRoomId = Number(fullRoomSel.value);
+                }
+                const payload = {
+                    semesterId: r.semesterId,
+                    classSectionId: r.classSectionId,
+                    lecturerId: r.lecturerId,
+                    roomId: chosenRoomId,
+                    timeSlotId: newSlotId,
+                    dayOfWeek: newModelDow,
+                    startWeek: newStartWeek,
+                    endWeek: newEndWeek,
+                    weekPattern: r.weekPattern,
+                    sessionType: r.sessionType,
+                    scheduleType: r.scheduleType,
+                    status: r.status,
+                    note: r.note
+                };
+                const put = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {
+                    method: 'PUT',
+                    headers: authHeaders(true),
+                    credentials: 'same-origin',
+                    body: JSON.stringify(payload)
+                });
+                if (!put.ok) throw new Error(await readApiError(put));
+            }
+
+            /** Chỉ một ngày: cùng ngày → TIME_CHANGE; khác ngày → RESCHEDULE (+ phòng tuỳ chọn). */
+            async function applyInstanceDragOnce(scheduleId, newModelDow, periodNum) {
+                const dOld = parseLocalDateFromEventStart(weekPlannerState.dragStartIso);
+                if (!dOld) throw new Error('Không đọc được ngày buổi học.');
+                const orig = formatYMD(dOld);
+                const moved = formatYMD(dateForModelDow(weekPlannerState.weekMonday, newModelDow));
+                const slot = slotContainingPeriod(periodNum);
+                if (!slot || slot.id == null) {
+                    throw new Error('Không tìm thấy khung giờ cho tiết ' + periodNum + '.');
+                }
+                const fullRoomSel = document.getElementById('dragConfirmFullRoomSelect');
+                const rid = fullRoomSel && fullRoomSel.value ? String(fullRoomSel.value).trim() : '';
+                if (orig === moved) {
+                    const post = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId) + '/time-slot-override', {
+                        method: 'POST',
                         headers: authHeaders(true),
                         credentials: 'same-origin',
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify({ overrideDate: orig, newTimeSlotId: +slot.id })
                     });
-                    if (!put.ok) throw new Error(await readApiError(put));
-                    hidePageError();
-                    flashPageSuccess('Đã cập nhật lịch sau khi kéo thả.');
-                    await loadWeekEvents();
-                } catch (e) {
-                    showPageError('Không lưu được vị trí mới: ' + (e.message || String(e)));
+                    if (!post.ok) throw new Error(await readApiError(post));
+                    return;
                 }
+                let roomIdForReschedule = rid ? Number(rid) : null;
+                if (roomIdForReschedule == null || Number.isNaN(roomIdForReschedule)) {
+                    const schRes = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {
+                        headers: authHeaders(false),
+                        credentials: 'same-origin'
+                    });
+                    if (schRes.ok) {
+                        const sch = await schRes.json();
+                        if (sch && sch.roomId != null) roomIdForReschedule = Number(sch.roomId);
+                    }
+                }
+                const body = { originalDate: orig, movedToDate: moved, newTimeSlotId: +slot.id };
+                if (roomIdForReschedule != null && !Number.isNaN(roomIdForReschedule)) body.newRoomId = roomIdForReschedule;
+                const post = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId) + '/reschedule-once', {
+                    method: 'POST',
+                    headers: authHeaders(true),
+                    credentials: 'same-origin',
+                    body: JSON.stringify(body)
+                });
+                if (!post.ok) throw new Error(await readApiError(post));
+            }
+
+            async function applyRoomOverrideForDrag(scheduleId) {
+                const dOld = parseLocalDateFromEventStart(weekPlannerState.dragStartIso);
+                if (!dOld) throw new Error('Không đọc được ngày buổi học để ghi đổi phòng.');
+                const overrideDate = formatYMD(dOld);
+                const sel = document.getElementById('dragConfirmRoomSelect');
+                const rid = sel && sel.value ? String(sel.value).trim() : '';
+                if (!rid) throw new Error('Chọn phòng mới cho buổi đó.');
+                const post = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId) + '/room-override', {
+                    method: 'POST',
+                    headers: authHeaders(true),
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ overrideDate: overrideDate, newRoomId: Number(rid) })
+                });
+                if (!post.ok) throw new Error(await readApiError(post));
+            }
+
+            document.querySelectorAll('input[name="dragConfirmMode"]').forEach(function (inp) {
+                inp.addEventListener('change', toggleDragConfirmModeRows);
+            });
+            const btnDragApply = document.getElementById('btnDragConfirmApply');
+            if (btnDragApply) {
+                btnDragApply.addEventListener('click', async function () {
+                    const errEl = document.getElementById('dragConfirmError');
+                    const p = weekPlannerState.pendingDrop;
+                    if (!p) return;
+                    const modeEl = document.querySelector('input[name="dragConfirmMode"]:checked');
+                    const mode = modeEl ? modeEl.value : 'once';
+                    if (errEl) {
+                        errEl.classList.add('d-none');
+                        errEl.textContent = '';
+                    }
+                    const btn = btnDragApply;
+                    const prevHtml = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Đang lưu…';
+                    try {
+                        if (mode === 'room') {
+                            await applyRoomOverrideForDrag(p.scheduleId);
+                            if (bsDragConfirmModal) bsDragConfirmModal.hide();
+                            hidePageError();
+                            flashPageSuccess('Đã ghi nhận đổi phòng cho buổi đó (lịch gốc không đổi).');
+                            await loadWeekEvents();
+                        } else if (mode === 'once') {
+                            await applyInstanceDragOnce(p.scheduleId, p.newModelDow, p.periodNum);
+                            if (bsDragConfirmModal) bsDragConfirmModal.hide();
+                            hidePageError();
+                            flashPageSuccess('Đã cập nhật chỉ cho buổi đó; các buổi khác giữ nguyên.');
+                            await loadWeekEvents();
+                        } else {
+                            await applyPersistGridMove(p.scheduleId, p.newModelDow, p.periodNum);
+                            if (bsDragConfirmModal) bsDragConfirmModal.hide();
+                            hidePageError();
+                            flashPageSuccess('Đã cập nhật lịch gốc (cả chuỗi lặp).');
+                            await loadWeekEvents();
+                        }
+                    } catch (e) {
+                        const msg = e.message || String(e);
+                        if (errEl) {
+                            errEl.textContent = msg;
+                            errEl.classList.remove('d-none');
+                        } else {
+                            showPageError(msg);
+                        }
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerHTML = prevHtml;
+                    }
+                });
             }
 
             function updateWkRangeLabel() {
@@ -854,7 +1151,7 @@
                             card.draggable = true;
                             card.dataset.scheduleId = sid;
                             card.title = (pItem.ev.title || 'Lịch học')
-                                + '\n\nClick: xem / sửa / xóa trong hộp thoại\nKéo thả: đổi thứ hoặc tiết';
+                                + '\n\nClick: xem / sửa / xóa trong hộp thoại\nKéo thả: mặc định chỉ đổi buổi đó; hoặc đổi cả lịch gốc / chỉ đổi phòng';
                             fillScheduleCardElement(card, pItem.ev);
                             card.addEventListener('click', function (e) {
                                 e.stopPropagation();
@@ -862,12 +1159,36 @@
                             });
                             card.addEventListener('dragstart', function (e) {
                                 weekPlannerState.dragStartIso = pItem.ev.start;
+                                const epDrag = pItem.ev.extendedProps || {};
+                                weekPlannerState.dragSourceRoomId = epDrag.roomId != null ? epDrag.roomId : null;
+                                weekPlannerState.dragSourceModelDow = epDrag.dayOfWeek != null ? +epDrag.dayOfWeek : null;
+                                weekPlannerState.dragSourcePeriod = epDrag.periodStart != null ? +epDrag.periodStart : null;
+                                weekPlannerState.dragSourceSlotLabel = strOrEmpty(epDrag.slotDisplay);
+                                weekPlannerState.dragSourceRoomLabel = strOrEmpty(epDrag.roomDisplay) || strOrEmpty(epDrag.roomCode);
                                 e.dataTransfer.setData('text/plain', sid);
                                 e.dataTransfer.effectAllowed = 'move';
                                 card.style.opacity = '0.65';
                             });
                             card.addEventListener('dragend', function () {
                                 card.style.opacity = '1';
+                            });
+                            card.addEventListener('dragover', function (e) {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = 'move';
+                                td.classList.add('wk-drop-hover');
+                            });
+                            card.addEventListener('dragleave', function (e) {
+                                if (!td.contains(e.relatedTarget)) {
+                                    td.classList.remove('wk-drop-hover');
+                                }
+                            });
+                            card.addEventListener('drop', function (e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                td.classList.remove('wk-drop-hover');
+                                const dragId = e.dataTransfer.getData('text/plain');
+                                if (!dragId || dragId === sid) return;
+                                openScheduleDragConfirm(dragId, md, r + 1);
                             });
                             td.appendChild(card);
                         } else {
@@ -887,7 +1208,7 @@
                                 td.classList.remove('wk-drop-hover');
                                 const id = e.dataTransfer.getData('text/plain');
                                 if (!id) return;
-                                persistGridDrop(id, md, r + 1);
+                                openScheduleDragConfirm(id, md, r + 1);
                             });
                         }
                         tr.appendChild(td);
