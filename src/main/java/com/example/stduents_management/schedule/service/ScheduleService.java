@@ -94,6 +94,8 @@ public class ScheduleService {
         assertClassSectionMatchesSemester(s.getClassSection(), s.getSemester());
         setCommon(s, req);
         validateWeekRange(s.getStartWeek(), s.getEndWeek());
+        applySupplementaryTailAdjustmentOnCreate(s);
+        validateCreditSessionBudget(s, null);
         return repository.save(s).getId();
     }
 
@@ -101,6 +103,10 @@ public class ScheduleService {
     public void update(UUID id, ScheduleRequest req) {
         Schedule s = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch học"));
+        Long oldSemesterId = s.getSemester().getId();
+        Long oldClassSectionId = s.getClassSection().getId();
+        int oldSupplementaryUnits = supplementaryActiveWeekUnits(s);
+
         s.setSemester(semesterRepository.findById(req.getSemesterId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy học kỳ")));
         s.setClassSection(classSectionRepository.findById(req.getClassSectionId())
@@ -114,13 +120,26 @@ public class ScheduleService {
         assertClassSectionMatchesSemester(s.getClassSection(), s.getSemester());
         setCommon(s, req);
         validateWeekRange(s.getStartWeek(), s.getEndWeek());
+
+        Long newSemesterId = s.getSemester().getId();
+        Long newClassSectionId = s.getClassSection().getId();
+        int newSupplementaryUnits = supplementaryActiveWeekUnits(s);
+        applySupplementaryTailAdjustmentOnUpdate(
+                oldSemesterId, oldClassSectionId, oldSupplementaryUnits,
+                newSemesterId, newClassSectionId, newSupplementaryUnits);
+
+        validateCreditSessionBudget(s, id);
         repository.save(s);
     }
 
     @Transactional
     public void delete(UUID id) {
-        if (!repository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch học");
+        Schedule existing = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lịch học"));
+        int restoreUnits = supplementaryActiveWeekUnits(existing);
+        if (restoreUnits > 0) {
+            extendTheoryPracticeTailWeeks(
+                    existing.getSemester().getId(), existing.getClassSection().getId(), restoreUnits);
         }
         scheduleOverrideRepository.deleteByScheduleId(id);
         repository.deleteById(id);
@@ -129,6 +148,7 @@ public class ScheduleService {
     /**
      * Phân lịch tự động theo phân công GV – lớp học phần.
      * Số buổi học lấy theo <strong>tín chỉ</strong> học phần (mặc định 5 buổi/1 TC; 1→5, 2→10, 3→15, 4→20… tối đa 60).
+     * Lịch <strong>lý thuyết + thực hành + tăng cường</strong> đã có (theo số tuần lặp) được trừ trước; chỉ xếp thêm đến khi đủ phần còn lại. Buổi thi không tính vào hạn mức.
      * Khung tuần: {@code startWeek} và tùy chọn {@code endWeek}. Trong khung, mỗi dòng lịch = cùng thứ + tiết mỗi tuần từ tuần A→B;
      * nếu số buổi &gt; số tuần trong khung → thêm các dòng khác (thứ/tiết khác) cho đủ buổi.
      * Kiểm tra trùng theo <strong>khoảng tuần</strong> (GV / phòng / lớp HP không được chồng lấn cùng thứ+tiết).
@@ -240,6 +260,12 @@ public class ScheduleService {
             Lecturer lec = lcc.getLecturer();
             Integer credits = cs.getCourse() != null ? cs.getCourse().getCredits() : null;
             int totalSessions = totalSessionsForCredits(credits);
+            int alreadyUsedUnits = sumCreditBudgetUnitsForClassSection(allInSemester, cs.getId(), null);
+            int remaining = totalSessions - alreadyUsedUnits;
+            if (remaining <= 0) {
+                skippedSections++;
+                continue;
+            }
 
             int windowEnd;
             if (reqEndWeek != null) {
@@ -257,7 +283,6 @@ public class ScheduleService {
                 continue;
             }
 
-            int remaining = totalSessions;
             List<Schedule> trial = new ArrayList<>(allInSemester);
             List<Schedule> planned = new ArrayList<>();
             boolean sectionOk = true;
@@ -292,8 +317,8 @@ public class ScheduleService {
         }
 
         String message = String.format(
-                "Phân lịch xong: tạo %d dòng lịch; %d lớp học phần bỏ qua hoặc xếp không đủ (hết ô trống, khung tuần quá ngắn so với số buổi theo tín chỉ). "
-                        + "Số buổi ≈ 5 × tín chỉ (tối đa 60); có thể nhiều dòng/lớp nếu buổi &gt; số tuần trong [tuần bắt đầu, tuần kết thúc].",
+                "Phân lịch xong: tạo %d dòng lịch; %d lớp học phần bỏ qua hoặc xếp không đủ (hết ô trống, khung tuần quá ngắn, hoặc đã đủ/đủ buổi LT+TH+tăng cường theo tín chỉ). "
+                        + "Số buổi ≈ 5 × tín chỉ (tối đa 60); lịch lý thuyết/thực hành/tăng cường đã có được trừ trước khi xếp thêm. Buổi thi không tính vào hạn mức.",
                 createdCount, skippedSections);
         return new AutoScheduleResult(createdCount, skippedSections, message);
     }
@@ -607,6 +632,263 @@ public class ScheduleService {
         return Math.min(60, credits * 5);
     }
 
+    /** Số tuần lặp thực tế (tuần lẻ/chẵn được lọc theo {@link WeekPattern}). */
+    private static int countWeekOccurrencesInRange(Integer startWeek, Integer endWeek, WeekPattern pattern) {
+        if (startWeek == null || endWeek == null) {
+            return 0;
+        }
+        WeekPattern wp = pattern != null ? pattern : WeekPattern.ALL;
+        int n = 0;
+        for (int w = startWeek; w <= endWeek; w++) {
+            if (wp == WeekPattern.ALL) {
+                n++;
+            } else if (wp == WeekPattern.ODD) {
+                if ((w & 1) != 0) {
+                    n++;
+                }
+            } else if (wp == WeekPattern.EVEN) {
+                if ((w & 1) == 0) {
+                    n++;
+                }
+            }
+        }
+        return n;
+    }
+
+    /** Chỉ LT, TH, tăng cường tính vào ngần 5×TC; thi và các loại khác (nếu có) không tính. */
+    private static boolean countsTowardCreditBudget(SessionType st) {
+        return st == SessionType.THEORY || st == SessionType.PRACTICE || st == SessionType.SUPPLEMENTARY;
+    }
+
+    private static int creditBudgetUnitsForSchedule(Schedule x) {
+        if (x == null || x.getStatus() != ScheduleStatus.ACTIVE) {
+            return 0;
+        }
+        if (x.getSessionType() == null || !countsTowardCreditBudget(x.getSessionType())) {
+            return 0;
+        }
+        return countWeekOccurrencesInRange(x.getStartWeek(), x.getEndWeek(), x.getWeekPattern());
+    }
+
+    private static int sumCreditBudgetUnitsForClassSection(List<Schedule> schedules, Long classSectionId, UUID excludeId) {
+        int sum = 0;
+        for (Schedule x : schedules) {
+            if (excludeId != null && excludeId.equals(x.getId())) {
+                continue;
+            }
+            if (x.getClassSection() == null || !classSectionId.equals(x.getClassSection().getId())) {
+                continue;
+            }
+            sum += creditBudgetUnitsForSchedule(x);
+        }
+        return sum;
+    }
+
+    /**
+     * Nghiệp vụ: tổng (LT + TH + tăng cường) theo số tuần lặp không vượt quá ≈ 5× tín chỉ (tối đa 60). Buổi thi không tính.
+     */
+    private void validateCreditSessionBudget(Schedule candidate, UUID excludeScheduleId) {
+        ClassSection cs = candidate.getClassSection();
+        Semester sem = candidate.getSemester();
+        if (cs == null || sem == null || cs.getCourse() == null) {
+            return;
+        }
+        int budget = totalSessionsForCredits(cs.getCourse().getCredits());
+        List<Schedule> rows = repository.findBySemester_IdAndClassSection_Id(sem.getId(), cs.getId());
+        int usedOthers = 0;
+        for (Schedule x : rows) {
+            if (excludeScheduleId != null && excludeScheduleId.equals(x.getId())) {
+                continue;
+            }
+            usedOthers += creditBudgetUnitsForSchedule(x);
+        }
+        int newUnits = creditBudgetUnitsForSchedule(candidate);
+        if (usedOthers + newUnits > budget) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    String.format(
+                            "Vượt quá tổng buổi theo tín chỉ (%d buổi lặp theo tuần cho học phần này). "
+                                    + "Đã dùng %d (lý thuyết + thực hành + tăng cường); dòng này thêm %d. "
+                                    + "Buổi thi không tính vào hạn mức — có thể chọn loại buổi “Thi”, hoặc rút ngắn khoảng tuần / bớt lịch tăng cường.",
+                            budget, usedOthers, newUnits));
+        }
+    }
+
+    /** Số buổi lặp theo tuần của một dòng đang ACTIVE và loại tăng cường. */
+    private static int supplementaryActiveWeekUnits(Schedule s) {
+        if (s == null || s.getStatus() != ScheduleStatus.ACTIVE || s.getSessionType() != SessionType.SUPPLEMENTARY) {
+            return 0;
+        }
+        return countWeekOccurrencesInRange(s.getStartWeek(), s.getEndWeek(), s.getWeekPattern());
+    }
+
+    private void applySupplementaryTailAdjustmentOnCreate(Schedule candidate) {
+        int u = supplementaryActiveWeekUnits(candidate);
+        if (u <= 0) {
+            return;
+        }
+        trimTheoryPracticeTailWeeks(candidate.getSemester().getId(), candidate.getClassSection().getId(), u);
+    }
+
+    private void applySupplementaryTailAdjustmentOnUpdate(
+            Long oldSemesterId,
+            Long oldClassSectionId,
+            int oldSupplementaryUnits,
+            Long newSemesterId,
+            Long newClassSectionId,
+            int newSupplementaryUnits) {
+        boolean sameSection = Objects.equals(oldSemesterId, newSemesterId)
+                && Objects.equals(oldClassSectionId, newClassSectionId);
+        if (!sameSection) {
+            if (oldSupplementaryUnits > 0) {
+                extendTheoryPracticeTailWeeks(oldSemesterId, oldClassSectionId, oldSupplementaryUnits);
+            }
+            if (newSupplementaryUnits > 0) {
+                trimTheoryPracticeTailWeeks(newSemesterId, newClassSectionId, newSupplementaryUnits);
+            }
+            return;
+        }
+        int delta = newSupplementaryUnits - oldSupplementaryUnits;
+        if (delta > 0) {
+            trimTheoryPracticeTailWeeks(newSemesterId, newClassSectionId, delta);
+        } else if (delta < 0) {
+            extendTheoryPracticeTailWeeks(newSemesterId, newClassSectionId, -delta);
+        }
+    }
+
+    private static boolean weekMatchesPattern(int weekNumber, WeekPattern pattern) {
+        WeekPattern wp = pattern != null ? pattern : WeekPattern.ALL;
+        if (wp == WeekPattern.ALL) {
+            return true;
+        }
+        if (wp == WeekPattern.ODD) {
+            return (weekNumber & 1) != 0;
+        }
+        if (wp == WeekPattern.EVEN) {
+            return (weekNumber & 1) == 0;
+        }
+        return true;
+    }
+
+    private static List<Integer> listMatchingWeeksAscending(Integer startWeek, Integer endWeek, WeekPattern pattern) {
+        if (startWeek == null || endWeek == null || startWeek > endWeek) {
+            return List.of();
+        }
+        List<Integer> list = new ArrayList<>();
+        for (int w = startWeek; w <= endWeek; w++) {
+            if (weekMatchesPattern(w, pattern)) {
+                list.add(w);
+            }
+        }
+        return list;
+    }
+
+    private List<Schedule> loadActiveTheoryPracticeSchedules(long semesterId, long classSectionId) {
+        List<Schedule> out = new ArrayList<>();
+        for (Schedule x : repository.findBySemester_IdAndClassSection_Id(semesterId, classSectionId)) {
+            if (x.getStatus() != ScheduleStatus.ACTIVE) {
+                continue;
+            }
+            if (x.getSessionType() != SessionType.THEORY && x.getSessionType() != SessionType.PRACTICE) {
+                continue;
+            }
+            out.add(x);
+        }
+        return out;
+    }
+
+    /**
+     * Rút {@code unitsToRemove} buổi lặp (theo tuần) từ <strong>cuối</strong> các dòng LT/TH: ưu tiên dòng có {@code end_week} lớn nhất,
+     * rút dần về phía tuần đầu của dòng đó; hết dòng thì chuyển dòng LT/TH tiếp theo.
+     */
+    private void trimTheoryPracticeTailWeeks(long semesterId, long classSectionId, int unitsToRemove) {
+        if (unitsToRemove <= 0) {
+            return;
+        }
+        int remaining = unitsToRemove;
+        while (remaining > 0) {
+            List<Schedule> pool = loadActiveTheoryPracticeSchedules(semesterId, classSectionId);
+            if (pool.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Học tăng cường: cần rút " + unitsToRemove + " buổi từ lịch lý thuyết/thực hành (từ các tuần cuối) "
+                                + "nhưng không đủ lịch LT/TH (còn thiếu " + remaining + " buổi). "
+                                + "Hãy có ít nhất một dòng LT hoặc TH đủ dài trước khi thêm tăng cường.");
+            }
+            pool.sort(Comparator
+                    .comparing((Schedule x) -> x.getEndWeek(), Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(x -> x.getStartWeek(), Comparator.nullsLast(Comparator.reverseOrder())));
+            Schedule target = pool.get(0);
+            int removed = shrinkTheoryPracticeRowFromTail(target, remaining);
+            if (removed <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Không thể rút thêm buổi LT/TH từ tuần cuối cho lớp học phần này.");
+            }
+            remaining -= removed;
+        }
+    }
+
+    /**
+     * Kéo dài các dòng LT/TH (cùng lớp) về phía tuần sau để bù lại buổi đã rút khi bớt/xóa tăng cường.
+     */
+    private void extendTheoryPracticeTailWeeks(long semesterId, long classSectionId, int unitsToAdd) {
+        if (unitsToAdd <= 0) {
+            return;
+        }
+        int remaining = unitsToAdd;
+        while (remaining > 0) {
+            List<Schedule> pool = loadActiveTheoryPracticeSchedules(semesterId, classSectionId);
+            if (pool.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Không có lịch lý thuyết/thực hành để kéo dài lại sau khi bớt tăng cường (thiếu " + remaining + " buổi).");
+            }
+            pool.sort(Comparator
+                    .comparing((Schedule x) -> x.getEndWeek(), Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(x -> x.getStartWeek(), Comparator.nullsLast(Comparator.reverseOrder())));
+            Schedule target = pool.get(0);
+            int added = extendScheduleAtTailFollowingPattern(target, remaining);
+            if (added <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Không thể kéo dài thêm lịch LT/TH (đã tới tuần 53 hoặc kiểu tuần không cho phép).");
+            }
+            repository.save(target);
+            repository.flush();
+            remaining -= added;
+        }
+    }
+
+    /** Rút tối đa {@code maxRemove} buổi từ cuối một dòng LT/TH; xóa dòng nếu hết buổi. */
+    private int shrinkTheoryPracticeRowFromTail(Schedule s, int maxRemove) {
+        List<Integer> asc = listMatchingWeeksAscending(s.getStartWeek(), s.getEndWeek(), s.getWeekPattern());
+        if (asc.isEmpty()) {
+            return 0;
+        }
+        int take = Math.min(maxRemove, asc.size());
+        if (take == asc.size()) {
+            UUID sid = s.getId();
+            scheduleOverrideRepository.deleteByScheduleId(sid);
+            repository.delete(s);
+            repository.flush();
+            return take;
+        }
+        int newEndIndex = asc.size() - 1 - take;
+        s.setEndWeek(asc.get(newEndIndex));
+        repository.save(s);
+        repository.flush();
+        return take;
+    }
+
+    private static int extendScheduleAtTailFollowingPattern(Schedule s, int maxAdd) {
+        WeekPattern wp = s.getWeekPattern() != null ? s.getWeekPattern() : WeekPattern.ALL;
+        int ew = s.getEndWeek() != null ? s.getEndWeek() : 1;
+        int added = 0;
+        for (int w = ew + 1; w <= 53 && added < maxAdd; w++) {
+            if (weekMatchesPattern(w, wp)) {
+                added++;
+                s.setEndWeek(w);
+            }
+        }
+        return added;
+    }
+
     private static final Pattern ACADEMIC_YEAR_FOUR_DIGIT = Pattern.compile("(19|20)\\d{2}");
 
     
@@ -913,6 +1195,8 @@ public class ScheduleService {
                 s.setScheduleType(sct);
                 s.setStatus(ss);
                 s.setNote(note != null ? (note.length() > 255 ? note.substring(0, 255) : note) : null);
+                applySupplementaryTailAdjustmentOnCreate(s);
+                validateCreditSessionBudget(s, null);
                 repository.save(s);
             }
         }

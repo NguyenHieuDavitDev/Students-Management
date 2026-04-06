@@ -23,6 +23,7 @@
                 Mỗi dòng lịch = <strong>cùng thứ + cùng tiết</strong> lặp mỗi tuần từ tuần A đến tuần B. Nếu số buổi <strong>lớn hơn</strong> số tuần trong khung
                 <code>[tuần bắt đầu, tuần kết thúc]</code>, sẽ tự thêm <strong>nhiều dòng</strong> (thứ/tiết khác) cho đủ buổi — chỉ khi xếp được hết mới ghi DB (tránh lịch dở dang).
                 Nếu <strong>không nhập tuần kết thúc</strong>, khung = từ tuần bắt đầu kéo dài đúng số buổi (như trước). Chọn <strong>thứ trong tuần</strong> và <strong>tiết</strong> được phép; thứ tự trên form = độ ưu tiên thử ô trống (thứ trước, tiết sau). Chỉ lớp <strong>đang mở</strong>; phòng hoạt động.
+                <br><strong>Học tăng cường:</strong> nếu đã nhập lịch loại <em>tăng cường</em> cho lớp học phần, hệ thống <strong>trừ</strong> số tuần đó khỏi hạn mức buổi theo tín chỉ rồi mới xếp thêm lý thuyết (mặc định). Buổi thi không tính vào hạn mức.
             </p>
 
             <form method="post" th:action="@{/admin/schedules/auto}" th:object="${autoScheduleRequest}" class="mt-4">

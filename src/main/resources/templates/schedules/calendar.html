@@ -174,7 +174,7 @@
                         <h5 class="modal-title mb-0" id="scheduleModalTitle">Lịch học</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <p class="small text-muted mb-0">Xem / <strong>sửa</strong> / <strong>xóa</strong> (Lưu · Xóa) hoặc đóng. Ô trống trên lưới: <strong>thêm</strong> lịch mới.</p>
+                    <p class="small text-muted mb-0">Xem / <strong>sửa</strong> / <strong>xóa</strong> (Lưu · Xóa) hoặc đóng. Ô trống: chọn <strong>thêm lịch mới</strong> hoặc <strong>học tăng cường</strong>.</p>
                 </div>
                 <div class="modal-body">
                     <div id="modalGlobalError" class="alert alert-danger d-none"></div>
@@ -258,6 +258,30 @@
                             <i class="fa-solid fa-save"></i> Lưu
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chọn thao tác khi bấm ô trống -->
+    <div class="modal fade" id="cellActionModal" tabindex="-1" aria-labelledby="cellActionModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h5 class="modal-title" id="cellActionModalTitle">Thêm vào ô lịch này</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="small text-muted mb-3" id="cellActionContext"></p>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-primary" id="btnCellActionNormal">
+                            <i class="fa-solid fa-plus me-1"></i> Thêm lịch mới
+                        </button>
+                        <button type="button" class="btn btn-success" id="btnCellActionSupplementary">
+                            <i class="fa-solid fa-bolt me-1"></i> Học tăng cường
+                        </button>
+                    </div>
+                    <p class="small text-muted mt-3 mb-0">Khi lưu, mỗi buổi tăng cường (theo tuần lặp) sẽ <strong>rút</strong> một buổi tương ứng từ <strong>cuối</strong> lịch lý thuyết/thực hành cùng lớp. Vẫn trong hạn mức theo tín chỉ; thi không tính hạn mức.</p>
                 </div>
             </div>
         </div>
@@ -363,7 +387,9 @@
                 dragSourceSlotLabel: '',
                 dragSourceRoomLabel: '',
                 dragSourceDayPart: null,
-                pendingDrop: null
+                pendingDrop: null,
+                pendingCellCreate: null,
+                afterCellActionModal: null
             };
             const modalEl = document.getElementById('scheduleModal');
             if (!modalEl) {
@@ -371,6 +397,26 @@
                 return;
             }
             const bsModal = new bootstrap.Modal(modalEl);
+            const cellActionModalEl = document.getElementById('cellActionModal');
+            const bsCellActionModal = cellActionModalEl ? new bootstrap.Modal(cellActionModalEl) : null;
+            if (cellActionModalEl) {
+                cellActionModalEl.addEventListener('hidden.bs.modal', function () {
+                    const cont = weekPlannerState.afterCellActionModal;
+                    weekPlannerState.afterCellActionModal = null;
+                    weekPlannerState.pendingCellCreate = null;
+                    if (cont) {
+                        openModalCreate(cont.clickedDate, cont.periodNum, cont.dayPartKey, cont.sessionType);
+                    }
+                });
+                const btnCellN = document.getElementById('btnCellActionNormal');
+                const btnCellS = document.getElementById('btnCellActionSupplementary');
+                if (btnCellN) {
+                    btnCellN.addEventListener('click', function () { finishCellActionChoice('THEORY'); });
+                }
+                if (btnCellS) {
+                    btnCellS.addEventListener('click', function () { finishCellActionChoice('SUPPLEMENTARY'); });
+                }
+            }
             const dragConfirmModalEl = document.getElementById('scheduleDragConfirmModal');
             const bsDragConfirmModal = dragConfirmModalEl ? new bootstrap.Modal(dragConfirmModalEl) : null;
             if (dragConfirmModalEl) {
@@ -562,10 +608,52 @@
                 if (!t) return res.statusText || ('HTTP ' + res.status);
                 try {
                     const j = JSON.parse(t);
-                    return j.message || j.error || t;
+                    if (typeof j.message === 'string' && j.message.trim()) return j.message;
+                    if (typeof j.detail === 'string' && j.detail.trim()) return j.detail;
+                    if (typeof j.error === 'string' && j.error.trim()) return j.error;
+                    if (typeof j.title === 'string' && j.title.trim()) return j.title;
+                    return t;
                 } catch (e) {
                     return t;
                 }
+            }
+
+            function normalizeScheduleEnumField(v) {
+                if (v == null) return '';
+                return String(v).trim().toUpperCase();
+            }
+
+            function isLikelyUuid(s) {
+                return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(s || '').trim());
+            }
+
+            /** Trả về chuỗi lỗi tiếng Việt hoặc null nếu ổn. */
+            function validateScheduleFormBeforeApi() {
+                const stSel = document.getElementById('f_sessionType');
+                if (!stSel || !stSel.options || stSel.options.length === 0) {
+                    return 'Danh sách loại buổi chưa sẵn sàng — chờ tải cấu hình hoặc tải lại trang.';
+                }
+                const st = String(stSel.value || '').trim();
+                if (!st) {
+                    return 'Vui lòng chọn loại buổi (Lý thuyết / Thực hành / Thi / Tăng cường).';
+                }
+                const lec = String(document.getElementById('f_lecturerId').value || '').trim();
+                if (!lec || !isLikelyUuid(lec)) {
+                    return 'Chọn giảng viên hợp lệ.';
+                }
+                const cs = +document.getElementById('f_classSectionId').value;
+                if (!cs || cs < 1) {
+                    return 'Chọn lớp học phần.';
+                }
+                const roomId = +document.getElementById('f_roomId').value;
+                const slotId = +document.getElementById('f_timeSlotId').value;
+                if (!roomId || roomId < 1) return 'Chọn phòng học.';
+                if (!slotId || slotId < 1) return 'Chọn khung giờ.';
+                const wp = normalizeScheduleEnumField(document.getElementById('f_weekPattern').value);
+                if (!wp) return 'Chọn kiểu tuần.';
+                const sct = normalizeScheduleEnumField(document.getElementById('f_scheduleType').value);
+                if (!sct) return 'Chọn loại lịch.';
+                return null;
             }
 
             function scheduleIdFromNormalizedEvent(ev) {
@@ -1425,7 +1513,7 @@
                             } else {
                                 td.addEventListener('click', function () {
                                     const dt = dateForModelDow(weekPlannerState.weekMonday, md);
-                                    openModalCreate(dt, periodNum, sec.partKey);
+                                    openCellActionChoice(dt, periodNum, sec.partKey);
                                 });
                                 td.addEventListener('dragover', function (e) {
                                     e.preventDefault();
@@ -1591,6 +1679,25 @@
                 });
             }
 
+            const SESSION_TYPE_LABELS = {
+                THEORY: 'Lý thuyết',
+                PRACTICE: 'Thực hành',
+                EXAM: 'Thi / kiểm tra',
+                SUPPLEMENTARY: 'Tăng cường (rút buổi cuối LT/TH + hạn mức TC)'
+            };
+
+            function fillSessionTypeSelect(sel, typeNames) {
+                if (!sel) return;
+                sel.innerHTML = '';
+                ensureArray(typeNames).forEach(function (n) {
+                    const name = String(n);
+                    const o = document.createElement('option');
+                    o.value = name;
+                    o.textContent = SESSION_TYPE_LABELS[name] || name;
+                    sel.appendChild(o);
+                });
+            }
+
             function loadClassSectionsForSemester(semesterId) {
                 const sel = document.getElementById('f_classSectionId');
                 const sid = String(semesterId);
@@ -1598,14 +1705,63 @@
                 fillSelect(sel, list, 'id', cs => cs.classCode + ' — ' + cs.className, null);
             }
 
-            function openModalCreate(clickedDate, periodNum, dayPartKey) {
+            function finishCellActionChoice(sessionType) {
+                if (!weekPlannerState.pendingCellCreate) return;
+                if (!bsCellActionModal) {
+                    const p = weekPlannerState.pendingCellCreate;
+                    weekPlannerState.pendingCellCreate = null;
+                    openModalCreate(p.clickedDate, p.periodNum, p.dayPartKey, sessionType);
+                    return;
+                }
+                const p = weekPlannerState.pendingCellCreate;
+                weekPlannerState.pendingCellCreate = null;
+                weekPlannerState.afterCellActionModal = {
+                    clickedDate: p.clickedDate,
+                    periodNum: p.periodNum,
+                    dayPartKey: p.dayPartKey,
+                    sessionType: sessionType
+                };
+                bsCellActionModal.hide();
+            }
+
+            function openCellActionChoice(clickedDate, periodNum, dayPartKey) {
                 const semIdRaw = document.getElementById('semesterSelect') && document.getElementById('semesterSelect').value;
                 const semId = semIdRaw != null ? String(semIdRaw).trim() : '';
                 if (!semId) {
                     showPageError('Vui lòng chọn học kỳ trước khi thêm lịch.');
                     return;
                 }
-                document.getElementById('scheduleModalTitle').textContent = 'Thêm lịch học (Create)';
+                if (!bsCellActionModal) {
+                    openModalCreate(clickedDate, periodNum, dayPartKey, 'THEORY');
+                    return;
+                }
+                weekPlannerState.pendingCellCreate = { clickedDate, periodNum, dayPartKey };
+                weekPlannerState.afterCellActionModal = null;
+                const ctx = document.getElementById('cellActionContext');
+                if (ctx) {
+                    const md = jsDayToModel(clickedDate.getDay());
+                    ctx.textContent = modelDayLabel(md) + ' · ' + slotLabelForPeriod(periodNum, dayPartKey)
+                        + ' · ' + formatYMD(clickedDate);
+                }
+                bsCellActionModal.show();
+            }
+
+            function openModalCreate(clickedDate, periodNum, dayPartKey, sessionTypeOpt) {
+                const semIdRaw = document.getElementById('semesterSelect') && document.getElementById('semesterSelect').value;
+                const semId = semIdRaw != null ? String(semIdRaw).trim() : '';
+                if (!semId) {
+                    showPageError('Vui lòng chọn học kỳ trước khi thêm lịch.');
+                    return;
+                }
+                const allowedSt = { THEORY: 1, PRACTICE: 1, EXAM: 1, SUPPLEMENTARY: 1 };
+                const wantKey = normalizeScheduleEnumField(sessionTypeOpt);
+                const wantSt = allowedSt[wantKey] ? wantKey : 'THEORY';
+                const stSel = document.getElementById('f_sessionType');
+                if (stSel && meta && ensureArray(meta.sessionTypes).length) {
+                    fillSessionTypeSelect(stSel, meta.sessionTypes);
+                }
+                document.getElementById('scheduleModalTitle').textContent =
+                    wantSt === 'SUPPLEMENTARY' ? 'Thêm lịch — học tăng cường' : 'Thêm lịch học (Create)';
                 document.getElementById('f_scheduleId').value = '';
                 document.getElementById('btnDeleteSchedule').classList.add('d-none');
                 document.getElementById('modalGlobalError').classList.add('d-none');
@@ -1620,7 +1776,17 @@
                 document.getElementById('f_startWeek').value = Math.max(1, w);
                 document.getElementById('f_endWeek').value = Math.max(1, w);
                 document.getElementById('f_weekPattern').value = 'ALL';
-                document.getElementById('f_sessionType').value = 'THEORY';
+                if (stSel) {
+                    const hasWant = Array.prototype.some.call(stSel.options, function (o) { return o.value === wantSt; });
+                    if (hasWant) {
+                        stSel.value = wantSt;
+                    } else {
+                        stSel.value = 'THEORY';
+                        if (wantSt === 'SUPPLEMENTARY') {
+                            document.getElementById('scheduleModalTitle').textContent = 'Thêm lịch học (Create)';
+                        }
+                    }
+                }
                 document.getElementById('f_scheduleType').value = 'NORMAL';
                 document.getElementById('f_status').value = 'ACTIVE';
                 document.getElementById('f_note').value = '';
@@ -1648,19 +1814,20 @@
             }
 
             function payloadFromForm() {
+                const statusRaw = normalizeScheduleEnumField(document.getElementById('f_status').value);
                 return {
                     semesterId: +document.getElementById('f_semesterId').value,
                     classSectionId: +document.getElementById('f_classSectionId').value,
-                    lecturerId: document.getElementById('f_lecturerId').value,
+                    lecturerId: String(document.getElementById('f_lecturerId').value || '').trim(),
                     roomId: +document.getElementById('f_roomId').value,
                     timeSlotId: +document.getElementById('f_timeSlotId').value,
                     dayOfWeek: +document.getElementById('f_dayOfWeek').value,
                     startWeek: +document.getElementById('f_startWeek').value,
                     endWeek: +document.getElementById('f_endWeek').value,
-                    weekPattern: document.getElementById('f_weekPattern').value,
-                    sessionType: document.getElementById('f_sessionType').value,
-                    scheduleType: document.getElementById('f_scheduleType').value,
-                    status: document.getElementById('f_status').value,
+                    weekPattern: normalizeScheduleEnumField(document.getElementById('f_weekPattern').value),
+                    sessionType: normalizeScheduleEnumField(document.getElementById('f_sessionType').value),
+                    scheduleType: normalizeScheduleEnumField(document.getElementById('f_scheduleType').value),
+                    status: statusRaw || 'ACTIVE',
                     note: document.getElementById('f_note').value || null
                 };
             }
@@ -1673,6 +1840,11 @@
 
             if (btnSaveSchedule) btnSaveSchedule.addEventListener('click', async () => {
                 document.getElementById('modalGlobalError').classList.add('d-none');
+                const preErr = validateScheduleFormBeforeApi();
+                if (preErr) {
+                    showModalError(preErr);
+                    return;
+                }
                 const id = document.getElementById('f_scheduleId').value;
                 const body = JSON.stringify(payloadFromForm());
                 btnSaveSchedule.disabled = true;
@@ -1741,8 +1913,9 @@
                 const dw = (r.dayOfWeek != null ? modelDayLabel(r.dayOfWeek) : '—')
                     + ' · Tuần ' + (r.startWeek != null ? r.startWeek : '?') + ' — ' + (r.endWeek != null ? r.endWeek : '?');
                 document.getElementById('read_dayWeeks').textContent = dw;
+                const stLab = r.sessionType ? (SESSION_TYPE_LABELS[r.sessionType] || r.sessionType) : null;
                 document.getElementById('read_typeStatus').textContent =
-                    [r.sessionType, r.status].filter(Boolean).join(' · ') || '—';
+                    [stLab, r.status].filter(Boolean).join(' · ') || '—';
                 document.getElementById('scheduleReadPanel').classList.remove('d-none');
             }
 
@@ -1759,6 +1932,10 @@
                 }
                 const r = await res.json();
                 fillReadPanel(r);
+                const fStType = document.getElementById('f_sessionType');
+                if (fStType && meta && ensureArray(meta.sessionTypes).length) {
+                    fillSessionTypeSelect(fStType, meta.sessionTypes);
+                }
                 setSelectValue('f_semesterId', r.semesterId);
                 loadClassSectionsForSemester(r.semesterId);
                 setSelectValue('f_classSectionId', r.classSectionId);
@@ -1793,7 +1970,7 @@
                     fillSelect(top, sems, 'id', s => (s.code || '') + ' — ' + (s.name || ''), semEmptyLabel);
                     fillSelect(document.getElementById('f_semesterId'), sems, 'id', s => (s.code || '') + ' — ' + (s.name || ''), semEmptyLabel);
                     enumSelect(document.getElementById('f_weekPattern'), meta.weekPatterns);
-                    enumSelect(document.getElementById('f_sessionType'), meta.sessionTypes);
+                    fillSessionTypeSelect(document.getElementById('f_sessionType'), meta.sessionTypes);
                     enumSelect(document.getElementById('f_scheduleType'), meta.scheduleTypes);
                     enumSelect(document.getElementById('f_status'), meta.scheduleStatuses);
                     fillSelect(document.getElementById('f_lecturerId'), meta.lecturers, 'lecturerId', l => l.lecturerCode + ' — ' + l.fullName, null);

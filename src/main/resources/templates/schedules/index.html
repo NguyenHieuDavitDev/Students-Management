@@ -90,6 +90,7 @@
                             <span th:if="${s.sessionType?.name() == 'THEORY'}" class="badge bg-info">LT</span>
                             <span th:if="${s.sessionType?.name() == 'PRACTICE'}" class="badge bg-primary">TH</span>
                             <span th:if="${s.sessionType?.name() == 'EXAM'}" class="badge bg-warning">Thi</span>
+                            <span th:if="${s.sessionType?.name() == 'SUPPLEMENTARY'}" class="badge bg-success">TC</span>
                         </td>
                         <td>
                             <span th:if="${s.status?.name() == 'ACTIVE'}" class="badge bg-success">Hoạt động</span>

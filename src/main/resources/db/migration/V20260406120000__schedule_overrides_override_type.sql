@@ -1,5 +1,5 @@
 -- Cho phép override_type = RESCHEDULE; gỡ mọi CHECK cũ trên schedule_overrides (tên như CK__schedule___overr__74794A92).
--- Chạy qua Flyway khi bảng đã tồn tại. DB mới: Hibernate tạo bảng sau Flyway — khi đó bảng chưa có → khối IF bỏ qua (không lỗi).
+-- Chạy qua Flyway khi bảng đã tồn tại. DB mới: Hibernate tạo bảng sau Flyway — khi đó bảng chưa có thì khối IF bỏ qua (không lỗi).
 IF OBJECT_ID(N'dbo.schedule_overrides', N'U') IS NOT NULL
 BEGIN
     IF COL_LENGTH(N'dbo.schedule_overrides', N'moved_to_date') IS NULL

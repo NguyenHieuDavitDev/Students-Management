@@ -109,6 +109,11 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<!-- flyway:repair đồng bộ checksum khi đã sửa file migration đã apply -->
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+			</plugin>
 		</plugins>
 	</build>
 

@@ -14,6 +14,8 @@ public interface ScheduleRepository extends JpaRepository<Schedule, UUID> {
 
     List<Schedule> findBySemester_Id(Long semesterId);
 
+    List<Schedule> findBySemester_IdAndClassSection_Id(Long semesterId, Long classSectionId);
+
     @Query("""
             SELECT s FROM Schedule s
             JOIN FETCH s.timeSlot

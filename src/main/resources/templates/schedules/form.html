@@ -88,8 +88,9 @@
                     <div class="col-md-4">
                         <label class="form-label">Loại buổi</label>
                         <select class="form-select" th:field="*{sessionType}">
-                            <option th:each="st : ${sessionTypes}" th:value="${st}" th:text="${st.name()}"></option>
+                            <option th:each="st : ${sessionTypes}" th:value="${st}" th:text="${st.labelVi}"></option>
                         </select>
+                        <small class="text-muted">Tăng cường: khi lưu, hệ thống rút số buổi tương ứng từ <strong>cuối</strong> các dòng lý thuyết/thực hành cùng lớp (theo số tuần lặp của dòng tăng cường); đồng thời vẫn nằm trong hạn mức theo tín chỉ. Thi không tính hạn mức.</small>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Loại lịch</label>
