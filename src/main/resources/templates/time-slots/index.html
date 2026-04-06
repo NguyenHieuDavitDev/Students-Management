@@ -75,6 +75,7 @@
                         <th class="text-center">Tiết kết thúc</th>
                         <th class="text-center">Giờ bắt đầu</th>
                         <th class="text-center">Giờ kết thúc</th>
+                        <th class="text-center">Buổi (lịch)</th>
                         <th class="text-center">Trạng thái</th>
                         <th class="text-end">Thao tác</th>
                     </tr>
@@ -86,6 +87,11 @@
                         <td class="text-center" th:text="${ts.periodEnd}"></td>
                         <td class="text-center" th:text="${ts.startTime != null ? #temporals.format(ts.startTime, 'HH:mm') : ''}"></td>
                         <td class="text-center" th:text="${ts.endTime != null ? #temporals.format(ts.endTime, 'HH:mm') : ''}"></td>
+                        <td class="text-center">
+                            <span class="badge text-dark border"
+                                  th:classappend="${ts.dayPart == 'MORNING'} ? ' bg-warning bg-opacity-25' : (${ts.dayPart == 'EVENING'} ? ' bg-primary bg-opacity-25' : ' bg-info bg-opacity-25')"
+                                  th:text="${ts.dayPartLabel}">—</span>
+                        </td>
                         <td class="text-center">
                             <span class="badge" th:classappend="${ts.isActive} ? 'bg-success' : 'bg-secondary'"
                                   th:text="${ts.isActive} ? 'Đang dùng' : 'Tắt'"></span>
@@ -108,7 +114,7 @@
                         </td>
                     </tr>
                     <tr th:if="${timeSlots.content.isEmpty()}">
-                        <td colspan="7" class="text-center text-muted">
+                        <td colspan="8" class="text-center text-muted">
                             <i class="fa-solid fa-box-open"></i>
                             Không có dữ liệu khung giờ
                         </td>

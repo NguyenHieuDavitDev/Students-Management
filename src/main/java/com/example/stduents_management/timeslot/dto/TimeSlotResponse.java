@@ -9,5 +9,8 @@ public record TimeSlotResponse(
         Integer periodEnd,
         LocalTime startTime,
         LocalTime endTime,
-        Boolean isActive
+        Boolean isActive,
+        /** MORNING | AFTERNOON | EVENING — suy từ giờ bắt đầu hoặc số tiết */
+        String dayPart,
+        String dayPartLabel
 ) {}

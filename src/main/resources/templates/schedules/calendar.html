@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/dashboard :: layout(
-        'Lịch học — lưới tuần',
+        'Lịch học — lưới tuần / ngày',
         'Lịch học',
-        'Lưới tuần: kéo thả — mặc định chỉ đổi một buổi; có thể đổi cả lịch gốc hoặc chỉ đổi phòng một buổi',
+        'Lưới theo buổi sáng, chiều, tối; xem cả tuần hoặc một ngày. Kéo thả: mặc định chỉ đổi một buổi; có thể đổi cả lịch gốc hoặc chỉ đổi phòng.',
         'schedules',
         ~{::content}
       )}">
@@ -18,7 +18,7 @@
             border: 1px dashed #dee2e6; border-radius: 0.375rem; background: #fff;
         }
         #scheduleCalendarWrap { min-height: 360px; }
-        .week-planner-root { max-width: 720px; margin: 0 auto; }
+        .week-planner-root { max-width: min(100%, 1040px); margin: 0 auto; }
         #calendarEventsLoadingOverlay {
             position: absolute; inset: 0; z-index: 12;
             display: flex; align-items: flex-start; justify-content: center;
@@ -33,7 +33,7 @@
         .wk-table-wrap { overflow-x: auto; border-radius: 0.5rem; border: 1px solid #dee2e6; background: #fff; }
         .wk-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 0.72rem; }
         .wk-table th, .wk-table td { border: 1px solid #e9ecef; vertical-align: middle; }
-        .wk-corner { width: 2.25rem; background: #ffe08a !important; border: 1px solid #e6cf7a !important; }
+        .wk-corner { width: 2.5rem; background: #ffe08a !important; border: 1px solid #e6cf7a !important; }
         .wk-hd { padding: 0.45rem 0.2rem; font-weight: 700; color: #fff; text-align: center; line-height: 1.1; }
         .wk-hd-0 { background: linear-gradient(180deg, #7a9a3a, #5d7a2e); }
         .wk-hd-1 { background: linear-gradient(180deg, #6d8f35, #556b2f); }
@@ -42,12 +42,32 @@
         .wk-hd-4 { background: linear-gradient(180deg, #4d6828, #364820); }
         .wk-hd-5 { background: linear-gradient(180deg, #445c24, #2e3e1c); }
         .wk-hd-6 { background: linear-gradient(180deg, #3b4f20, #263418); }
-        .wk-row-h { width: 2.25rem; background: #f8f9fa; font-weight: 600; text-align: center; color: #495057; }
-        .wk-cell { height: 2.6rem; padding: 2px; position: relative; background: #fafafa; }
-        .wk-cell.wk-section-top { border-top: 2px solid #ced4da; }
+        .wk-row-h {
+            width: 5.25rem; min-width: 5rem; max-width: 6.5rem; background: #f8f9fa; font-weight: 600; text-align: center;
+            color: #495057; vertical-align: middle; padding: 4px 3px !important;
+        }
+        .wk-row-h-inner { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; line-height: 1.1; }
+        .wk-row-h-main { font-size: 0.72rem; font-weight: 700; color: #212529; }
+        .wk-row-h-sub { font-size: 0.58rem; font-weight: 500; color: #6c757d; max-width: 5.5rem; word-break: break-word; }
+        .wk-cell { min-height: 3.15rem; height: auto; padding: 4px; position: relative; background: #fafafa; }
+        .wk-cell.wk-section-top { border-top: 2px solid #b8c5d0; }
+        .wk-section-part-row .wk-section-part-hd {
+            text-align: left; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.02em;
+            padding: 0.45rem 0.55rem; border: 1px solid #dee2e6; color: #1a1a2e;
+        }
+        .wk-section-part-hd .wk-section-sub { display: block; font-weight: 500; font-size: 0.68rem; margin-top: 0.2rem; opacity: 0.92; }
+        .wk-section-part-hd.wk-section-part-morning {
+            background: linear-gradient(90deg, #fff9e6 0%, #ffe8a3 35%, #ffd666 100%);
+        }
+        .wk-section-part-hd.wk-section-part-afternoon {
+            background: linear-gradient(90deg, #e8f4fc 0%, #c5e3f6 40%, #9dcbe8 100%);
+        }
+        .wk-section-part-hd.wk-section-part-evening {
+            background: linear-gradient(90deg, #edeaf7 0%, #cfc4e8 45%, #a89fd4 100%);
+        }
         .wk-cell.wk-drop-hover { background: #d1e7dd !important; outline: 2px dashed #198754; }
         .wk-card {
-            margin: 1px auto; max-width: 96%; min-height: calc(100% - 4px);
+            margin: 1px auto; max-width: 96%; min-height: 2.5rem;
             display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start;
             background: #fff; border: 2px solid #2d8a54; border-radius: 8px;
             cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 4px 5px;
@@ -342,6 +362,7 @@
                 dragSourcePeriod: null,
                 dragSourceSlotLabel: '',
                 dragSourceRoomLabel: '',
+                dragSourceDayPart: null,
                 pendingDrop: null
             };
             const modalEl = document.getElementById('scheduleModal');
@@ -509,7 +530,7 @@
                 const ep = Object.assign({}, raw);
                 const flatKeys = [
                     'scheduleId', 'semesterId', 'classSectionId', 'classSectionCode', 'courseCode', 'courseName',
-                    'credits', 'lecturerId', 'roomId', 'timeSlotId', 'periodStart', 'periodEnd',
+                    'credits', 'lecturerId', 'roomId', 'timeSlotId', 'periodStart', 'periodEnd', 'timeSlotDayPart',
                     'courseDisplay', 'slotDisplay', 'dayDisplay', 'roomDisplay', 'lecturerDisplay',
                     'instanceDate', 'dayOfWeek', 'startWeek', 'endWeek', 'note', 'status'
                 ];
@@ -687,7 +708,29 @@
                 return jsDayToModel(d.getDay());
             }
 
-            function slotContainingPeriod(periodNum) {
+            /** Khung giờ chứa tiết trong đúng buổi (sáng/chiều/tối) — cần khi T1–T3 lặp lại mỗi buổi. */
+            function slotContainingPeriodInPart(periodNum, partKey) {
+                const pk = String(partKey || '').toUpperCase();
+                if (!pk) return null;
+                const slots = ensureArray(meta ? meta.timeSlots : []).filter(function (s) {
+                    if (String(s.dayPart || '').toUpperCase() !== pk) return false;
+                    const ps = s.periodStart != null ? s.periodStart : 1;
+                    const pe = s.periodEnd != null ? s.periodEnd : ps;
+                    return ps <= periodNum && periodNum <= pe;
+                });
+                if (!slots.length) return null;
+                slots.sort(function (a, b) {
+                    const spanA = (a.periodEnd || a.periodStart || 1) - (a.periodStart || 1);
+                    const spanB = (b.periodEnd || b.periodStart || 1) - (b.periodStart || 1);
+                    if (spanA !== spanB) return spanA - spanB;
+                    return (a.periodStart || 1) - (b.periodStart || 1);
+                });
+                const exact = slots.find(function (h) { return (h.periodStart || 1) === periodNum; });
+                return exact || slots[0];
+            }
+
+            /** Chỉ dùng khi không biết buổi (có thể nhầm nếu nhiều ca cùng số tiết). */
+            function slotContainingPeriodAmbiguous(periodNum) {
                 const slots = ensureArray(meta ? meta.timeSlots : []);
                 const hits = slots.filter(function (s) {
                     const ps = s.periodStart != null ? s.periodStart : 1;
@@ -700,17 +743,19 @@
                 return exact || hits[0];
             }
 
+            /** theo mọi khung giờ đang bật + tối thiểu 6 hàng khi chưa cấu hình. Tối đa 24 tiết. */
             function computeMaxPeriod() {
-                let m = 6;
+                let m = 0;
                 ensureArray(meta ? meta.timeSlots : []).forEach(function (s) {
                     const ps = s.periodStart != null ? s.periodStart : 1;
                     const pe = s.periodEnd != null ? s.periodEnd : ps;
                     m = Math.max(m, pe, ps);
                 });
-                return Math.min(Math.max(m, 1), 20);
+                if (m < 1) m = 6;
+                return Math.min(m, 24);
             }
 
-            /** Đủ số hàng T* để không bỏ sót buổi học khi tiết (period) > 6 hoặc chỉ xuất hiện trong events. */
+            /** Đủ hàng cho mọi ca trong khung giờ và mọi buổi học trên lịch (kéo thả không bị thiếu ô). */
             function computeMaxPeriodForWeek(events) {
                 let m = computeMaxPeriod();
                 ensureArray(events).forEach(function (raw) {
@@ -719,7 +764,7 @@
                     const span = eventPeriodSpan(ev);
                     m = Math.max(m, span.ps, span.pe);
                 });
-                return Math.min(Math.max(m, 1), 20);
+                return Math.min(Math.max(m, 1), 24);
             }
 
             function eventPeriodSpan(ev) {
@@ -792,27 +837,34 @@
                 }
             }
 
-            function slotLabelForPeriod(periodNum) {
-                const slot = slotContainingPeriod(periodNum);
-                if (slot && slot.slotCode) return slot.slotCode + ' (hàng T' + periodNum + ')';
-                return 'Tiết / hàng T' + periodNum;
+            function slotLabelForPeriod(periodNum, partKey) {
+                const slot = partKey ? slotContainingPeriodInPart(periodNum, partKey) : slotContainingPeriodAmbiguous(periodNum);
+                const bu = partKey ? (' · ' + (DAY_PART_FALLBACK_LABEL[partKey] || partKey)) : '';
+                if (slot && slot.slotCode) return slot.slotCode + ' (T' + periodNum + bu + ')';
+                return 'Tiết T' + periodNum + (partKey ? bu : '');
             }
 
-            function openScheduleDragConfirm(scheduleId, newModelDow, periodNum) {
+            function openScheduleDragConfirm(scheduleId, newModelDow, periodNum, targetDayPart) {
                 if (!bsDragConfirmModal) {
                     showPageError('Không tìm thấy hộp thoại xác nhận kéo thả.');
                     return;
                 }
-                weekPlannerState.pendingDrop = { scheduleId: scheduleId, newModelDow: newModelDow, periodNum: periodNum };
+                weekPlannerState.pendingDrop = {
+                    scheduleId: scheduleId,
+                    newModelDow: newModelDow,
+                    periodNum: periodNum,
+                    dayPart: targetDayPart
+                };
                 const oldD = parseLocalDateFromEventStart(weekPlannerState.dragStartIso);
                 const oldDStr = oldD ? formatDMY(oldD) : '—';
                 const newDate = dateForModelDow(weekPlannerState.weekMonday, newModelDow);
                 const newDStr = newDate ? formatDMY(newDate) : '—';
-                const tgtSlotLabel = slotLabelForPeriod(periodNum);
+                const tgtSlotLabel = slotLabelForPeriod(periodNum, targetDayPart);
                 const srcDow = weekPlannerState.dragSourceModelDow;
                 const srcPer = weekPlannerState.dragSourcePeriod;
                 const srcDayTxt = srcDow != null ? modelDayLabel(srcDow) : '—';
-                const srcSlotTxt = srcPer != null ? slotLabelForPeriod(srcPer) : (weekPlannerState.dragSourceSlotLabel || '—');
+                const srcDp = weekPlannerState.dragSourceDayPart;
+                const srcSlotTxt = srcPer != null ? slotLabelForPeriod(srcPer, srcDp) : (weekPlannerState.dragSourceSlotLabel || '—');
                 const srcRoomTxt = weekPlannerState.dragSourceRoomLabel || (weekPlannerState.dragSourceRoomId != null ? ('#' + weekPlannerState.dragSourceRoomId) : '—');
                 const sum = document.getElementById('dragConfirmSummary');
                 if (sum) {
@@ -856,10 +908,10 @@
                     .catch(function () { /* giữ mặc định từ thẻ */ });
             }
 
-            async function applyPersistGridMove(scheduleId, newModelDow, periodNum) {
-                const slot = slotContainingPeriod(periodNum);
+            async function applyPersistGridMove(scheduleId, newModelDow, periodNum, dayPartKey) {
+                const slot = dayPartKey ? slotContainingPeriodInPart(periodNum, dayPartKey) : slotContainingPeriodAmbiguous(periodNum);
                 if (!slot || slot.id == null) {
-                    throw new Error('Không tìm thấy khung giờ cho tiết ' + periodNum + '.');
+                    throw new Error('Không tìm thấy khung giờ cho tiết ' + periodNum + ' trong buổi đã chọn.');
                 }
                 const newSlotId = +slot.id;
                 const res = await fetch(API_BASE + '/' + encodeURIComponent(scheduleId), {headers: authHeaders(false), credentials: 'same-origin'});
@@ -907,14 +959,14 @@
             }
 
             /** Chỉ một ngày: cùng ngày → TIME_CHANGE; khác ngày → RESCHEDULE (+ phòng tuỳ chọn). */
-            async function applyInstanceDragOnce(scheduleId, newModelDow, periodNum) {
+            async function applyInstanceDragOnce(scheduleId, newModelDow, periodNum, dayPartKey) {
                 const dOld = parseLocalDateFromEventStart(weekPlannerState.dragStartIso);
                 if (!dOld) throw new Error('Không đọc được ngày buổi học.');
                 const orig = formatYMD(dOld);
                 const moved = formatYMD(dateForModelDow(weekPlannerState.weekMonday, newModelDow));
-                const slot = slotContainingPeriod(periodNum);
+                const slot = dayPartKey ? slotContainingPeriodInPart(periodNum, dayPartKey) : slotContainingPeriodAmbiguous(periodNum);
                 if (!slot || slot.id == null) {
-                    throw new Error('Không tìm thấy khung giờ cho tiết ' + periodNum + '.');
+                    throw new Error('Không tìm thấy khung giờ cho tiết ' + periodNum + ' trong buổi đã chọn.');
                 }
                 const fullRoomSel = document.getElementById('dragConfirmFullRoomSelect');
                 const rid = fullRoomSel && fullRoomSel.value ? String(fullRoomSel.value).trim() : '';
@@ -993,13 +1045,13 @@
                             flashPageSuccess('Đã ghi nhận đổi phòng cho buổi đó (lịch gốc không đổi).');
                             await loadWeekEvents();
                         } else if (mode === 'once') {
-                            await applyInstanceDragOnce(p.scheduleId, p.newModelDow, p.periodNum);
+                            await applyInstanceDragOnce(p.scheduleId, p.newModelDow, p.periodNum, p.dayPart);
                             if (bsDragConfirmModal) bsDragConfirmModal.hide();
                             hidePageError();
                             flashPageSuccess('Đã cập nhật chỉ cho buổi đó; các buổi khác giữ nguyên.');
                             await loadWeekEvents();
                         } else {
-                            await applyPersistGridMove(p.scheduleId, p.newModelDow, p.periodNum);
+                            await applyPersistGridMove(p.scheduleId, p.newModelDow, p.periodNum, p.dayPart);
                             if (bsDragConfirmModal) bsDragConfirmModal.hide();
                             hidePageError();
                             flashPageSuccess('Đã cập nhật lịch gốc (cả chuỗi lặp).');
@@ -1064,6 +1116,141 @@
                 return md === 8 ? 'CN' : 'T' + md;
             }
 
+            var DAY_PART_ORDER = ['MORNING', 'AFTERNOON', 'EVENING'];
+            var DAY_PART_FALLBACK_LABEL = { MORNING: 'Buổi sáng', AFTERNOON: 'Buổi chiều', EVENING: 'Buổi tối' };
+
+            function eventPartKeyFromExtended(ev, span) {
+                const ep = ev.extendedProps || {};
+                if (ep.timeSlotDayPart) return String(ep.timeSlotDayPart).toUpperCase();
+                if (ep.timeSlotId != null) {
+                    const sl = ensureArray(meta.timeSlots).find(function (t) {
+                        return String(t.id) === String(ep.timeSlotId);
+                    });
+                    if (sl && sl.dayPart) return String(sl.dayPart).toUpperCase();
+                }
+                return dayPartKeyForPeriod(span.ps);
+            }
+
+            function dayPartKeyForPeriod(periodNum) {
+                const slot = slotContainingPeriodAmbiguous(periodNum);
+                if (slot && slot.dayPart) return String(slot.dayPart).toUpperCase();
+                if (slot && slot.startTime) {
+                    const h = parseInt(String(slot.startTime).split(':')[0], 10);
+                    if (!isNaN(h)) {
+                        if (h < 12) return 'MORNING';
+                        if (h < 18) return 'AFTERNOON';
+                        return 'EVENING';
+                    }
+                }
+                const p = periodNum;
+                if (p <= 5) return 'MORNING';
+                if (p <= 10) return 'AFTERNOON';
+                return 'EVENING';
+            }
+
+            function dayPartLabelForKey(partKey) {
+                const first = ensureArray(meta ? meta.timeSlots : []).find(function (s) {
+                    return s.dayPart && String(s.dayPart).toUpperCase() === partKey;
+                });
+                if (first && first.dayPartLabel) return first.dayPartLabel;
+                return DAY_PART_FALLBACK_LABEL[partKey] || partKey;
+            }
+
+            /** Một dòng gợi ý trong tiêu đề buổi: danh sách mã ca + giờ. */
+            function formatSlotsSummaryForPart(partKey) {
+                const bits = [];
+                ensureArray(meta ? meta.timeSlots : []).forEach(function (s) {
+                    if (String(s.dayPart || '').toUpperCase() !== partKey) return;
+                    let t = s.slotCode ? String(s.slotCode) : ('#' + s.id);
+                    if (s.startTime && s.endTime) {
+                        const st = String(s.startTime);
+                        const en = String(s.endTime);
+                        t += ' ' + st.substring(0, 5) + '–' + en.substring(0, 5);
+                    }
+                    if (s.periodStart != null) {
+                        t += ' (T' + s.periodStart + (s.periodEnd != null && s.periodEnd !== s.periodStart ? '–T' + s.periodEnd : '') + ')';
+                    }
+                    bits.push(t);
+                });
+                return bits.length ? bits.join(' · ') : '';
+            }
+
+            function buildPeriodRowHeader(periodNum, partKey) {
+                const wrap = document.createElement('div');
+                wrap.className = 'wk-row-h-inner';
+                const main = document.createElement('span');
+                main.className = 'wk-row-h-main';
+                main.textContent = 'T' + periodNum;
+                wrap.appendChild(main);
+                const slot = slotContainingPeriodInPart(periodNum, partKey);
+                if (slot) {
+                    let t = slot.slotCode ? String(slot.slotCode) : '';
+                    if (slot.startTime && slot.endTime) {
+                        const st = String(slot.startTime);
+                        const en = String(slot.endTime);
+                        t += (t ? ' · ' : '') + st.substring(0, 5) + '–' + en.substring(0, 5);
+                    }
+                    if (t) {
+                        const sub = document.createElement('span');
+                        sub.className = 'wk-row-h-sub';
+                        sub.textContent = t;
+                        wrap.appendChild(sub);
+                    }
+                }
+                wrap.title = slotLabelForPeriod(periodNum, partKey);
+                return wrap;
+            }
+
+            /**
+             * Luôn 3 buổi. Tiết trong mỗi buổi = hợp từ khung giờ (dayPart) + lịch đang có —
+             * T1–T3 lặp theo buổi (chiều / tối) không bị gộp nhầm.
+             */
+            function buildPeriodSections(events) {
+                const maxBound = computeMaxPeriodForWeek(events);
+                const sections = [];
+                DAY_PART_ORDER.forEach(function (partKey) {
+                    const periodsSet = new Set();
+                    ensureArray(meta.timeSlots).forEach(function (s) {
+                        if (String(s.dayPart || '').toUpperCase() !== partKey) return;
+                        const ps = s.periodStart != null ? s.periodStart : 1;
+                        const pe = s.periodEnd != null ? s.periodEnd : ps;
+                        for (let p = ps; p <= pe; p++) {
+                            if (p >= 1 && p <= maxBound) periodsSet.add(p);
+                        }
+                    });
+                    ensureArray(events).forEach(function (raw) {
+                        const ev = normalizeEventInput(raw);
+                        if (!ev || !ev.start) return;
+                        const span = eventPeriodSpan(ev);
+                        if (eventPartKeyFromExtended(ev, span) !== partKey) return;
+                        for (let p = span.ps; p <= span.pe; p++) {
+                            if (p >= 1 && p <= maxBound) periodsSet.add(p);
+                        }
+                    });
+                    const periods = Array.from(periodsSet).sort(function (a, b) { return a - b; });
+                    sections.push({
+                        partKey: partKey,
+                        label: dayPartLabelForKey(partKey),
+                        subLabel: formatSlotsSummaryForPart(partKey),
+                        periods: periods
+                    });
+                });
+                return sections;
+            }
+
+            function rowIndexForPartAndPeriod(sections, partKey, period) {
+                let r = 0;
+                for (let si = 0; si < sections.length; si++) {
+                    const sec = sections[si];
+                    if (sec.partKey === partKey) {
+                        const idx = sec.periods.indexOf(period);
+                        if (idx >= 0) return r + idx;
+                    }
+                    r += sec.periods.length;
+                }
+                return -1;
+            }
+
             function renderWeekGrid(events) {
                 const host = document.getElementById('weekGridHost');
                 if (!host) return;
@@ -1079,10 +1266,19 @@
                     return;
                 }
                 const days = getDisplayDays();
-                const maxP = computeMaxPeriodForWeek(events);
+                const sections = buildPeriodSections(events);
+                let totalRows = 0;
+                sections.forEach(function (s) {
+                    totalRows += s.periods.length;
+                });
                 const cols = days.length;
                 const occ = [];
-                for (let r = 0; r < maxP; r++) {
+                if (totalRows < 1) {
+                    host.innerHTML = '<div class="p-3 text-center text-muted border rounded bg-light small">' +
+                        'Chưa có tiết nào trong phạm vi lưới. Thêm khung giờ (theo buổi) trong mục <strong>Khung giờ chuẩn</strong>.</div>';
+                    return;
+                }
+                for (let r = 0; r < totalRows; r++) {
                     occ[r] = [];
                     for (let c = 0; c < cols; c++) occ[r][c] = null;
                 }
@@ -1096,19 +1292,19 @@
                     const col = days.indexOf(md);
                     if (col < 0) return;
                     const span = eventPeriodSpan(ev);
-                    const r0 = span.ps - 1;
-                    const r1 = span.pe - 1;
-                    if (r0 < 0 || r0 >= maxP) return;
+                    const partKeyEv = eventPartKeyFromExtended(ev, span);
+                    const r0 = rowIndexForPartAndPeriod(sections, partKeyEv, span.ps);
+                    const r1 = rowIndexForPartAndPeriod(sections, partKeyEv, span.pe);
+                    if (r0 < 0 || r1 < 0 || r1 < r0) return;
                     let clash = false;
-                    for (let r = r0; r <= Math.min(r1, maxP - 1); r++) {
-                        if (occ[r][col]) clash = true;
+                    for (let r = r0; r <= r1; r++) {
+                        if (r >= totalRows || occ[r][col]) clash = true;
                     }
                     if (clash) return;
-                    const rMax = Math.min(r1, maxP - 1);
-                    for (let r = r0; r <= rMax; r++) {
+                    for (let r = r0; r <= r1; r++) {
                         occ[r][col] = (r === r0) ? 'start' : 'span';
                     }
-                    placed.push({ ev: ev, col: col, r0: r0, rowspan: Math.min(span.len, maxP - r0) });
+                    placed.push({ ev: ev, col: col, r0: r0, rowspan: r1 - r0 + 1 });
                 });
 
                 const tb = document.createElement('table');
@@ -1128,93 +1324,130 @@
                 thead.appendChild(hr);
                 tb.appendChild(thead);
                 const tbody = document.createElement('tbody');
-                for (let r = 0; r < maxP; r++) {
-                    const tr = document.createElement('tr');
-                    const th = document.createElement('th');
-                    th.className = 'wk-row-h';
-                    th.textContent = 'T' + (r + 1);
-                    tr.appendChild(th);
-                    for (let c = 0; c < cols; c++) {
-                        if (occ[r][c] === 'span') continue;
-                        const td = document.createElement('td');
-                        td.className = 'wk-cell';
-                        if (r === 0 || r === 6 || r === 12) td.classList.add('wk-section-top');
-                        const md = days[c];
-                        td.dataset.modelDow = String(md);
-                        td.dataset.period = String(r + 1);
-                        const pItem = placed.find(function (p) { return p.col === c && p.r0 === r; });
-                        if (pItem) {
-                            td.setAttribute('rowspan', String(pItem.rowspan));
-                            const sid = scheduleIdFromNormalizedEvent(pItem.ev);
-                            const card = document.createElement('div');
-                            card.className = 'wk-card';
-                            card.draggable = true;
-                            card.dataset.scheduleId = sid;
-                            card.title = (pItem.ev.title || 'Lịch học')
-                                + '\n\nClick: xem / sửa / xóa trong hộp thoại\nKéo thả: mặc định chỉ đổi buổi đó; hoặc đổi cả lịch gốc / chỉ đổi phòng';
-                            fillScheduleCardElement(card, pItem.ev);
-                            card.addEventListener('click', function (e) {
-                                e.stopPropagation();
-                                if (sid) openModalEdit(sid);
-                            });
-                            card.addEventListener('dragstart', function (e) {
-                                weekPlannerState.dragStartIso = pItem.ev.start;
-                                const epDrag = pItem.ev.extendedProps || {};
-                                weekPlannerState.dragSourceRoomId = epDrag.roomId != null ? epDrag.roomId : null;
-                                weekPlannerState.dragSourceModelDow = epDrag.dayOfWeek != null ? +epDrag.dayOfWeek : null;
-                                weekPlannerState.dragSourcePeriod = epDrag.periodStart != null ? +epDrag.periodStart : null;
-                                weekPlannerState.dragSourceSlotLabel = strOrEmpty(epDrag.slotDisplay);
-                                weekPlannerState.dragSourceRoomLabel = strOrEmpty(epDrag.roomDisplay) || strOrEmpty(epDrag.roomCode);
-                                e.dataTransfer.setData('text/plain', sid);
-                                e.dataTransfer.effectAllowed = 'move';
-                                card.style.opacity = '0.65';
-                            });
-                            card.addEventListener('dragend', function () {
-                                card.style.opacity = '1';
-                            });
-                            card.addEventListener('dragover', function (e) {
-                                e.preventDefault();
-                                e.dataTransfer.dropEffect = 'move';
-                                td.classList.add('wk-drop-hover');
-                            });
-                            card.addEventListener('dragleave', function (e) {
-                                if (!td.contains(e.relatedTarget)) {
+                let globalR = 0;
+                sections.forEach(function (sec, secIdx) {
+                    const hdrTr = document.createElement('tr');
+                    hdrTr.className = 'wk-section-part-row';
+                    const hdrTh = document.createElement('th');
+                    hdrTh.colSpan = cols + 1;
+                    hdrTh.className = 'wk-section-part-hd wk-section-part-' + String(sec.partKey).toLowerCase();
+                    const hdrTitle = document.createElement('strong');
+                    hdrTitle.textContent = sec.label;
+                    hdrTh.appendChild(hdrTitle);
+                    if (sec.subLabel) {
+                        const sub = document.createElement('span');
+                        sub.className = 'wk-section-sub';
+                        sub.textContent = sec.subLabel;
+                        hdrTh.appendChild(sub);
+                    } else if (!sec.periods.length) {
+                        const sub = document.createElement('span');
+                        sub.className = 'wk-section-sub text-muted';
+                        sub.textContent = 'Chưa cấu hình ca trong buổi này — có thể thêm khung giờ (gán buổi) hoặc đặt lịch vào tiết thuộc buổi khác.';
+                        hdrTh.appendChild(sub);
+                    }
+                    hdrTr.appendChild(hdrTh);
+                    tbody.appendChild(hdrTr);
+
+                    sec.periods.forEach(function (periodNum, idxInSec) {
+                        const r = globalR;
+                        const tr = document.createElement('tr');
+                        const th = document.createElement('th');
+                        th.className = 'wk-row-h';
+                        th.appendChild(buildPeriodRowHeader(periodNum, sec.partKey));
+                        tr.appendChild(th);
+                        const firstInPart = idxInSec === 0;
+                        for (let c = 0; c < cols; c++) {
+                            if (occ[r][c] === 'span') continue;
+                            const td = document.createElement('td');
+                            td.className = 'wk-cell';
+                            if (firstInPart && secIdx > 0) td.classList.add('wk-section-top');
+                            const md = days[c];
+                            td.dataset.modelDow = String(md);
+                            td.dataset.period = String(periodNum);
+                            td.dataset.dayPart = String(sec.partKey);
+                            const pItem = placed.find(function (p) { return p.col === c && p.r0 === r; });
+                            if (pItem) {
+                                td.setAttribute('rowspan', String(pItem.rowspan));
+                                const sid = scheduleIdFromNormalizedEvent(pItem.ev);
+                                const card = document.createElement('div');
+                                card.className = 'wk-card';
+                                card.draggable = true;
+                                card.dataset.scheduleId = sid;
+                                card.title = (pItem.ev.title || 'Lịch học')
+                                    + '\n\nClick: xem / sửa / xóa trong hộp thoại\nKéo thả: mặc định chỉ đổi buổi đó; hoặc đổi cả lịch gốc / chỉ đổi phòng';
+                                fillScheduleCardElement(card, pItem.ev);
+                                card.addEventListener('click', function (e) {
+                                    e.stopPropagation();
+                                    if (sid) openModalEdit(sid);
+                                });
+                                card.addEventListener('dragstart', function (e) {
+                                    weekPlannerState.dragStartIso = pItem.ev.start;
+                                    const epDrag = pItem.ev.extendedProps || {};
+                                    weekPlannerState.dragSourceRoomId = epDrag.roomId != null ? epDrag.roomId : null;
+                                    weekPlannerState.dragSourceModelDow = epDrag.dayOfWeek != null ? +epDrag.dayOfWeek : null;
+                                    weekPlannerState.dragSourcePeriod = epDrag.periodStart != null ? +epDrag.periodStart : null;
+                                    let dp = epDrag.timeSlotDayPart ? String(epDrag.timeSlotDayPart).toUpperCase() : '';
+                                    if (!dp && epDrag.timeSlotId != null) {
+                                        const slDp = ensureArray(meta.timeSlots).find(function (t) {
+                                            return String(t.id) === String(epDrag.timeSlotId);
+                                        });
+                                        if (slDp && slDp.dayPart) dp = String(slDp.dayPart).toUpperCase();
+                                    }
+                                    weekPlannerState.dragSourceDayPart = dp || null;
+                                    weekPlannerState.dragSourceSlotLabel = strOrEmpty(epDrag.slotDisplay);
+                                    weekPlannerState.dragSourceRoomLabel = strOrEmpty(epDrag.roomDisplay) || strOrEmpty(epDrag.roomCode);
+                                    e.dataTransfer.setData('text/plain', sid);
+                                    e.dataTransfer.effectAllowed = 'move';
+                                    card.style.opacity = '0.65';
+                                });
+                                card.addEventListener('dragend', function () {
+                                    card.style.opacity = '1';
+                                });
+                                card.addEventListener('dragover', function (e) {
+                                    e.preventDefault();
+                                    e.dataTransfer.dropEffect = 'move';
+                                    td.classList.add('wk-drop-hover');
+                                });
+                                card.addEventListener('dragleave', function (e) {
+                                    if (!td.contains(e.relatedTarget)) {
+                                        td.classList.remove('wk-drop-hover');
+                                    }
+                                });
+                                card.addEventListener('drop', function (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
                                     td.classList.remove('wk-drop-hover');
-                                }
-                            });
-                            card.addEventListener('drop', function (e) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                td.classList.remove('wk-drop-hover');
-                                const dragId = e.dataTransfer.getData('text/plain');
-                                if (!dragId || dragId === sid) return;
-                                openScheduleDragConfirm(dragId, md, r + 1);
-                            });
-                            td.appendChild(card);
-                        } else {
-                            td.addEventListener('click', function () {
-                                const dt = dateForModelDow(weekPlannerState.weekMonday, md);
-                                openModalCreate(dt, r + 1);
-                            });
-                            td.addEventListener('dragover', function (e) {
-                                e.preventDefault();
-                                td.classList.add('wk-drop-hover');
-                            });
-                            td.addEventListener('dragleave', function () {
-                                td.classList.remove('wk-drop-hover');
-                            });
-                            td.addEventListener('drop', function (e) {
-                                e.preventDefault();
-                                td.classList.remove('wk-drop-hover');
-                                const id = e.dataTransfer.getData('text/plain');
-                                if (!id) return;
-                                openScheduleDragConfirm(id, md, r + 1);
+                                    const dragId = e.dataTransfer.getData('text/plain');
+                                    if (!dragId || dragId === sid) return;
+                                    openScheduleDragConfirm(dragId, md, periodNum, sec.partKey);
+                                });
+                                td.appendChild(card);
+                            } else {
+                                td.addEventListener('click', function () {
+                                    const dt = dateForModelDow(weekPlannerState.weekMonday, md);
+                                    openModalCreate(dt, periodNum, sec.partKey);
+                                });
+                                td.addEventListener('dragover', function (e) {
+                                    e.preventDefault();
+                                    td.classList.add('wk-drop-hover');
+                                });
+                                td.addEventListener('dragleave', function () {
+                                    td.classList.remove('wk-drop-hover');
+                                });
+                                td.addEventListener('drop', function (e) {
+                                    e.preventDefault();
+                                    td.classList.remove('wk-drop-hover');
+                                    const id = e.dataTransfer.getData('text/plain');
+                                    if (!id) return;
+                                openScheduleDragConfirm(id, md, periodNum, sec.partKey);
                             });
                         }
                         tr.appendChild(td);
-                    }
-                    tbody.appendChild(tr);
-                }
+                        }
+                        tbody.appendChild(tr);
+                        globalR++;
+                    });
+                });
                 tb.appendChild(tbody);
                 host.innerHTML = '';
                 host.appendChild(tb);
@@ -1365,7 +1598,7 @@
                 fillSelect(sel, list, 'id', cs => cs.classCode + ' — ' + cs.className, null);
             }
 
-            function openModalCreate(clickedDate, periodNum) {
+            function openModalCreate(clickedDate, periodNum, dayPartKey) {
                 const semIdRaw = document.getElementById('semesterSelect') && document.getElementById('semesterSelect').value;
                 const semId = semIdRaw != null ? String(semIdRaw).trim() : '';
                 if (!semId) {
@@ -1398,8 +1631,11 @@
                 if (roomList.length) setSelectValue('f_roomId', roomList[0].roomId);
                 if (slotList.length) {
                     let slotId = slotList[0].id;
-                    if (periodNum != null && periodNum >= 1) {
-                        const sl = slotContainingPeriod(periodNum);
+                    if (periodNum != null && periodNum >= 1 && dayPartKey) {
+                        const sl = slotContainingPeriodInPart(periodNum, dayPartKey);
+                        if (sl && sl.id != null) slotId = sl.id;
+                    } else if (periodNum != null && periodNum >= 1) {
+                        const sl = slotContainingPeriodAmbiguous(periodNum);
                         if (sl && sl.id != null) slotId = sl.id;
                     }
                     setSelectValue('f_timeSlotId', slotId);
@@ -1562,8 +1798,13 @@
                     enumSelect(document.getElementById('f_status'), meta.scheduleStatuses);
                     fillSelect(document.getElementById('f_lecturerId'), meta.lecturers, 'lecturerId', l => l.lecturerCode + ' — ' + l.fullName, null);
                     fillSelect(document.getElementById('f_roomId'), meta.rooms, 'roomId', r => r.roomCode + ' — ' + r.roomName, null);
-                    fillSelect(document.getElementById('f_timeSlotId'), meta.timeSlots, 'id', ts => {
-                        let lab = ts.slotCode || ('Tiết ' + ts.id);
+                    const slotsForForm = ensureArray(meta.timeSlots).slice().sort(function (a, b) {
+                        return (a.periodStart != null ? a.periodStart : 0) - (b.periodStart != null ? b.periodStart : 0);
+                    });
+                    fillSelect(document.getElementById('f_timeSlotId'), slotsForForm, 'id', ts => {
+                        let lab = '';
+                        if (ts.dayPartLabel) lab += '[' + ts.dayPartLabel + '] ';
+                        lab += ts.slotCode || ('Tiết ' + ts.id);
                         if (ts.startTime && ts.endTime) lab += ' (' + ts.startTime + '–' + ts.endTime + ')';
                         if (ts.periodStart != null) {
                             lab += ' · hàng T' + ts.periodStart + (ts.periodEnd != null && ts.periodEnd !== ts.periodStart ? ('–T' + ts.periodEnd) : '');

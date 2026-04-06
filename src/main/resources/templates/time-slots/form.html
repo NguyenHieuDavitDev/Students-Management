@@ -42,7 +42,8 @@
                     <div class="col-md-6">
                         <label class="form-label">Giờ bắt đầu <span class="text-danger">*</span></label>
                         <input type="time" class="form-control" th:field="*{startTime}">
-                        <small class="text-danger" th:errors="*{startTime}"></small>
+                        <small class="text-muted">Trên lịch tuần/ngày: &lt; 12h là buổi sáng; &lt; 18h là buổi chiều; từ 18h là buổi tối (nếu không có giờ thì theo số tiết).</small>
+                        <small class="text-danger d-block" th:errors="*{startTime}"></small>
                     </div>
 
                     <div class="col-md-6">

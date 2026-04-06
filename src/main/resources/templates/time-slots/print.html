@@ -42,6 +42,7 @@
         <th style="width: 80px">Tiết kết thúc</th>
         <th style="width: 90px">Giờ bắt đầu</th>
         <th style="width: 90px">Giờ kết thúc</th>
+        <th style="width: 100px">Buổi (lịch)</th>
         <th style="width: 90px">Trạng thái</th>
     </tr>
     </thead>
@@ -53,10 +54,11 @@
         <td class="text-center" th:text="${ts.periodEnd}"></td>
         <td class="text-center" th:text="${ts.startTime != null ? #temporals.format(ts.startTime, 'HH:mm') : ''}"></td>
         <td class="text-center" th:text="${ts.endTime != null ? #temporals.format(ts.endTime, 'HH:mm') : ''}"></td>
+        <td class="text-center" th:text="${ts.dayPartLabel}"></td>
         <td class="text-center" th:text="${ts.isActive} ? 'Đang dùng' : 'Tắt'"></td>
     </tr>
     <tr th:if="${timeSlots.isEmpty()}">
-        <td colspan="7" class="text-center">Không có dữ liệu khung giờ</td>
+        <td colspan="8" class="text-center">Không có dữ liệu khung giờ</td>
     </tr>
     </tbody>
 </table>

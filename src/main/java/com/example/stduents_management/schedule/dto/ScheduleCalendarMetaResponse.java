@@ -23,12 +23,18 @@ public record ScheduleCalendarMetaResponse(
 
     public record RoomRow(Long roomId, String roomCode, String roomName) {}
 
+    /**
+     * @param dayPart      {@code MORNING} | {@code AFTERNOON} | {@code EVENING}
+     * @param dayPartLabel nhãn tiếng Việt cho lưới lịch (buổi sáng / chiều / tối)
+     */
     public record TimeSlotRow(
             Integer id,
             String slotCode,
             String startTime,
             String endTime,
             Integer periodStart,
-            Integer periodEnd
+            Integer periodEnd,
+            String dayPart,
+            String dayPartLabel
     ) {}
 }

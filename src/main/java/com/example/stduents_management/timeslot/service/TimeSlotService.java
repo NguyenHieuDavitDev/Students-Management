@@ -1,5 +1,6 @@
 package com.example.stduents_management.timeslot.service;
 
+import com.example.stduents_management.timeslot.TimeSlotDayPart;
 import com.example.stduents_management.timeslot.dto.TimeSlotRequest;
 import com.example.stduents_management.timeslot.dto.TimeSlotResponse;
 import com.example.stduents_management.timeslot.entity.TimeSlot;
@@ -166,6 +167,7 @@ public class TimeSlotService {
     }
 
     private TimeSlotResponse toResponse(TimeSlot t) {
+        TimeSlotDayPart part = TimeSlotDayPart.resolve(t);
         return new TimeSlotResponse(
                 t.getId(),
                 t.getSlotCode(),
@@ -173,7 +175,9 @@ public class TimeSlotService {
                 t.getPeriodEnd(),
                 t.getStartTime(),
                 t.getEndTime(),
-                t.getIsActive()
+                t.getIsActive(),
+                part.getApiValue(),
+                part.getLabelVi()
         );
     }
 

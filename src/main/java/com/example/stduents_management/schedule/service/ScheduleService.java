@@ -14,6 +14,7 @@ import com.example.stduents_management.schedule.dto.AutoScheduleRequest;
 import com.example.stduents_management.schedule.dto.AutoScheduleResult;
 import com.example.stduents_management.schedule.dto.ScheduleCalendarEventResponse;
 import com.example.stduents_management.schedule.dto.ScheduleCalendarMetaResponse;
+import com.example.stduents_management.timeslot.TimeSlotDayPart;
 import com.example.stduents_management.schedule.dto.ScheduleRequest;
 import com.example.stduents_management.schedule.dto.ScheduleResponse;
 import com.example.stduents_management.schedule.entity.*;
@@ -463,6 +464,7 @@ public class ScheduleService {
                 props.put("timeSlotId", slot.getId());
                 props.put("periodStart", slot.getPeriodStart());
                 props.put("periodEnd", slot.getPeriodEnd());
+                props.put("timeSlotDayPart", TimeSlotDayPart.resolve(slot).getApiValue());
                 applyRoomOverrideToCalendarProps(props, roomOvr);
                 out.add(new ScheduleCalendarEventResponse(
                         eid,
@@ -509,6 +511,7 @@ public class ScheduleService {
             props.put("timeSlotId", ns.getId());
             props.put("periodStart", ns.getPeriodStart());
             props.put("periodEnd", ns.getPeriodEnd());
+            props.put("timeSlotDayPart", TimeSlotDayPart.resolve(ns).getApiValue());
             props.put("dayOfWeek", md.getDayOfWeek().getValue() + 1);
             props.put("instanceDate", md.toString());
             props.put("rescheduledFromDate", o.getOverrideDate().toString());
@@ -567,13 +570,20 @@ public class ScheduleService {
                 .findAll(Sort.by("slotCode"))
                 .stream()
                 .filter(ts -> ts.getIsActive() == null || Boolean.TRUE.equals(ts.getIsActive()))
-                .map(ts -> new ScheduleCalendarMetaResponse.TimeSlotRow(
-                        ts.getId(),
-                        ts.getSlotCode(),
-                        ts.getStartTime() != null ? ts.getStartTime().toString() : null,
-                        ts.getEndTime() != null ? ts.getEndTime().toString() : null,
-                        ts.getPeriodStart(),
-                        ts.getPeriodEnd()))
+                .sorted(Comparator.comparing(TimeSlot::getPeriodStart, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(TimeSlot::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(ts -> {
+                    TimeSlotDayPart part = TimeSlotDayPart.resolve(ts);
+                    return new ScheduleCalendarMetaResponse.TimeSlotRow(
+                            ts.getId(),
+                            ts.getSlotCode(),
+                            ts.getStartTime() != null ? ts.getStartTime().toString() : null,
+                            ts.getEndTime() != null ? ts.getEndTime().toString() : null,
+                            ts.getPeriodStart(),
+                            ts.getPeriodEnd(),
+                            part.getApiValue(),
+                            part.getLabelVi());
+                })
                 .toList();
         return new ScheduleCalendarMetaResponse(
                 semesters,
