@@ -55,7 +55,7 @@ public class ScheduleApiExceptionHandler {
             } else if (h.contains("uuid") || h.contains("lecturer")) {
                 msg = "Mã giảng viên (lecturerId) phải là UUID hợp lệ.";
             } else if (root instanceof JsonMappingException jme && jme.getPath() != null && !jme.getPath().isEmpty()) {
-                String field = jme.getPath().getFirst().getFieldName();
+                String field = jme.getPath().get(0).getFieldName();
                 if (field != null) {
                     msg = "Trường «" + field + "» không hợp lệ hoặc sai kiểu.";
                 }

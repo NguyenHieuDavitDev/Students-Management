@@ -1,0 +1,26 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "123456Aa"
+    ports:
+      - "14330:1433"
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 123456Aa -C -Q "SELECT 1" || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 35s
+
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P '123456Aa' -C -Q "IF DB_ID('student_db') IS NULL CREATE DATABASE [student_db];"
+    restart: "no"
