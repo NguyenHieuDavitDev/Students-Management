@@ -665,6 +665,9 @@
 
             function scheduleIdFromNormalizedEvent(ev) {
                 const p = ev.extendedProps || {};
+                if (Array.isArray(p.scheduleIds) && p.scheduleIds.length) {
+                    return String(p.scheduleIds[0]);
+                }
                 if (p.scheduleId) return String(p.scheduleId);
                 const eid = String(ev.id || '');
                 const parts = eid.split('-');
@@ -674,6 +677,89 @@
                     return parts.join('-');
                 }
                 return eid;
+            }
+
+            function canMergeDisplayEvents(a, b) {
+                if (!a || !b) return false;
+                const ap = a.extendedProps || {};
+                const bp = b.extendedProps || {};
+                if (!ap.instanceDate || !bp.instanceDate || ap.instanceDate !== bp.instanceDate) return false;
+                if (String(ap.classSectionId || '') !== String(bp.classSectionId || '')) return false;
+                if (String(ap.lecturerId || '') !== String(bp.lecturerId || '')) return false;
+                if (String(ap.roomId || '') !== String(bp.roomId || '')) return false;
+                if (String(ap.status || '') !== String(bp.status || '')) return false;
+                const sa = eventPeriodSpan(a);
+                const sb = eventPeriodSpan(b);
+                if (sa.pe + 1 !== sb.ps) return false;
+                return true;
+            }
+
+            function mergeTwoDisplayEvents(a, b) {
+                const ap = Object.assign({}, a.extendedProps || {});
+                const bp = Object.assign({}, b.extendedProps || {});
+                const sa = eventPeriodSpan(a);
+                const sb = eventPeriodSpan(b);
+                const merged = Object.assign({}, a);
+                const mergedProps = Object.assign({}, ap);
+                mergedProps.periodStart = Math.min(sa.ps, sb.ps);
+                mergedProps.periodEnd = Math.max(sa.pe, sb.pe);
+                const ids = [];
+                if (Array.isArray(ap.scheduleIds)) ids.push.apply(ids, ap.scheduleIds.map(String));
+                else if (ap.scheduleId) ids.push(String(ap.scheduleId));
+                if (Array.isArray(bp.scheduleIds)) ids.push.apply(ids, bp.scheduleIds.map(String));
+                else if (bp.scheduleId) ids.push(String(bp.scheduleId));
+                mergedProps.scheduleIds = Array.from(new Set(ids));
+                if (mergedProps.scheduleIds.length) mergedProps.scheduleId = mergedProps.scheduleIds[0];
+                const mixedSession = String(ap.sessionType || '') !== String(bp.sessionType || '');
+                if (mixedSession) {
+                    mergedProps.sessionType = 'MIXED';
+                }
+                mergedProps.slotDisplay = 'Tiết T' + mergedProps.periodStart + '–T' + mergedProps.periodEnd;
+                merged.extendedProps = mergedProps;
+                merged.id = 'merge-' + mergedProps.scheduleIds.join('_') + '-' + String(ap.instanceDate || '');
+                return merged;
+            }
+
+            function mergeDisplayEvents(rows) {
+                const grouped = new Map();
+                ensureArray(rows).forEach(function (raw) {
+                    const ev = normalizeEventInput(raw);
+                    if (!ev || !ev.start) return;
+                    const d0 = parseLocalDateFromEventStart(ev.start);
+                    if (!d0) return;
+                    const p = ev.extendedProps || {};
+                    const key = [
+                        formatYMD(d0),
+                        String(p.classSectionId || ''),
+                        String(p.lecturerId || ''),
+                        String(p.roomId || ''),
+                        String(p.sessionType || ''),
+                        String(p.status || '')
+                    ].join('|');
+                    const arr = grouped.get(key) || [];
+                    arr.push(ev);
+                    grouped.set(key, arr);
+                });
+                const out = [];
+                grouped.forEach(function (arr) {
+                    arr.sort(function (x, y) {
+                        const sx = eventPeriodSpan(x);
+                        const sy = eventPeriodSpan(y);
+                        return sx.ps - sy.ps;
+                    });
+                    let cur = arr[0];
+                    for (let i = 1; i < arr.length; i++) {
+                        const next = arr[i];
+                        if (canMergeDisplayEvents(cur, next)) {
+                            cur = mergeTwoDisplayEvents(cur, next);
+                        } else {
+                            out.push(cur);
+                            cur = next;
+                        }
+                    }
+                    if (cur) out.push(cur);
+                });
+                return out;
             }
 
             function mondayOfDateUtc(d) {
@@ -1403,9 +1489,10 @@
                     const col = days.indexOf(md);
                     if (col < 0) return;
                     const span = eventPeriodSpan(ev);
-                    const partKeyEv = eventPartKeyFromExtended(ev, span);
-                    const r0 = rowIndexForPartAndPeriod(sections, partKeyEv, span.ps);
-                    const r1 = rowIndexForPartAndPeriod(sections, partKeyEv, span.pe);
+                    const partKeyStart = dayPartKeyForPeriod(span.ps) || eventPartKeyFromExtended(ev, span);
+                    const partKeyEnd = dayPartKeyForPeriod(span.pe) || partKeyStart;
+                    const r0 = rowIndexForPartAndPeriod(sections, partKeyStart, span.ps);
+                    const r1 = rowIndexForPartAndPeriod(sections, partKeyEnd, span.pe);
                     if (r0 < 0 || r1 < 0 || r1 < r0) return;
                     let clash = false;
                     for (let r = r0; r <= r1; r++) {
@@ -1603,7 +1690,7 @@
                         {headers: authHeaders(false), credentials: 'same-origin'});
                     if (!res.ok) throw new Error(await readApiError(res));
                     const rows = ensureArray(await res.json());
-                    lastEventRows = rows.map(normalizeEventInput).filter(Boolean);
+                    lastEventRows = mergeDisplayEvents(rows);
                     hidePageError();
                     renderWeekGrid(lastEventRows);
                 } catch (err) {
@@ -1886,27 +1973,42 @@
                 const sem = ensureArray(meta.semesters).find(function (s) { return String(s.id) === String(base.semesterId); });
                 const weekNo = weekNumberFromSemester(sem, clickedDate);
                 const modelDow = jsDayToModel(clickedDate.getDay());
-                const ep = ev.extendedProps || {};
                 const span = eventPeriodSpan(ev);
-                const partKey = ep.timeSlotDayPart
-                    ? String(ep.timeSlotDayPart).toUpperCase()
-                    : dayPartKeyForPeriod(span.ps);
-                if (!partKey) {
-                    throw new Error('Không xác định được buổi (sáng/chiều/tối) để cộng tiết.');
+                const currentEndPeriod = span.pe;
+                const activeSlots = ensureArray(meta.timeSlots).filter(function (s) {
+                    return s && s.id != null && (s.periodStart != null || s.periodEnd != null);
+                }).slice();
+                activeSlots.sort(function (a, b) {
+                    const aStart = String(a.startTime || '');
+                    const bStart = String(b.startTime || '');
+                    if (aStart !== bStart) return aStart.localeCompare(bStart);
+                    const aPs = a.periodStart != null ? +a.periodStart : 1;
+                    const bPs = b.periodStart != null ? +b.periodStart : 1;
+                    if (aPs !== bPs) return aPs - bPs;
+                    return Number(a.id) - Number(b.id);
+                });
+                const baseIdx = activeSlots.findIndex(function (s) {
+                    const ps = s.periodStart != null ? +s.periodStart : 1;
+                    const pe = s.periodEnd != null ? +s.periodEnd : ps;
+                    return ps <= currentEndPeriod && currentEndPeriod <= pe;
+                });
+                if (baseIdx < 0) {
+                    throw new Error('Không tìm thấy khung giờ hiện tại để tính tăng tiết liên tiếp.');
                 }
-
-                const firstExtra = span.pe + 1;
                 const selectedSlots = [];
-                for (let i = 0; i < extraPeriods; i++) {
-                    const period = firstExtra + i;
-                    const slot = slotExactSinglePeriodInPart(period, partKey);
-                    if (!slot || slot.id == null) {
-                        throw new Error(
-                            'Thiếu khung giờ 1 tiết cho T' + period + ' (' + (DAY_PART_FALLBACK_LABEL[partKey] || partKey)
-                            + '). Cần cấu hình time slot theo từng tiết để tăng đúng số tiết.'
-                        );
-                    }
+                let remain = extraPeriods;
+                let i = baseIdx + 1;
+                while (i < activeSlots.length && remain > 0) {
+                    const slot = activeSlots[i];
+                    const ps = slot.periodStart != null ? +slot.periodStart : 1;
+                    const pe = slot.periodEnd != null ? +slot.periodEnd : ps;
+                    const len = Math.max(1, pe - ps + 1);
                     selectedSlots.push(slot);
+                    remain -= len;
+                    i++;
+                }
+                if (remain > 0) {
+                    throw new Error('Không đủ khung giờ kế tiếp để tăng thêm ' + extraPeriods + ' tiết. Hãy cấu hình thêm ca/khung giờ.');
                 }
 
                 let created = 0;
