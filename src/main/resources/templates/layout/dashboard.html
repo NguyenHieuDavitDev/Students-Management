@@ -139,6 +139,12 @@
         <div class="content-header" th:replace="~{layout/header :: header(${pageTitle}, ${pageSubtitle})}">
         </div>
         <section class="content">
+            <div th:if="${systemBranding != null and systemBranding.hasGlobalNotice()}"
+                 class="alert alert-info alert-dismissible fade show mb-3 d-flex align-items-start gap-2" role="alert">
+                <i class="fa-solid fa-bullhorn mt-1"></i>
+                <div class="flex-grow-1" th:text="${systemBranding.globalNotice}">Thông báo</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+            </div>
             <div th:replace="${content}"></div>
         </section>
     </div>

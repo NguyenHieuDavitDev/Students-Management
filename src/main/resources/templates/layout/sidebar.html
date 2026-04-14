@@ -3,7 +3,13 @@
 <body>
 <aside class="main-sidebar" th:fragment="sidebar(activeMenu)">
     <a href="/admin" class="brand-link">
-        <span class="brand-image"><i class="fa-solid fa-graduation-cap text-white"></i></span>
+        <th:block th:if="${systemBranding != null and systemBranding.logoUrl != null and !#strings.isEmpty(systemBranding.logoUrl)}">
+            <img th:src="${systemBranding.logoUrl}" alt="" class="brand-image rounded"
+                 style="width:32px;height:32px;object-fit:contain;background:rgba(255,255,255,.12);padding:2px;">
+        </th:block>
+        <th:block th:if="${systemBranding == null or systemBranding.logoUrl == null or #strings.isEmpty(systemBranding.logoUrl)}">
+            <span class="brand-image"><i class="fa-solid fa-graduation-cap text-white"></i></span>
+        </th:block>
         <span class="brand-text"
               th:text="${systemBranding != null and !#strings.isEmpty(systemBranding.sidebarTitle)} ? ${systemBranding.sidebarTitle} : 'Students Management'">Students Management</span>
     </a>

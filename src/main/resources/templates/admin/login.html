@@ -46,9 +46,15 @@
 <body>
 <div class="login-card">
     <div class="login-header">
-        <i class="fa-solid fa-shield-halved"></i>
+        <th:block th:if="${systemBranding != null and systemBranding.logoUrl != null and !#strings.isEmpty(systemBranding.logoUrl)}">
+            <img th:src="${systemBranding.logoUrl}" alt="" class="mb-2 rounded"
+                 style="max-height:44px;max-width:100px;object-fit:contain;">
+        </th:block>
+        <th:block th:if="${systemBranding == null or systemBranding.logoUrl == null or #strings.isEmpty(systemBranding.logoUrl)}">
+            <i class="fa-solid fa-shield-halved"></i>
+        </th:block>
         <h1>Đăng nhập quản trị</h1>
-        <p>Dashboard quản lý hệ thống</p>
+        <p th:text="${systemBranding != null and !#strings.isEmpty(systemBranding.loginTagline)} ? ${systemBranding.loginTagline} : 'Dashboard quản lý hệ thống'">Dashboard quản lý hệ thống</p>
     </div>
     <div class="login-body">
         <div th:if="${param.error}" class="alert alert-danger py-2">

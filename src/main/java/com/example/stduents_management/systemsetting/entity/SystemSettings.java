@@ -9,6 +9,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "system_settings")
 @Getter
@@ -43,4 +45,22 @@ public class SystemSettings {
 
     @Column(name = "footer_note", columnDefinition = "NVARCHAR(500)")
     private String footerNote;
+
+    @Column(name = "logo_url", columnDefinition = "NVARCHAR(500)")
+    private String logoUrl;
+
+    @Column(name = "login_tagline", columnDefinition = "NVARCHAR(500)")
+    private String loginTagline;
+
+    @Column(name = "global_notice", columnDefinition = "NVARCHAR(1000)")
+    private String globalNotice;
+
+    @Column(name = "global_notice_enabled", nullable = false)
+    private Boolean globalNoticeEnabled = Boolean.FALSE;
+
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
+    @Column(name = "last_updated_by", columnDefinition = "NVARCHAR(100)")
+    private String lastUpdatedBy;
 }

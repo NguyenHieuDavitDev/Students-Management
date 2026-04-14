@@ -11,6 +11,12 @@
 <div th:fragment="content">
 
     <div class="alert alert-danger" th:if="${globalError}" th:text="${globalError}"></div>
+    <div class="alert alert-warning" th:if="${autoScheduleResultMessage}">
+        <div th:text="${autoScheduleResultMessage}"></div>
+        <ul class="mb-0 mt-2" th:if="${autoScheduleSkippedDetails != null and !autoScheduleSkippedDetails.isEmpty()}">
+            <li th:each="item : ${autoScheduleSkippedDetails}" th:text="${item}"></li>
+        </ul>
+    </div>
 
     <div class="card">
         <div class="card-header">

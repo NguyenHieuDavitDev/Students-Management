@@ -252,7 +252,10 @@
                     <button type="button" id="btnDeleteSchedule" class="btn btn-outline-danger d-none">
                         <i class="fa-solid fa-trash"></i> Xóa
                     </button>
-                    <div class="ms-auto d-flex gap-2">
+                    <div class="ms-auto d-flex gap-2 flex-wrap">
+                        <button type="button" id="btnQuickSupplementary" class="btn btn-success d-none">
+                            <i class="fa-solid fa-bolt me-1"></i>Tăng thêm tiết môn này
+                        </button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                         <button type="button" id="btnSaveSchedule" class="btn btn-primary">
                             <i class="fa-solid fa-save"></i> Lưu
@@ -389,7 +392,10 @@
                 dragSourceDayPart: null,
                 pendingDrop: null,
                 pendingCellCreate: null,
-                afterCellActionModal: null
+                afterCellActionModal: null,
+                quickSupplementaryBase: null,
+                quickSupplementaryDate: null,
+                quickSupplementaryEvent: null
             };
             const modalEl = document.getElementById('scheduleModal');
             if (!modalEl) {
@@ -426,6 +432,7 @@
             }
             const btnSaveSchedule = document.getElementById('btnSaveSchedule');
             const btnSaveDefaultHtml = btnSaveSchedule ? btnSaveSchedule.innerHTML : '';
+            const btnQuickSupplementary = document.getElementById('btnQuickSupplementary');
 
             (function setSemesterSelectLoading() {
                 const sel = document.getElementById('semesterSelect');
@@ -829,6 +836,22 @@
                 hits.sort(function (a, b) { return (a.periodStart || 1) - (b.periodStart || 1); });
                 const exact = hits.find(function (h) { return (h.periodStart || 1) === periodNum; });
                 return exact || hits[0];
+            }
+
+            function slotExactSinglePeriodInPart(periodNum, partKey) {
+                const pk = String(partKey || '').toUpperCase();
+                if (!pk) return null;
+                const hits = ensureArray(meta ? meta.timeSlots : []).filter(function (s) {
+                    const p = String(s.dayPart || '').toUpperCase();
+                    const ps = s.periodStart != null ? +s.periodStart : 1;
+                    const pe = s.periodEnd != null ? +s.periodEnd : ps;
+                    return p === pk && ps === periodNum && pe === periodNum;
+                });
+                if (!hits.length) return null;
+                hits.sort(function (a, b) {
+                    return String(a.slotCode || '').localeCompare(String(b.slotCode || ''));
+                });
+                return hits[0];
             }
 
             /** theo mọi khung giờ đang bật + tối thiểu 6 hàng khi chưa cấu hình. Tối đa 24 tiết. */
@@ -1466,7 +1489,7 @@
                                 fillScheduleCardElement(card, pItem.ev);
                                 card.addEventListener('click', function (e) {
                                     e.stopPropagation();
-                                    if (sid) openModalEdit(sid);
+                                    if (sid) openModalEdit(sid, pItem.ev);
                                 });
                                 card.addEventListener('dragstart', function (e) {
                                     weekPlannerState.dragStartIso = pItem.ev.start;
@@ -1764,7 +1787,11 @@
                     wantSt === 'SUPPLEMENTARY' ? 'Thêm lịch — học tăng cường' : 'Thêm lịch học (Create)';
                 document.getElementById('f_scheduleId').value = '';
                 document.getElementById('btnDeleteSchedule').classList.add('d-none');
+                if (btnQuickSupplementary) btnQuickSupplementary.classList.add('d-none');
                 document.getElementById('modalGlobalError').classList.add('d-none');
+                weekPlannerState.quickSupplementaryBase = null;
+                weekPlannerState.quickSupplementaryDate = null;
+                weekPlannerState.quickSupplementaryEvent = null;
                 const rp = document.getElementById('scheduleReadPanel');
                 if (rp) rp.classList.add('d-none');
                 setSelectValue('f_semesterId', semId);
@@ -1813,6 +1840,107 @@
                 bsModal.show();
             }
 
+            function openQuickSupplementaryFromCurrentSchedule() {
+                const base = weekPlannerState.quickSupplementaryBase;
+                if (!base || !base.semesterId) {
+                    showModalError('Không lấy được dữ liệu buổi học để tạo buổi tăng thêm.');
+                    return;
+                }
+                const clickedDate = weekPlannerState.quickSupplementaryDate;
+                if (!clickedDate) {
+                    showModalError('Không xác định được ngày buổi học đang chọn.');
+                    return;
+                }
+                const sem = ensureArray(meta.semesters).find(function (s) { return String(s.id) === String(base.semesterId); });
+                const w = weekNumberFromSemester(sem, clickedDate);
+                document.getElementById('scheduleModalTitle').textContent = 'Thêm buổi tăng cường từ lịch đang chọn';
+                document.getElementById('f_scheduleId').value = '';
+                document.getElementById('btnDeleteSchedule').classList.add('d-none');
+                if (btnQuickSupplementary) btnQuickSupplementary.classList.add('d-none');
+                document.getElementById('modalGlobalError').classList.add('d-none');
+                const rp = document.getElementById('scheduleReadPanel');
+                if (rp) rp.classList.add('d-none');
+                setSelectValue('f_semesterId', base.semesterId);
+                loadClassSectionsForSemester(base.semesterId);
+                setSelectValue('f_classSectionId', base.classSectionId);
+                setSelectValue('f_lecturerId', base.lecturerId);
+                setSelectValue('f_roomId', base.roomId);
+                setSelectValue('f_timeSlotId', base.timeSlotId);
+                document.getElementById('f_dayOfWeek').value = jsDayToModel(clickedDate.getDay());
+                document.getElementById('f_startWeek').value = Math.max(1, w);
+                document.getElementById('f_endWeek').value = Math.max(1, w);
+                document.getElementById('f_weekPattern').value = 'ALL';
+                setSelectValue('f_sessionType', 'SUPPLEMENTARY');
+                setSelectValue('f_scheduleType', 'EXTRA');
+                setSelectValue('f_status', 'ACTIVE');
+                document.getElementById('f_note').value = 'Tăng thêm tiết tại tuần ' + Math.max(1, w) + ' (' + formatDMY(clickedDate) + ').';
+            }
+
+            async function createQuickSupplementaryByPeriods(extraPeriods) {
+                const base = weekPlannerState.quickSupplementaryBase;
+                const clickedDate = weekPlannerState.quickSupplementaryDate;
+                const ev = weekPlannerState.quickSupplementaryEvent;
+                if (!base || !clickedDate || !ev) {
+                    throw new Error('Không lấy được dữ liệu buổi học để tăng thêm tiết.');
+                }
+                const sem = ensureArray(meta.semesters).find(function (s) { return String(s.id) === String(base.semesterId); });
+                const weekNo = weekNumberFromSemester(sem, clickedDate);
+                const modelDow = jsDayToModel(clickedDate.getDay());
+                const ep = ev.extendedProps || {};
+                const span = eventPeriodSpan(ev);
+                const partKey = ep.timeSlotDayPart
+                    ? String(ep.timeSlotDayPart).toUpperCase()
+                    : dayPartKeyForPeriod(span.ps);
+                if (!partKey) {
+                    throw new Error('Không xác định được buổi (sáng/chiều/tối) để cộng tiết.');
+                }
+
+                const firstExtra = span.pe + 1;
+                const selectedSlots = [];
+                for (let i = 0; i < extraPeriods; i++) {
+                    const period = firstExtra + i;
+                    const slot = slotExactSinglePeriodInPart(period, partKey);
+                    if (!slot || slot.id == null) {
+                        throw new Error(
+                            'Thiếu khung giờ 1 tiết cho T' + period + ' (' + (DAY_PART_FALLBACK_LABEL[partKey] || partKey)
+                            + '). Cần cấu hình time slot theo từng tiết để tăng đúng số tiết.'
+                        );
+                    }
+                    selectedSlots.push(slot);
+                }
+
+                let created = 0;
+                for (let i = 0; i < selectedSlots.length; i++) {
+                    const slot = selectedSlots[i];
+                    const payload = {
+                        semesterId: +base.semesterId,
+                        classSectionId: +base.classSectionId,
+                        lecturerId: String(base.lecturerId || '').trim(),
+                        roomId: +base.roomId,
+                        timeSlotId: +slot.id,
+                        dayOfWeek: modelDow,
+                        startWeek: Math.max(1, weekNo),
+                        endWeek: Math.max(1, weekNo),
+                        weekPattern: 'ALL',
+                        sessionType: 'SUPPLEMENTARY',
+                        scheduleType: 'EXTRA',
+                        status: 'ACTIVE',
+                        note: 'Tăng thêm ' + extraPeriods + ' tiết tại ' + formatDMY(clickedDate)
+                    };
+                    const res = await fetch(API_BASE, {
+                        method: 'POST',
+                        headers: authHeaders(true),
+                        credentials: 'same-origin',
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) {
+                        throw new Error(await readApiError(res));
+                    }
+                    created++;
+                }
+                return created;
+            }
+
             function payloadFromForm() {
                 const statusRaw = normalizeScheduleEnumField(document.getElementById('f_status').value);
                 return {
@@ -1837,6 +1965,46 @@
                 el.textContent = msg || 'Có lỗi xảy ra';
                 el.classList.remove('d-none');
             }
+
+            if (btnQuickSupplementary) btnQuickSupplementary.addEventListener('click', function () {
+                const d = weekPlannerState.quickSupplementaryDate;
+                if (!d) {
+                    showModalError('Không xác định được ngày buổi học để tăng thêm tiết.');
+                    return;
+                }
+                const raw = prompt('Nhập số tiết muốn tăng thêm cho buổi ' + formatDMY(d) + ':', '1');
+                if (raw == null) return;
+                const n = Number(String(raw).trim());
+                if (!Number.isInteger(n) || n < 1 || n > 12) {
+                    showModalError('Số tiết tăng thêm phải là số nguyên từ 1 đến 12.');
+                    return;
+                }
+                const ok = confirm(
+                    'Xác nhận tăng thêm ' + n + ' tiết cho buổi ' + formatDMY(d) + '?\n'
+                    + 'Hệ thống sẽ tạo các buổi tăng cường theo tiết liên tiếp phía sau và tự rút phần phía sau để cân bằng.'
+                );
+                if (!ok) return;
+                const prev = btnQuickSupplementary.innerHTML;
+                btnQuickSupplementary.disabled = true;
+                btnQuickSupplementary.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang tăng...';
+                createQuickSupplementaryByPeriods(n)
+                    .then(async function (created) {
+                        hidePageError();
+                        flashPageSuccess('Đã tăng thêm ' + created + ' tiết cho buổi ' + formatDMY(d) + '.');
+                        await loadWeekEvents();
+                        const sid = document.getElementById('f_scheduleId').value;
+                        if (sid) {
+                            await openModalEdit(sid, weekPlannerState.quickSupplementaryEvent);
+                        }
+                    })
+                    .catch(function (e) {
+                        showModalError(e.message || String(e));
+                    })
+                    .finally(function () {
+                        btnQuickSupplementary.disabled = false;
+                        btnQuickSupplementary.innerHTML = prev;
+                    });
+            });
 
             if (btnSaveSchedule) btnSaveSchedule.addEventListener('click', async () => {
                 document.getElementById('modalGlobalError').classList.add('d-none');
@@ -1919,7 +2087,7 @@
                 document.getElementById('scheduleReadPanel').classList.remove('d-none');
             }
 
-            async function openModalEdit(scheduleId) {
+            async function openModalEdit(scheduleId, eventRow) {
                 document.getElementById('scheduleModalTitle').textContent = 'Sửa / Xóa lịch (Update · Delete)';
                 document.getElementById('f_scheduleId').value = scheduleId;
                 document.getElementById('btnDeleteSchedule').classList.remove('d-none');
@@ -1950,6 +2118,20 @@
                 setSelectValue('f_scheduleType', r.scheduleType);
                 setSelectValue('f_status', r.status);
                 document.getElementById('f_note').value = r.note || '';
+                let clickedDate = null;
+                const evProps = eventRow && eventRow.extendedProps ? eventRow.extendedProps : {};
+                if (evProps && evProps.instanceDate) {
+                    clickedDate = parseLocalDateFromYmd(evProps.instanceDate);
+                }
+                if (!clickedDate && eventRow && eventRow.start) {
+                    clickedDate = parseLocalDateFromEventStart(eventRow.start);
+                }
+                weekPlannerState.quickSupplementaryBase = r;
+                weekPlannerState.quickSupplementaryDate = clickedDate;
+                weekPlannerState.quickSupplementaryEvent = eventRow || null;
+                if (btnQuickSupplementary) {
+                    btnQuickSupplementary.classList.toggle('d-none', !clickedDate);
+                }
                 bsModal.show();
             }
 

@@ -97,9 +97,15 @@
 
 <div class="login-card">
     <div class="login-header">
-        <i class="fa-solid fa-graduation-cap"></i>
-        <h1>Students Management</h1>
-        <p>Đăng nhập vào hệ thống</p>
+        <th:block th:if="${systemBranding != null and systemBranding.logoUrl != null and !#strings.isEmpty(systemBranding.logoUrl)}">
+            <img th:src="${systemBranding.logoUrl}" alt="" class="mb-2 rounded"
+                 style="max-height:48px;max-width:120px;object-fit:contain;">
+        </th:block>
+        <th:block th:if="${systemBranding == null or systemBranding.logoUrl == null or #strings.isEmpty(systemBranding.logoUrl)}">
+            <i class="fa-solid fa-graduation-cap"></i>
+        </th:block>
+        <h1 th:text="${systemBranding != null and !#strings.isEmpty(systemBranding.loginTitle)} ? ${systemBranding.loginTitle} : 'Students Management'">Students Management</h1>
+        <p th:text="${systemBranding != null and !#strings.isEmpty(systemBranding.loginTagline)} ? ${systemBranding.loginTagline} : 'Đăng nhập vào hệ thống'">Đăng nhập vào hệ thống</p>
     </div>
     <div class="login-body">
         <div th:if="${param.error}" class="alert alert-danger">

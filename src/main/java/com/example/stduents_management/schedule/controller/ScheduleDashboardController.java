@@ -199,6 +199,16 @@ public class ScheduleDashboardController {
         }
         try {
             var res = service.generateAutoSchedule(req);
+            if (res.getCreatedCount() <= 0) {
+                model.addAttribute("autoScheduleRequest", req);
+                model.addAttribute("semesters", semesterRepository.findAll(Sort.by(Sort.Direction.DESC, "startDate")));
+                model.addAttribute("classSections", classSectionRepository.findAll(Sort.by("classCode")));
+                model.addAttribute("timeSlots", timeSlotRepository.findByIsActiveTrueOrderBySlotCode());
+                model.addAttribute("globalError", "Không thể phân lịch tự động cho dữ liệu đã chọn.");
+                model.addAttribute("autoScheduleResultMessage", res.getMessage());
+                model.addAttribute("autoScheduleSkippedDetails", res.getSkippedDetails());
+                return "schedules/auto";
+            }
             redirect.addFlashAttribute("success", res.getMessage());
             redirect.addFlashAttribute("autoScheduleCreated", res.getCreatedCount());
             redirect.addFlashAttribute("autoScheduleSkipped", res.getSkippedCount());

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
 /**
- * Thêm {@code systemBranding} cho sidebar / footer (tên đơn vị, dòng chân trang).
+ * Thêm {@code systemBranding} cho sidebar, footer, đăng nhập và thông báo chung trên dashboard.
  */
 @ControllerAdvice
 @RequiredArgsConstructor

@@ -255,15 +255,29 @@ public class ScheduleService {
 
         int createdCount = 0;
         int skippedSections = 0;
+        List<String> skippedDetails = new ArrayList<>();
+        if (!selectedSectionIds.isEmpty()) {
+            for (Long selectedId : selectedSectionIds) {
+                if (!openSectionIds.contains(selectedId)) {
+                    skippedSections++;
+                    skippedDetails.add("Lớp HP id=" + selectedId + ": không ở trạng thái mở hoặc không thuộc học kỳ đã chọn.");
+                } else if (!oneAssignmentPerSection.containsKey(selectedId)) {
+                    skippedSections++;
+                    skippedDetails.add("Lớp HP id=" + selectedId + ": chưa có phân công giảng viên-lớp học phần.");
+                }
+            }
+        }
         for (LecturerCourseClass lcc : oneAssignmentPerSection.values()) {
             ClassSection cs = lcc.getClassSection();
             Lecturer lec = lcc.getLecturer();
+            String sectionLabel = sectionLabel(cs);
             Integer credits = cs.getCourse() != null ? cs.getCourse().getCredits() : null;
             int totalSessions = totalSessionsForCredits(credits);
             int alreadyUsedUnits = sumCreditBudgetUnitsForClassSection(allInSemester, cs.getId(), null);
             int remaining = totalSessions - alreadyUsedUnits;
             if (remaining <= 0) {
                 skippedSections++;
+                skippedDetails.add(sectionLabel + ": đã đủ số buổi theo tín chỉ (" + alreadyUsedUnits + "/" + totalSessions + ").");
                 continue;
             }
 
@@ -274,24 +288,28 @@ public class ScheduleService {
                 windowEnd = startWeek + totalSessions - 1;
                 if (windowEnd > 53) {
                     skippedSections++;
+                    skippedDetails.add(sectionLabel + ": không đủ khung tuần để xếp (" + startWeek + "→" + (startWeek + totalSessions - 1) + " vượt tuần 53).");
                     continue;
                 }
             }
             int windowWeeks = windowEnd - startWeek + 1;
             if (windowWeeks < 1) {
                 skippedSections++;
+                skippedDetails.add(sectionLabel + ": khung tuần không hợp lệ.");
                 continue;
             }
 
             List<Schedule> trial = new ArrayList<>(allInSemester);
             List<Schedule> planned = new ArrayList<>();
             boolean sectionOk = true;
+            String sectionFailureReason = null;
             while (remaining > 0) {
                 int chunkWeeks = Math.min(remaining, windowWeeks);
                 int rowStart = startWeek;
                 int rowEnd = rowStart + chunkWeeks - 1;
                 if (rowEnd > windowEnd) {
                     sectionOk = false;
+                    sectionFailureReason = "không thể chia buổi vào khung tuần đã chọn.";
                     break;
                 }
                 Schedule row = buildAutoScheduleRowIfFree(
@@ -299,6 +317,7 @@ public class ScheduleService {
                         rowStart, rowEnd, trial);
                 if (row == null) {
                     sectionOk = false;
+                    sectionFailureReason = "không còn ô trống phù hợp (trùng giảng viên/phòng/lớp ở các thứ-tiết cho phép).";
                     break;
                 }
                 planned.add(row);
@@ -313,6 +332,7 @@ public class ScheduleService {
                 createdCount += planned.size();
             } else {
                 skippedSections++;
+                skippedDetails.add(sectionLabel + ": " + (sectionFailureReason != null ? sectionFailureReason : "không thể phân lịch tự động."));
             }
         }
 
@@ -320,7 +340,25 @@ public class ScheduleService {
                 "Phân lịch xong: tạo %d dòng lịch; %d lớp học phần bỏ qua hoặc xếp không đủ (hết ô trống, khung tuần quá ngắn, hoặc đã đủ/đủ buổi LT+TH+tăng cường theo tín chỉ). "
                         + "Số buổi ≈ 5 × tín chỉ (tối đa 60); lịch lý thuyết/thực hành/tăng cường đã có được trừ trước khi xếp thêm. Buổi thi không tính vào hạn mức.",
                 createdCount, skippedSections);
-        return new AutoScheduleResult(createdCount, skippedSections, message);
+        return new AutoScheduleResult(createdCount, skippedSections, message, skippedDetails);
+    }
+
+    private static String sectionLabel(ClassSection cs) {
+        if (cs == null) {
+            return "Lớp học phần";
+        }
+        String code = cs.getClassCode() != null ? cs.getClassCode().trim() : "";
+        String name = cs.getClassName() != null ? cs.getClassName().trim() : "";
+        if (!code.isEmpty() && !name.isEmpty()) {
+            return "Lớp HP " + code + " (" + name + ")";
+        }
+        if (!code.isEmpty()) {
+            return "Lớp HP " + code;
+        }
+        if (!name.isEmpty()) {
+            return "Lớp HP " + name;
+        }
+        return "Lớp học phần id=" + cs.getId();
     }
 
     /**

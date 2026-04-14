@@ -4,6 +4,7 @@ import com.example.stduents_management.systemsetting.dto.SystemSettingsRequest;
 import com.example.stduents_management.systemsetting.service.SystemSettingsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -25,6 +26,8 @@ public class SystemSettingsDashboardController {
     @GetMapping
     public String index(Model model) {
         model.addAttribute("systemSettingsRequest", systemSettingsService.getForEdit());
+        model.addAttribute("brandingPreview", systemSettingsService.getBrandingForView());
+        model.addAttribute("settingsAudit", systemSettingsService.getAuditInfo());
         return "settings/index";
     }
 
@@ -33,12 +36,16 @@ public class SystemSettingsDashboardController {
             @Valid @ModelAttribute("systemSettingsRequest") SystemSettingsRequest systemSettingsRequest,
             BindingResult bindingResult,
             Model model,
+            Authentication authentication,
             RedirectAttributes redirectAttributes
     ) {
         if (bindingResult.hasErrors()) {
+            model.addAttribute("brandingPreview", systemSettingsService.previewFromRequest(systemSettingsRequest));
+            model.addAttribute("settingsAudit", systemSettingsService.getAuditInfo());
             return "settings/index";
         }
-        systemSettingsService.save(systemSettingsRequest);
+        String editor = authentication != null ? authentication.getName() : null;
+        systemSettingsService.save(systemSettingsRequest, editor);
         redirectAttributes.addFlashAttribute("success", "Đã lưu cấu hình hệ thống.");
         return "redirect:/admin/settings";
     }

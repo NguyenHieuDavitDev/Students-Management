@@ -1,6 +1,6 @@
 package com.example.stduents_management.systemsetting.dto;
 
-import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -21,13 +21,35 @@ public class SystemSettingsRequest {
     @Size(max = 50, message = "Số điện thoại tối đa 50 ký tự")
     private String phone;
 
-    @Email(message = "Email không hợp lệ")
+    @Pattern(
+            regexp = "^$|^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+            message = "Email không hợp lệ (để trống nếu không dùng)"
+    )
     @Size(max = 255, message = "Email tối đa 255 ký tự")
     private String contactEmail;
 
+    @Pattern(
+            regexp = "^$|^https?://.+",
+            message = "Website phải để trống hoặc bắt đầu bằng http:// hoặc https://"
+    )
     @Size(max = 500, message = "Website tối đa 500 ký tự")
     private String website;
 
     @Size(max = 500, message = "Ghi chú footer tối đa 500 ký tự")
     private String footerNote;
+
+    @Pattern(
+            regexp = "^$|^https?://.+|^/.+",
+            message = "URL logo: để trống, đường dẫn bắt đầu bằng / hoặc link http(s)://"
+    )
+    @Size(max = 500, message = "URL logo tối đa 500 ký tự")
+    private String logoUrl;
+
+    @Size(max = 500, message = "Dòng giới thiệu đăng nhập tối đa 500 ký tự")
+    private String loginTagline;
+
+    @Size(max = 1000, message = "Nội dung thông báo tối đa 1000 ký tự")
+    private String globalNotice;
+
+    private boolean globalNoticeEnabled;
 }
